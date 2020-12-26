@@ -1,0 +1,79 @@
+# .profile
+# If something is compatible and desired to be configured for all shells, including zsh, please edit ~/.profile
+# and source .profile in all shells
+
+# Alises
+alias targz="tar -xvfz"
+alias conda_envs="conda info --envs"
+alias sq="squeue -u bjf79"
+
+#======================
+# Block fixes weird behavior with X11 forwarding while in tmux
+#http://alexteichman.com/octo/blog/2014/01/01/x11-forwarding-and-terminal-multiplexers/
+# -- Improved X11 forwarding through GNU Screen (or tmux).
+# If not in screen or tmux, update the DISPLAY cache.
+# If we are, update the value of DISPLAY to be that in the cache.
+function update-x11-forwarding
+{
+    if [ -z "$STY" -a -z "$TMUX" ]; then
+        echo $DISPLAY > ~/.display.txt
+    else
+        export DISPLAY=`cat ~/.display.txt`
+    fi
+}
+
+# This is run before every command.
+preexec() {
+    # Don't cause a preexec for PROMPT_COMMAND.
+    # Beware!  This fails if PROMPT_COMMAND is a string containing more than one command.
+    [ "$BASH_COMMAND" = "$PROMPT_COMMAND" ] && return 
+
+    update-x11-forwarding
+
+    # Debugging.
+    #echo DISPLAY = $DISPLAY, display.txt = `cat ~/.display.txt`, STY = $STY, TMUX = $TMUX  
+}
+trap 'preexec' DEBUG
+#===================
+
+
+
+# Source ssh settings or start ssh agent if not already running
+# Useful for ssh keys for git for example
+SSH_ENV="$HOME/.ssh/agent-environment"
+
+function start_agent {
+    echo "Initialising new SSH agent..."
+    /usr/bin/ssh-agent | sed 's/^echo/#echo/' > "${SSH_ENV}"
+    echo succeeded
+    chmod 600 "${SSH_ENV}"
+    . "${SSH_ENV}" > /dev/null
+    /usr/bin/ssh-add;
+}
+
+# Source SSH settings, if applicable
+
+if [ -f "${SSH_ENV}" ]; then
+    . "${SSH_ENV}" > /dev/null
+    #ps ${SSH_AGENT_PID} doesn't work under cywgin
+    ps -ef | grep ${SSH_AGENT_PID} | grep ssh-agent$ > /dev/null || {
+        start_agent;
+    }
+else
+    start_agent;
+fi
+
+# Attach or start split screen tmux session
+if [[ -z "$TMUX" ]] && [ "$SSH_CONNECTION" != "" ]; then
+    tmux attach-session -t ssh_tmux || (tmux new-session -s ssh_tmux \; split-window -h)
+fi
+
+# User specific environment and startup programs
+# User's Stow packages
+if [ -d "$HOME/pkg/bin" ]; then
+    export PATH="$HOME/pkg/bin:$PATH"
+fi
+
+if [ -f ~/.profile_local ]; then
+    source ~/.profile_local
+fi

@@ -1,0 +1,2 @@
+bcftools:
+    collapse_complementary_changes: true,
