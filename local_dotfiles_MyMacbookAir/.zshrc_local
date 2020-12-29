@@ -1,0 +1,17 @@
+#zshrc_local MyMacbookAir
+alias ssh_midway="ssh -YC bjf79@midway2.rcc.uchicago.edu"
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/Users/benfair/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/Users/benfair/anaconda3/etc/profile.d/conda.sh" ]; then
+        . "/Users/benfair/anaconda3/etc/profile.d/conda.sh"
+    else
+        export PATH="/Users/benfair/anaconda3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<

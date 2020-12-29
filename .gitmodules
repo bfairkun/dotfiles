@@ -8,6 +8,3 @@
 [submodule "ohmyzsh/.oh-my-zsh"]
 	path = ohmyzsh/.oh-my-zsh
 	url = https://github.com/ohmyzsh/ohmyzsh.git
-[submodule "local_dotfiles"]
-	path = local_dotfiles
-	url = https://github.com/bfairkun/local_dotfiles.git

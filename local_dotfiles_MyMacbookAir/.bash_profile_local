@@ -1,0 +1,27 @@
+#.bash_profle_local for MyMacbookAir
+
+# MacPorts Installer addition on 2016-01-05_at_14:53:59: adding an appropriate PATH variable for use with MacPorts.
+export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
+# I think homebrew installs stuff here, so add this to PATH in front of existing PATH
+export PATH="/usr/local/bin:$PATH"
+# Finished adapting your PATH environment variable for use with MacPorts.
+
+# added by Anaconda3 5.3.0 installer
+# >>> conda init >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$(CONDA_REPORT_ERRORS=false '/Users/benfair/anaconda3/bin/conda' shell.bash hook 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    \eval "$__conda_setup"
+else
+    if [ -f "/Users/benfair/anaconda3/etc/profile.d/conda.sh" ]; then
+        . "/Users/benfair/anaconda3/etc/profile.d/conda.sh"
+        CONDA_CHANGEPS1=false conda activate base
+    else
+        \export PATH="/Users/benfair/anaconda3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda init <<<
+
+# aliases
+alias ssh_midway="ssh -YC bjf79@midway2.rcc.uchicago.edu"
