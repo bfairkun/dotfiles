@@ -74,6 +74,11 @@ if [ -d "$HOME/pkg/bin" ]; then
     export PATH="$HOME/pkg/bin:$PATH"
 fi
 
+# User's home bin
+if [ -d "$HOME/bin" ]; then
+    export PATH="$HOME/bin:$PATH"
+fi
+
 if [ -f ~/.profile_local ]; then
     source ~/.profile_local
 fi
