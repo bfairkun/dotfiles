@@ -72,10 +72,10 @@ def setup_logging(verbosity):
     logging.basicConfig(level=loglevel,
                         format='%(message)s')
 
-def MoveStowConflictFilesToDir(TargetDir="../",  SourceDir="", SubtreeDirs=[''], NewDir="PreStowConflictFiles", dryrun=False, **kwargs):
-    TargetDir = os.path.expanduser(TargetDir.strip('/') + '/')
-    SourceDir = os.path.expanduser(SourceDir.strip('/') + '/')
-    NewDir = os.path.expanduser(NewDir.strip('/') + '/')
+def MoveStowConflictFilesToDir(TargetDir="../",  SourceDir="./", SubtreeDirs=[''], NewDir="PreStowConflictFiles", dryrun=False, **kwargs):
+    TargetDir = os.path.expanduser(TargetDir.rstrip('/') + '/')
+    SourceDir = os.path.expanduser(SourceDir.rstrip('/') + '/')
+    NewDir = os.path.expanduser(NewDir.rstrip('/') + '/')
     logging.debug(SubtreeDirs)
     SubtreeDirs = [SourceDir + SubDir for SubDir in SubtreeDirs]
     if not os.path.exists(NewDir):
@@ -106,8 +106,8 @@ def MoveStowConflictFilesToDir(TargetDir="../",  SourceDir="", SubtreeDirs=[''],
 # MoveStowConflictFilesToDir(TargetDir="~/", SourceDir="~/dotfiles", NewDir = "~/TempDotfiles", SubtreeDirs=['git', 'bash'], dryrun=True)
 
 def MoveFilesToDirSafely(SourceDir=None, TargetDir=None, dryrun=False, **kwargs):
-    SourceDir = os.path.expanduser(SourceDir.strip('/') + '/')
-    TargetDir = os.path.expanduser(TargetDir.strip('/') + '/')
+    SourceDir = os.path.expanduser(SourceDir.rstrip('/') + '/')
+    TargetDir = os.path.expanduser(TargetDir.rstrip('/') + '/')
     fn_list = os.listdir(SourceDir)
     if not fn_list:
         logging.info("No files found in SourceDir to move")

@@ -1,6 +1,7 @@
 [submodule "vim/.vim"]
 	path = vim/.vim
 	url = https://github.com/bfairkun/.vim.git
+	branch = master
 [submodule "zsh/.zsh_custom/plugins/zsh-syntax-highlighting"]
 	path = zsh/.zsh_custom/plugins/zsh-syntax-highlighting
 	url = https://github.com/zsh-users/zsh-syntax-highlighting.git

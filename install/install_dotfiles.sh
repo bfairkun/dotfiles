@@ -11,6 +11,7 @@
 
 # For readme:
 # git clone --recursive
+# install/MoveStowConflicts.cli.py MoveStowConflictFilesToDir -n -v --NewDir ~/PreStowConflictFiles/ --SubtreeDirs *
 
 #Install submodule repositories
 # zsh plugins, vimrc, local rc files
