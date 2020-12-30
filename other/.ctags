@@ -1,0 +1,8 @@
+--langdef=R --langmap=r:.R.r
+--regex-R=/^[ \t]*"?([.A-Za-z][.A-Za-z0-9_]*)"?[ \t]*(<-|=)[ \t]function/\1/f,Functions/
+--regex-R=/^"?([.A-Za-z][.A-Za-z0-9_]*)"?[ \t]*(<-|=)[ \t][^f][^u][^n][^c][^t][^i][^o][^n]/\1/g,GlobalVars/
+--regex-R=/[ \t]"?([.A-Za-z][.A-Za-z0-9_]*)"?[ \t]*(<-|=)[ \t][^f][^u][^n][^c][^t][^i][^o][^n]/\1/v,FunctionVariables/
+
+--langdef=snakemake
+--langmap=snakemake:.smk
+--regex-snakemake=/^rule ([a-zA-Z0-9_]+):/\1/r,Rules/

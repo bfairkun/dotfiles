@@ -55,15 +55,15 @@ cd ~/dotfiles
 
 # Create a single symlink
 ln -s bash/.bashrc ~/.bashrc
-``````
+```
 
-To do this for all my dotfiles easily, you can use [GNU stow](https://www.gnu.org/software/stow/). But I have found this to be a pain to install where I don't have root privelages because recent versions require recent PERL version which itself was difficult to install without root privelages. An easier to install alternative for systems without root privelages and without up-to-date PERL versions (RCC Midway) is [Xstow](http://xstow.sourceforge.net).
-
+To do this for many dotfiles easily, you can use [GNU stow](https://www.gnu.org/software/stow/). But I have found recent versions of GNU Stow to be a pain to install where I don't have root privelages because recent versions require recent PERL version which itself was difficult to install without root privelages. An easier to install alternative for systems without root privelages and without up-to-date PERL versions (RCC Midway) is [Xstow](http://xstow.sourceforge.net) or an older version of GNU stow (version 1.3.2). Once install, use like the following example:
 
 ```bash
-# Use stow to create symlinks for everything in bash
-# Use the dry-run -n flag first.
-# Remove -n when you feel comfortable you won't mess anything up
+cd ~/dotfiles
+
+# Use stow to create symlinks for everything in bash Use the dry-run -n flag
+# first. Remove -n when you feel comfortable you won't mess anything up
 stow -v -n bash
 
 # Or use xstow
@@ -72,8 +72,10 @@ xstow -v -n bash
 
 Stow can also create create symlinks for all the files in multuple folders, like this example that uses a glob pattern with stow. The `local_dotfiles_*` should obviously only be for the desired computer.
 
-```bash
-#Use extended globbing to ignore the local dotfiles and README
+```zsh
+#Use extended globbing to expand stow argument to all files in the directory
+#but ignore the local dotfiles and README. This glob probably only works in zsh,
+#but bash has a similar extended globbing option with slightly different syntax
 setopt extended_glob
 stow -v -n ^(local|README)*
 ```
@@ -102,9 +104,12 @@ Then you can create a `~/.bashrc_local` to contain computer specific settings. I
 
 ```bash
 cd ~/dotfiles
-stow -n -v local_dotfiles_MidwayRCC
+stow -n -v local_dotfiles_RCCMidway
 ```
 
 #### Step4: All done!
 
-But note that my vim settings may need some plugins installed, which you can do with `:PlugInstall` once you open vim. The readme in my [.vim repo](https://github.com/bfairkun/.vim) has a little more instructions if needed. Also, as I change things in my .vim repo (a nested submodule in this repo), pulling in changes can be kind of tricky if you don't know about git submodules. I read [this primer on git submodules](https://www.vogella.com/tutorials/GitSubmodules/article.html)
+But some extra notes to keep in mind:
+- my vim settings may need some plugins installed, which you can do with `:PlugInstall` once you open vim. The readme in my [.vim repo](https://github.com/bfairkun/.vim) has a little more instructions if needed.
+- Also, as I change things in my .vim repo (a nested submodule in this repo), pulling in changes can be kind of tricky if you don't know about git submodules. I read [this primer on git submodules](https://www.vogella.com/tutorials/GitSubmodules/article.html).
+- `chsh -s $(which zsh)` to switch to zsh.
