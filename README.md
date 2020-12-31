@@ -12,8 +12,8 @@ I also picked up some tips from [this post](https://www.anishathalye.com/2014/08
 ├── bin
 │   └── bin
 ├── git
-├── install
 ├── local_dotfiles_MyMacbookAir
+├── local_dotfiles_RCCMidway
 ├── ohmyzsh
 ├── other
 ├── sh
@@ -43,7 +43,7 @@ First, clone this repo to your home directory, using git commands that will also
 
 ```
 cd ~
-git clone --recurse-submodules --remote-submodules
+git clone --recurse-submodules --remote-submodules https://github.com/bfairkun/dotfiles.git
 ```
 
 #### Step2: Putting desired dotfiles (or symlinks to dotfiles) in `$HOME``
@@ -77,13 +77,18 @@ Stow can also create create symlinks for all the files in multuple folders, like
 #but ignore the local dotfiles and README. This glob probably only works in zsh,
 #but bash has a similar extended globbing option with slightly different syntax
 setopt extended_glob
+
+#Print the glob pattern
+print ^(local|README)*
+
+#Use it in stow command
 stow -v -n ^(local|README)*
 ```
 
 Stow will not overwrite existing files in `$HOME`. So if you want stow to creat a `$HOME/.vim` symlink to `$HOME/dotfiles/vim/.vim` but you already have a `$HOME/.vim` folder, you need to get rid of it (or move it somewhere else) or else stow will not write a symlink and it will complain of conflicts. I have created a helper script `bin/bin/MoveStowConflicts.cli.py` to systematically put all of the stow conflicts in `$HOME` into a new folder, which you might want to call `MyOldDotfilesThatCreateConflicts/`:
 
 ```bash
-bin/bin/MoveStowConflicts.cli.py MoveStowConflictFilesToDir -n -v --NewDir ~/MyOldDotfilesThatCreateConflicts/ --SubtreeDirs *
+bin/bin/MoveStowConflicts.cli.py MoveStowConflictFilesToDir -n -v --NewDir ~/MyOldDotfilesThatCreateConflicts/ --SubtreeDirs ^(local|README)*
 ```
 
 The script contains a dry-run (`-n`) parameter so you can preview what will happen before actually doing it. Use the `-h` help flag on that script for more.
