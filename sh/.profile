@@ -2,10 +2,6 @@
 # If something is compatible and desired to be configured for all shells, including zsh, please edit ~/.profile
 # and source .profile in all shells
 
-# Alises
-alias targz="tar -xvfz"
-alias conda_envs="conda info --envs"
-alias sq="squeue -u bjf79"
 
 #======================
 # Block fixes weird behavior with X11 forwarding while in tmux

@@ -142,6 +142,12 @@ source $ZSH/oh-my-zsh.sh
 
 ### OH MY ZSH END
 
+# Alises
+alias targz="tar -xvfz"
+alias conda_envs="conda info --envs"
+alias sq="squeue -u bjf79"
+alias ssh_midway="ssh -YC bjf79@midway2.rcc.uchicago.edu"
+
 #source local zshrc file
 if [ -f ~/.zshrc_local ]; then
     source ~/.zshrc_local
