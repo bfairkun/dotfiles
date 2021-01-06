@@ -36,10 +36,6 @@ preexec() {
 trap 'preexec' DEBUG
 #===================
 
-# Attach or start split screen tmux session
-if [[ -z "$TMUX" ]] && [ "$SSH_CONNECTION" != "" ]; then
-    tmux attach-session -t ssh_tmux || (tmux new-session -s ssh_tmux \; split-window -h)
-fi
 
 
 # User specific environment and startup programs

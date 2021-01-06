@@ -45,3 +45,7 @@ module load vim/8.1
 export PATH="/software/vim-8.1-el7-x86_64/bin/:$PATH"
 
 
+# Attach or start split screen tmux session
+if [[ -z "$TMUX" ]] && [ "$SSH_CONNECTION" != "" ]; then
+    tmux attach-session -t ssh_tmux || (tmux new-session -s ssh_tmux \; split-window -h)
+fi
