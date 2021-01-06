@@ -1,0 +1,20 @@
+{
+    "firefox": "firefox",
+    "chromium-browser": "chrome",
+    "chrome": "chrome",
+    "google-chrome": "chrome",
+    "x-terminal-emulator": "terminal",
+    "Mate-terminal": "terminal",
+    "thunderbird": "envelope",
+    "jetbrains-idea-ce": "edit",
+    "nautilus": "folder-open",
+    "Caja": "folder-open",
+    "clementine": "music",
+    "Spotify": "music",
+    "vlc": "play",
+    "signal": "comment",
+    "slack": "slack",
+    "zoom": "video",
+    "_no_match": "question"
+}
+
