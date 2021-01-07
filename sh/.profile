@@ -1,6 +1,9 @@
 # .profile
-# If something is compatible and desired to be configured for all shells, including zsh, please edit ~/.profile
+# If something is compatible and desired to be configured for all POSIX shells, including zsh, please edit ~/.profile
 # and source .profile in all shells
+
+# nnn config
+export NNN_PLUG='p:-_less -iRS $nnn*;w:wall'
 
 
 #======================
@@ -31,7 +34,6 @@ preexec() {
 }
 trap 'preexec' DEBUG
 #===================
-
 
 
 # User specific environment and startup programs
