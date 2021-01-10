@@ -172,16 +172,19 @@ bindsym $mod+Shift+0 move container to workspace number $ws10
 # Workspaces for specific apps
 # Snippet to figure out class:
 # xprop | grep WM_CLASS | awk '{ print $4 }'
-for_window [class="Mate-terminal"] move to workspace $ws1
-exec mate-terminal
 
-for_window [class="Firefox"] move to workspace $ws2
-exec firefox
+# for_window [class="Mate-terminal"] move to workspace $ws1
+# exec mate-terminal
+# for_window [class="Firefox"] move to workspace $ws2
+# exec firefox
+# for_window [class="Caja"] move to workspace $ws3
+# exec caja
+# for_window [class="Spotify"] move to workspace $ws4
 
-for_window [class="Caja"] move to workspace $ws3
-exec caja
-
-for_window [class="Spotify"] move to workspace $ws4
+exec --no-startup-id i3-msg 'workspace number 1; exec mate-terminal'
+exec --no-startup-id i3-msg 'workspace number 2; exec firefox'
+exec --no-startup-id i3-msg 'workspace number 3; exec mate-terminal -e "nnn -d"'
+exec --no-startup-id i3-msg 'workspace number 1;'
 
 # reload the configuration file
 bindsym $mod+Shift+c reload
@@ -240,3 +243,8 @@ bar {
 
 # Set background image with nitrogen
 exec --no-startup-id nitrogen --restore
+
+# gaps inner all set 20
+# gaps outer current plus 5
+# gaps horizontal current plus 40
+# gaps outer current toggle 60
