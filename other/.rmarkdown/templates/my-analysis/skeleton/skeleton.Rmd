@@ -1,0 +1,28 @@
+---
+title: "Untitled"
+author: "Benjamin Fair"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+```
+
+## Introduction
+
+
+## Analysis
+
+First, load necessary libraries
+```{r}
+library(tidyverse)
+
+```
+
+
+## Conclusions
+
+

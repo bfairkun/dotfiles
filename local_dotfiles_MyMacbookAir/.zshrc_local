@@ -1,5 +1,7 @@
 #zshrc_local MyMacbookAir
 alias ssh_midway="ssh -YC bjf79@midway2.rcc.uchicago.edu"
+alias mount_midway="sshfs -o follow_symlinks bjf79@midway2.rcc.uchicago.edu: ~/mnt/midway"
+alias unmount_midway="diskutil unmount ~/mnt/midway"
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!

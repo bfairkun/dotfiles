@@ -4,6 +4,7 @@
 
 # nnn config
 export NNN_PLUG='p:-_less -iRS $nnn*;w:wall'
+export NNN_BMS='d:~/Documents;D:~/Downloads/;m:~/mnt/midway/'
 
 
 #======================
