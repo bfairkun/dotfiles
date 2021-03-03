@@ -41,8 +41,10 @@ module load R/3.4.3
 module load rstudio
 module load netcat #useful to copy to local clipboard
 module load vim/8.1
+module load tmux/3.1c
 
 export PATH="/software/vim-8.1-el7-x86_64/bin/:$PATH"
+export PATH="/software/tmux-3.1c-el7-x86_64/bin/:$PATH"
 
 
 # Attach or start split screen tmux session
