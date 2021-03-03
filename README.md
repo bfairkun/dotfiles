@@ -57,7 +57,7 @@ cd ~/dotfiles
 ln -s bash/.bashrc ~/.bashrc
 ```
 
-To do this for many dotfiles easily, you can use [GNU stow](https://www.gnu.org/software/stow/). But I have found recent versions of GNU Stow to be a pain to install where I don't have root privelages because recent versions require recent PERL version which itself was difficult to install without root privelages. An easier to install alternative for systems without root privelages and without up-to-date PERL versions (RCC Midway) is [Xstow](http://xstow.sourceforge.net) or an older version of GNU stow (version 1.3.2). Once install, use like the following example:
+To do this for many dotfiles easily, you can use [GNU stow](https://www.gnu.org/software/stow/). But I have found recent versions of GNU Stow to be a pain to install where I don't have root privelages because recent versions require recent PERL version which itself was difficult to install without root privelages. An easier to install alternative for systems without root privelages and without up-to-date PERL versions (RCC Midway) is [Xstow](http://xstow.sourceforge.net) or an older version of GNU stow (version 1.3.2). Once installed, use like the following example:
 
 ```bash
 cd ~/dotfiles
@@ -73,6 +73,9 @@ xstow -v -n bash
 Stow can also create create symlinks for all the files in multuple folders, like this example that uses a glob pattern with stow. The `local_dotfiles_*` should obviously only be for the desired computer.
 
 ```zsh
+#Start a temprary zsh shell session if you aren't already ising zsh
+zsh
+
 #Use extended globbing to expand stow argument to all files in the directory
 #but ignore the local dotfiles and README. This glob probably only works in zsh,
 #but bash has a similar extended globbing option with slightly different syntax
