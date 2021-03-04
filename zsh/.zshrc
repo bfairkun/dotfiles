@@ -152,3 +152,5 @@ alias ssh_midway="ssh -YC bjf79@midway2.rcc.uchicago.edu"
 if [ -f ~/.zshrc_local ]; then
     source ~/.zshrc_local
 fi
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
