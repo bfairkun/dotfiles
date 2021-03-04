@@ -25,7 +25,7 @@ I also picked up some tips from [this post](https://www.anishathalye.com/2014/08
 ```
 
 - `bash` : my bash specific settings (eg: my `.bashrc` and `.bash_profile`)
-- `bin/bin` : a couple custom scripts which are generally useful to me. The nested structure is so that stow will create a symlink in `$HOME` to the child `bin/bin` instead of `bin`
+- `bin/bin` : Portable and distrutable executables that should be able to work on linux or mac without compiling. For example, a couple custom scripts which are generally useful to me. Also, the perl script [ack](https://beyondgrep.com/why-ack/) is here (Artistic License 2.0), The nested structure is so that stow will create a symlink in `$HOME` to the child `bin/bin` instead of `bin`
 - `git` : git settings
 - `local_dotfiles_*` : settings with computer-specific dotfiles that will be sourced in the general dotfiles. See installation step3.
 - `ohmyzsh` : git-submodule of [oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh). This includes some zsh themes and plugins sourced in my `.zshrc`. So there is no need to install oh-my-zsh independently; it is included in these dotfiles.
@@ -73,12 +73,13 @@ xstow -v -n bash
 Stow can also create create symlinks for all the files in multuple folders, like this example that uses a glob pattern with stow. The `local_dotfiles_*` should obviously only be for the desired computer.
 
 ```zsh
-#Start a temprary zsh shell session if you aren't already ising zsh
-zsh
-
 #Use extended globbing to expand stow argument to all files in the directory
 #but ignore the local dotfiles and README. This glob probably only works in zsh,
 #but bash has a similar extended globbing option with slightly different syntax
+
+#Start a temprary zsh shell session if you aren't already ising zsh, and allow
+#for special glob patterns
+zsh
 setopt extended_glob
 
 #Print the glob pattern
@@ -121,3 +122,7 @@ But some extra notes to keep in mind:
 - my vim settings may need some plugins installed, which you can do with `:PlugInstall` once you open vim. The readme in my [.vim repo](https://github.com/bfairkun/.vim) has a little more instructions if needed.
 - Also, as I change things in my .vim repo (a nested submodule in this repo), pulling in changes can be kind of tricky if you don't know about git submodules. I read [this primer on git submodules](https://www.vogella.com/tutorials/GitSubmodules/article.html).
 - `chsh -s $(which zsh)` to switch to zsh.
+- There are a couple things in my vim or zsh settings that require external things to be installed in order to make use of them. For example, I recommend installing or setting up the following:
+	- [fzf](https://github.com/junegunn/fzf). If installing this in a place without root privelages (eg RCC Midway), the git installation instructions should work. (But it won't be necessary to modify bashrc/zshrc when it prompts you during installation, since my bashrc and zshrc already have the fzf line)
+	- I have the pbcopy script in `bin/bin/pbcopy` and in my tmux and vim config I have remaps that reference this script. The usefulness of this script is mostly for working over ssh, so that you can copy the remote tmux clipboard or the remote vim clipboard to the local clipboard for copy/paste. But in order to make this work, you might need to follow the instructions from this [blogpost by Sean Coates](https://seancoates.com/blogs/remote-pbcopy) on how to set up ssh connection and a listener on your local machine. 
+	- Some of my local bashrc/zshrc have the lines for configuring conda. Obviously these will require [conda package manager](https://docs.conda.io/en/latest/miniconda.html) to be installed, and probably best to let `conda init` handle these lines.
