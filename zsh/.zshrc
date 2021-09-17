@@ -148,9 +148,16 @@ alias conda_envs="conda info --envs"
 alias sq="squeue -u bjf79"
 alias ssh_midway="ssh -YC bjf79@midway2.rcc.uchicago.edu"
 
+# source fzf zsh plugin
+# https://github.com/junegunn/fzf#key-bindings-for-command-line
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+# source navi cheatsheet widget. Launch navi with <Ctl>G
+# https://github.com/denisidoro/navi/blob/master/docs/installation.md#installing-the-shell-widget
+# "$(navi widget zsh)"
+
 #source local zshrc file
 if [ -f ~/.zshrc_local ]; then
     source ~/.zshrc_local
 fi
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh

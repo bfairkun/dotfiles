@@ -1,12 +1,23 @@
 # zshrc_local RCC midway
 
+function pet-select() {
+  BUFFER=$(pet search --query "$LBUFFER")
+  CURSOR=$#BUFFER
+  zle redisplay
+}
+zle -N pet-select
+stty -ixon
+bindkey '^s' pet-select
 
 function update_display
 {
     if [ ! -z $TMUX ]; then
         export DISPLAY="`tmux show-env | sed -n 's/^DISPLAY=//p'`"
     fi
+
 }
+
+module load gsl
 
 ##======================
 ## Block fixes weird behavior with X11 forwarding while in tmux
@@ -27,12 +38,12 @@ function update_display
 #preexec() {
 #    # Don't cause a preexec for PROMPT_COMMAND.
 #    # Beware!  This fails if PROMPT_COMMAND is a string containing more than one command.
-#    [ "$BASH_COMMAND" = "$PROMPT_COMMAND" ] && return 
+#    [ "$BASH_COMMAND" = "$PROMPT_COMMAND" ] && return
 
 #    update-x11-forwarding
 
 #    # Debugging.
-#    #echo DISPLAY = $DISPLAY, display.txt = `cat ~/.display.txt`, STY = $STY, TMUX = $TMUX  
+#    #echo DISPLAY = $DISPLAY, display.txt = `cat ~/.display.txt`, STY = $STY, TMUX = $TMUX
 #}
 #trap 'preexec' DEBUG
 ##===================
@@ -40,8 +51,9 @@ function update_display
 ## ALIASES
 # alias jupyterlab = 'jupyter lab --no-browser --ip $(/sbin/ip route get 8.8.8.8 | awk '{print $NF;exit}')'
 # Useful alias to fix when tmux display doesn't match display according to shell environment
+alias R='update_display && R'
 alias rstudio='update_display && rstudio'
-
+alias srstudio='sinteractive --mem=8g --time=2:00:00 --cpus-per-task=4 --command "update_display && rstudio"'
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
@@ -58,3 +70,4 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
+eval "$(navi widget zsh)"

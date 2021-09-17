@@ -54,7 +54,7 @@ Now you can just copy or create symlinks from the relevant dotfile to your home 
 cd ~/dotfiles
 
 # Create a single symlink
-ln -s bash/.bashrc ~/.bashrc
+ln -s ~/.bashrc bash/.bashrc 
 ```
 
 To do this for many dotfiles easily, you can use [GNU stow](https://www.gnu.org/software/stow/). But I have found recent versions of GNU Stow to be a pain to install where I don't have root privelages because recent versions require recent PERL version which itself was difficult to install without root privelages. An easier to install alternative for systems without root privelages and without up-to-date PERL versions (RCC Midway) is [Xstow](http://xstow.sourceforge.net) or an older version of GNU stow (version 1.3.2). Once installed, use like the following example:
@@ -123,6 +123,7 @@ But some extra notes to keep in mind:
 - Also, as I change things in my .vim repo (a nested submodule in this repo), pulling in changes can be kind of tricky if you don't know about git submodules. I read [this primer on git submodules](https://www.vogella.com/tutorials/GitSubmodules/article.html).
 - `chsh -s $(which zsh)` to switch to zsh.
 - There are a couple things in my vim or zsh settings that require external things to be installed in order to make use of them. For example, I recommend installing or setting up the following:
-	- [fzf](https://github.com/junegunn/fzf). If installing this in a place without root privelages (eg RCC Midway), the git installation instructions should work. (But it won't be necessary to modify bashrc/zshrc when it prompts you during installation, since my bashrc and zshrc already have the fzf line)
 	- I have the pbcopy script in `bin/bin/pbcopy` and in my tmux and vim config I have remaps that reference this script. The usefulness of this script is mostly for working over ssh, so that you can copy the remote tmux clipboard or the remote vim clipboard to the local clipboard for copy/paste. But in order to make this work, you might need to follow the instructions from this [blogpost by Sean Coates](https://seancoates.com/blogs/remote-pbcopy) on how to set up ssh connection and a listener on your local machine. 
 	- Some of my local bashrc/zshrc have the lines for configuring conda. Obviously these will require [conda package manager](https://docs.conda.io/en/latest/miniconda.html) to be installed, and probably best to let `conda init` handle these lines.
+	- [fzf](https://github.com/junegunn/fzf) is something I find pretty useful and might be referenced in some of my dotfiles. and it's required for some vim plugins that I use. If you want to install this in a place without root privelages (eg RCC Midway), the git installation instructions should work. (But it won't be necessary to modify bashrc/zshrc when it prompts you during installation, since my bashrc and zshrc already have the fzf line)
+	- Other unnecessary things to optionally install that I might have references to in my dotfiles collection include [gitmux](https://github.com/arl/gitmux), [nnn](https://github.com/jarun/nnn), [i3-gaps window manager for linux](https://github.com/Airblader/i3)
