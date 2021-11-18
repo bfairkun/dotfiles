@@ -2,6 +2,8 @@
 # If something is compatible and desired to be configured for all POSIX shells, including zsh, please edit ~/.profile
 # and source .profile in all shells
 
+echo "Running  ${0}..."
+
 # nnn config
 export NNN_PLUG='p:-_less -iRS $nnn*;w:wall'
 export NNN_BMS='d:~/Documents;D:~/Downloads/;m:~/mnt/midway/'

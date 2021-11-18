@@ -1,5 +1,6 @@
 # .bashrc
 
+echo "Running  ${0}..."
 
 # Source global definitions
 if [ -f /etc/bashrc ]; then

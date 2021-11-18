@@ -1,5 +1,7 @@
 # zshrc_local RCC midway
 
+echo "Running  ${0}..."
+
 function pet-select() {
   BUFFER=$(pet search --query "$LBUFFER")
   CURSOR=$#BUFFER

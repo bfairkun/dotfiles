@@ -4,6 +4,8 @@
 # functions, options, key bindings, etc.
 #
 
+echo "Running  ${0}..."
+
 autoload -U compinit
 compinit
 
