@@ -1,0 +1,8 @@
+__default__:
+    # account: pi-yangili1
+    account: pi-gilad
+    # partition: broadwl # the partition you use
+    partition: gilad
+    mem: 4000
+    output: "/dev/null"
+    job-name: "{rule}.{wildcards}"

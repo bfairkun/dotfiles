@@ -19,7 +19,8 @@ function update_display
 
 }
 
-module load gsl
+module unload gsl
+module load gsl/2.5
 
 ##======================
 ## Block fixes weird behavior with X11 forwarding while in tmux

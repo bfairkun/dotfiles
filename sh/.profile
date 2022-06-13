@@ -3,6 +3,7 @@
 # and source .profile in all shells
 
 echo "Running  ${0}..."
+# set -xe
 
 # nnn config
 export NNN_PLUG='p:-_less -iRS $nnn*;w:wall'
