@@ -5,9 +5,10 @@
 #
 
 echo "Running  ${0}..."
+# ZSH_DISABLE_COMPFIX="false"
 
-autoload -U compinit
-compinit
+# autoload -U compinit
+# compinit
 
 #allow tab completion in the middle of a word
 setopt COMPLETE_IN_WORD
@@ -36,6 +37,7 @@ setopt NO_BEEP
 #colors
 
 compdef _gnu_generic snakemake
+
 
 ### OH MY ZSH START
 # If you come from bash you might have to change your $PATH.
@@ -146,9 +148,7 @@ source $ZSH/oh-my-zsh.sh
 
 # Alises
 alias targz="tar -xvfz"
-alias conda_envs="conda info --envs"
 alias sq="squeue -u bjf79"
-alias ssh_midway="ssh -YC bjf79@midway2.rcc.uchicago.edu"
 
 # source fzf zsh plugin
 # https://github.com/junegunn/fzf#key-bindings-for-command-line
