@@ -1,0 +1,20 @@
+Open RStudio Server at http://10.50.223.133:59107
+1. SSH tunnel from your workstation using the following command:
+
+   ssh -N -L 8787:midway2-0645:59107 bjf79@midway2.rcc.uchicago.edu
+
+   and point your web browser to http://localhost:8787
+
+2. log in to RStudio Server using the following credentials:
+
+   user: bjf79
+   password: biology
+
+When done using RStudio Server, terminate the job by:
+
+1. Exit the RStudio Session ("power" button in the top right corner of the RStudio window)
+2. Issue the following command on the login node:
+
+      scancel -f 26005467
+[33mWARNING:[0m underlay of /etc/rstudio/rsession.sh required more than 50 (124) bind mounts
+slurmstepd-midway2-0645: error: *** JOB 26005467 ON midway2-0645 CANCELLED AT 2023-02-09T13:02:56 ***
