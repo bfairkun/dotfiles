@@ -1,0 +1,12 @@
+#!/bin/bash
+
+## USAGE
+## start_rstudio_server [logfile]
+##
+## ~/.start_rstudio_server.log as default [log] if none provided
+
+LOG=${1:-~/.start_rstudio_server.log}
+rm -f $LOG
+
+sbatch --output $LOG ~/bin/rstudio_server.sbatch &&
+watch -n 1 cat $LOG

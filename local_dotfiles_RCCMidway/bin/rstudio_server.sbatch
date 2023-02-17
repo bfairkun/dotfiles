@@ -4,7 +4,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=24G
-#SBATCH --output=rstudio-server.job
+#SBATCH --output=~/.rstudio-server.job
 # customize --output path as appropriate (to a directory readable only by the user!)
 
 # See also https://www.rocker-project.org/use/singularity/
