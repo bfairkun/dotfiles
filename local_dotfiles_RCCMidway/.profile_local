@@ -7,6 +7,7 @@ echo "Running  ${0}..."
 
 # Source ssh settings or start ssh agent if not already running
 # Useful for ssh keys for git for example
+mkdir -p $HOME/.ssh
 SSH_ENV="$HOME/.ssh/agent-environment"
 
 function start_agent {
