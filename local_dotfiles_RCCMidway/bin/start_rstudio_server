@@ -8,5 +8,9 @@
 LOG=${1:-~/.start_rstudio_server.log}
 rm -f $LOG
 
-sbatch --output $LOG ~/bin/rstudio_server.sbatch &&
+JOBID=$(sbatch --parsable --output $LOG ~/bin/rstudio_server.sbatch) &&
+
+# print pending job status on slurm. When status changes, watch the log
+watch -n 1 -g "squeue --state=PENDING --job=$JOBID"
 watch -n 1 cat $LOG
+
