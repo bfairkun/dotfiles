@@ -42,12 +42,21 @@ export PATH=$PATH:~/software/eigenMT
 export PATH="$HOME/bin:$PATH"
 
 
-module load gsl
-module load R/3.4.3
-module load rstudio
-module load netcat #useful to copy to local clipboard
-module load vim/8.1
-module load tmux/3.1c
+uname -a | grep -q 'midway2'
+if [ $? -eq 0 ]; then
+    module load mosh
+    module load gsl/2.5
+    module load R/3.4.3
+    module load rstudio
+    module load netcat #useful to copy to local clipboard
+    module load vim/8.1
+    module load tmux/3.1c
+fi
+uname -a | grep -q 'midway3'
+if [ $? -eq 0 ]; then
+    module load mosh
+    module load rstudio
+fi
 
 export PATH="/software/vim-8.1-el7-x86_64/bin/:$PATH"
 export PATH="/software/tmux-3.1c-el7-x86_64/bin/:$PATH"
