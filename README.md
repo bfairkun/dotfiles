@@ -70,6 +70,10 @@ stow -v -n bash
 xstow -v -n bash
 ```
 
+
+Note that I also included a binary for `stow` in `dotfiles/local_dotfiles_RCCMidway/bin/stow` that you can give a try instead of installing yourself (but no guarantees that the binary works unless you are on the same architecture as UChicago midway. And also of course, if you don't trust running binaries from me maybe you should be installing from source or downloading from a more reputable place anyway...
+
+
 Stow can also create create symlinks for all the files in multuple folders, like this example that uses a glob pattern with stow. The `local_dotfiles_*` should obviously only be for the desired computer.
 
 ```zsh
