@@ -1,1 +1,7 @@
-cat | nc localhost 2224
+hostname | grep -q 'midway2'
+if [ $? -eq 0 ]; then
+    cat | nc -q 1 localhost 2224
+else
+    cat | nc localhost 2224
+fi
+
