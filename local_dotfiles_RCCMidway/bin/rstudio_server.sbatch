@@ -19,6 +19,7 @@ USER_psw="biology"
 #USER_psw=$(openssl rand -base64 15)
 CONDA_PREFIX="/project2/gilad/bjf79_project1/envs/r_4_2"
 TMPDIR=${TMPDIR:-tmp}
+MIDWAYHOST=$(hostname | grep -o -P "midway[23]")
 
 # singularity pull docker://rocker/rstudio_latest
 dir_repo="/project2/yangili1/bjf79/rstudio-server-conda_share"
@@ -60,13 +61,13 @@ export SINGULARITYENV_USER=${USER}
 export SINGULARITYENV_PASSWORD=${USER_psw}
 export SINGULARITYENV_RSTUDIO_WHICH_R=${R_BIN}
 export SINGULARITYENV_CONDA_PREFIX=${CONDA_PREFIX}
-export SINGULARITY_CACHEDIR=/scratch/midway2/${USER}/.singularity
-export SINGULARITY_PATH=/scratch/midway2/${USER}/.singularity
+export SINGULARITY_CACHEDIR=/scratch/${MIDWAYHOST}/${USER}/.singularity
+export SINGULARITY_PATH=/scratch/${MIDWAYHOST}/${USER}/.singularity
 
 cat 1>&2 <<END
 1. SSH tunnel from your workstation using the following command:
 
-   ssh -N -L 8787:${HOSTNAME}:${PORT} ${SINGULARITYENV_USER}@midway2.rcc.uchicago.edu
+   ssh -N -L 8787:${HOSTNAME}:${PORT} ${SINGULARITYENV_USER}@${MIDWAYHOST}.rcc.uchicago.edu
 
    and point your web browser to http://localhost:8787
 
@@ -96,7 +97,7 @@ END
     --bind ${CONDA_PREFIX}:${CONDA_PREFIX} \
     --bind $HOME/.config/rstudio:/home/rstudio/.config/rstudio \
     --bind /project2:/project2 \
-    --bind /scratch/midway2/${USER}:/scratch/midway2/${USER} \
+    --bind /scratch/${MIDWAYHOST}/${USER}:/scratch/${MIDWAYHOST}/${USER} \
     ${CONTAINER} rserver  \
     --www-address=${IP} \
     --www-port=${PORT} \

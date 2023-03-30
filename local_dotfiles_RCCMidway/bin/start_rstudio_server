@@ -4,11 +4,22 @@
 ## start_rstudio_server [logfile]
 ##
 ## ~/.start_rstudio_server.log as default [log] if none provided
+hostname | grep -q 'midway2'
+if [ $? -eq 0 ]; then
+    extras="-p broadwl"
+fi
+hostname | grep -q 'midway3'
+if [ $? -eq 0 ]; then
+    extras="-p caslake --account pi-yangili1"
+fi
+
+echo ${extras}
+
 
 LOG=${1:-~/.start_rstudio_server.log}
 rm -f $LOG
 
-JOBID=$(sbatch --parsable --output $LOG ~/bin/rstudio_server.sbatch) &&
+JOBID=$(sbatch --parsable ${extras} --output $LOG ~/bin/rstudio_server.sbatch) &&
 
 # print pending job status on slurm. When status changes, watch the log
 watch -n 1 -g "squeue --state=PENDING --job=$JOBID"
