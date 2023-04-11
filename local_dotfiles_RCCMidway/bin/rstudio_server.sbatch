@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --time=8:00:00
+#SBATCH --signal=USR2
 #SBATCH --partition=broadwl
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
@@ -28,8 +29,10 @@ CONTAINER="/project2/yangili1/bjf79/singularity_sifs/tidyverse_4.2.sif"
 
 
 # Set-up temporary paths
-RSTUDIO_TMP="${TMPDIR}/$(echo -n $CONDA_PREFIX | md5sum | awk '{print $1}')"
+# RSTUDIO_TMP="${TMPDIR}/$(echo -n $CONDA_PREFIX | md5sum | awk '{print $1}')"
+RSTUDIO_TMP="/project2/yangili1/bjf79/rstudioserver/$(echo -n $CONDA_PREFIX | md5sum | awk '{print $1}')"
 mkdir -p $RSTUDIO_TMP/{run,var-lib-rstudio-server,local-share-rstudio,tmp}
+echo "Made ${RSTUDIO_TMP}"
 
 R_BIN=$CONDA_PREFIX/bin/R
 PY_BIN=$CONDA_PREFIX/bin/python
@@ -49,13 +52,12 @@ cat > ${RSTUDIO_TMP}/rsession.sh <<END
 #!/bin/sh
 export OMP_NUM_THREADS=1
 #export R_LIBS_USER=${CONDA_PREFIX}/lib
-# export CONDA_PREFIX=${CONDA_PREFIX}/bin/macs2
 exec rsession "\${@}"
 END
 
 chmod +x ${RSTUDIO_TMP}/rsession.sh
 
-export SINGULARITYENV_RSTUDIO_SESSION_TIMEOUT=0
+export SINGULARITYENV_RSTUDIO_SESSION_TIMEOUT=1
 
 export SINGULARITYENV_USER=${USER}
 export SINGULARITYENV_PASSWORD=${USER_psw}
