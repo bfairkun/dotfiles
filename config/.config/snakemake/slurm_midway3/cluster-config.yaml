@@ -1,0 +1,6 @@
+__default__:
+    account: pi-yangili1
+    partition: caslake # the partition you use
+    mem: 4000
+    output: "/dev/null"
+    job-name: "{rule}.{wildcards}"

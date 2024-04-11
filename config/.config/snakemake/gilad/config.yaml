@@ -2,13 +2,13 @@
 restart-times: 1
 jobscript: "slurm-jobscript.sh"
 cluster: "slurm-submit.py"
-cluster-status: "slurm-status.py"
+# cluster-status: "slurm-status.py"
 max-jobs-per-second: 1
 max-status-checks-per-second: 10
 local-cores: 5
 latency-wait: 60
 use-conda: True
 rerun-incomplete: True
-jobs: 150
+jobs: 5
 scheduler: greedy
 shadow-prefix: /scratch/midway2/bjf79

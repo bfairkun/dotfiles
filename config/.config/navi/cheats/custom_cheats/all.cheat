@@ -1,0 +1,342 @@
+% Misc
+
+# delete tmux temp info. Helps reset a broken tmux
+rm -rf /tmp/tmux-*
+
+# Check memory and time for a command
+/usr/bin/time -v MyCommand --with --arguments
+
+# Start jupyter notebook
+jupyter-notebook --no-browser --ip=$(/sbin/ip route get 8.8.8.8 | awk '{print $NF;exit}')
+
+# kill pid
+kill -9 pid
+
+# snakemake and notify when done simple email
+snakemake --profile slurm; echo "Process done" | mail -s "Process done" bfair.kun@gmail.com
+
+# Get size of folders/files in current dir
+du -sh ./*
+
+# snakemake with slurm profile
+snakemake --profile snakemake_profiles/slurm
+
+# Page most recently modified file in folder
+less -S `find .snakemake/log -type f -exec stat -c '%Y %n' {} \; | sort -nr | head -1 | awk '{print $2}'`
+
+# Pretty paging csv
+cat data.csv | perl -pe 's/((?<=,)|(?<=^)),/ ,/g;' | column -t -s, | less -S
+
+# Count num files in each folder and subfolders
+find . -type f | cut -d/ -f2 | sort | uniq -c
+
+# Edit cheatsheet
+vim ~/.config/navi/cheats/custom_cheats/all.cheat
+
+# Get the current users
+users
+
+# Show calendar
+cal
+
+# Get the weather
+curl wttr.in
+
+# Create a QR code with some content
+echo <content> | curl -F-=\<- qrenco.de
+
+# Read length in fastq.gz file list from stdin to xargs
+cat samples.tsv | awk '{print $2}' | xargs -I {} sh -c \"zcat {} | head -2 | tail -1 | wc
+
+# slurm interactive session with rstudio command"
+sinteractive --mem=8g --time=2:00:00 --cpus-per-task=4 --command \"update_display && rstudio
+#ipython session
+python -m IPython"
+
+# sort and uniq by cols1-3 of tab separated file
+sort -k1,3 -u -t$'\\t' input.txt
+
+# Page thru aligned tab delimited text"
+cat File.tsv | column -t -s "$(printf '\t')" | less -S
+
+# perl one-liner search and replace with capture group
+perl -lne '$_ =~ m/(.+?)/; print "$1"'
+
+% tmux
+
+# kill session by name
+tmux kill-session -t mysession
+
+# kill all session but current
+tmux kill-session -a
+
+# attach sesion by name
+tmux attach -t mysession
+
+# list sessions
+tmux ls
+
+# Find tmux pids (To kill with kill -9 pid)
+ps aux | grep tmux
+
+% Shell Directories
+
+# List all files of type
+find . -name '*.<txt>' -print
+
+% conda
+
+# list envs
+conda info --envs
+
+# List env revision history
+mamba list --revisions
+
+# Install according to env revision history version
+mamba install --revision 2
+
+# Remove environment
+mamba env remove --name bio-env
+
+# Clean unused packages
+mamba clean --all
+
+# Export active env to yaml
+conda env export > environment.yml
+
+# Create env from yaml
+mamba env create -f environment.yml
+
+# Create a new environment named py35, install Python 3.5
+mamba create --name py35 python=3.5
+
+# activate main env
+conda activate main
+
+% shell Symlinks
+
+# Create symlink
+ln -s <source-dirname> <link-name>
+
+# Remove symlink
+unlink <sample-dirname>
+
+% Shell Files
+
+# Search for a string inside all files in the current directory and subdrectories
+grep -r <string> *
+
+# Search and replace within file
+sed -i s/<original-text>/<new-text>/g <filename-txt>
+
+% encryption
+
+# Encrypt file
+openssl enc -aes-256-cbc -e -in <sample-filename-txt> -out <sample-encrypted-txt>
+
+# Decrypt file
+openssl enc -aes-256-cbc -d -in <sample-encrypted> -out <sample-filename>
+
+# gpg version
+gpg --version
+
+# gpg generate key
+gpg --gen-key
+
+# list keys
+gpg --list-keys
+
+# encrypt document
+gpg --output <output_filename_gpg> --encrypt --recipient <public_key> <input_filename>
+
+# decrypt document
+gpg --output <filename> --decrypt <filename_gpg>
+
+# make a signature
+gpg --output <filename_sig> --sign <filename>
+
+# verify signature
+gpg --output <filename> <filename> --decrypt <filename_sig>
+
+# clearsign documents
+gpg --clearsign <filename>
+
+# detach signature
+gpg --output <filename_sig> --detach-sig <filename>
+
+% Shell Server
+
+# Copy file from server to local
+scp <username-remote>:<file-to-send-path> <path-to-recieve> 
+
+# Copy file from local to server
+scp <file-to-send> <username-remote>:<where-to-put>
+
+% Shell System
+
+# Monitor error log (stream as file grows)
+tail error.log -f -n 0
+
+% Shell Apps
+
+# Open finder with current folder
+open .
+
+% Shell Variables
+
+# Register variable
+export <TESTING>=<Variable-text>
+
+# Echo variable
+echo $<Variable>
+
+# Unset variable
+unset <Variable>
+
+% Shell Output & Redirects
+
+# send a get http request exit with a non-zero status code on failure
+curl --fail <url>
+
+% apt
+
+# Update content listings from package repositories
+apt update
+
+# List all available packages
+apt list
+
+# List all installed packages
+apt list --installed
+
+# Info about package (including description)
+apt show -a <package-name>
+
+# Show versions and archive areas of available package
+apt list -a <package-name>
+
+# Search in repository (packages and description)
+apt search <query>
+
+# Check updates for installed packages
+apt list --upgradeable
+
+# Update all installed packages
+apt upgrade
+
+# Upgrade all installed packages (add/remove dependencies)
+apt full-upgrade
+
+# Update specific/individual package
+apt install --only-upgrade <package-name>
+
+# Downgrade package to a specific version
+apt install <package-name>=<package-version>
+
+# Install a package from repository
+apt install <package-name>
+
+# Remove/delete package
+apt remove <package-name>
+
+# Remove/delete package (with config files)
+apt purge <package-name>
+
+# Install local dpkg package
+apt install <filepath-deb>
+
+# List dependencies of package
+apt depends <package-name>
+
+# List reverse dependencies of package
+apt rdepends <package-name>
+
+# Remove un-needed packages and dependencies
+apt autoremove
+
+# Start ssh agent
+eval "$(ssh-agent -s)"; ssh-add
+
+% compression
+
+# Create a tar with Gzip compression
+tar czf <name>.tar.gz <files> 
+
+# Extract a tar using Gzip
+tar xzf <targz_file>
+
+$ path: ls
+$ tar_file: ls *.tar
+$ targz_file: ls *.tar.gz
+$ gz_file: ls *.gz
+
+% git
+
+# Clone a git repository
+git clone --recurse-submodules _repository.URL_
+
+# Add a submodule
+git submodule add https://github.com/chaconinc/DbConnector
+
+# Shallow clone with depth 1 with all branches and submodules
+git clone --depth=1 --no-single-branch --recurse-submodules _repository_ _clone_directory_
+
+# View all available remote for a git repository
+git remote --verbose
+
+# Adds a remote for a git repository
+git remote add _remote_name_ _remote_url_
+
+# Renames a remote for a git repository
+git remote rename _old_remote_name_ _new_remote_name_
+
+# Remove a remote for a git repository
+git remote remove _remote_name_
+
+# Displays unstaged changes for file
+cd <toplevel_directory>; \
+    git diff <unstaged_files>
+
+# Pushes committed changes to remote repository
+git push -u _remote_name_ _branch_name_
+
+# Overwrites remote branch with local branch changes
+git push _remote_name_ _branch_name_ -f
+
+# Pulls changes to a remote repo to the local repo
+git pull --ff-only
+
+# remove all local branches except master
+git branch | grep -v "master" | xargs git branch -D 
+
+# Merges changes on one branch into current branch
+git merge _branch_name_
+
+# Merges squashed changes on one branch into current branch
+git merge --squash _branch_name_
+
+# Abort the current conflict resolution process, and try to reconstruct the pre-merge state.
+git merge --abort
+
+# Displays formatted log of commits for a repo
+git log --all --decorate --oneline --graph
+
+# Sign all commits in a branch based on master
+git rebase master -S -f
+
+# Skip git hooks
+git commit --no-verify
+
+# Create new branch from current HEAD
+git checkout -b _new_branch_name_
+
+# Remove commits from local repository (destroy changes)
+git reset --hard HEAD~_number_of_commits_
+
+# Remove commits from local repository (keep changes)
+git reset --soft HEAD~_number_of_commits_
+
+$ branch_name: git branch | awk '{print $NF}'
+$ toplevel_directory: git rev-parse --show-toplevel
+$ unstaged_files: git status --untracked-files=no -s --porcelain | awk '{print $NF}' --- --multi true
+
