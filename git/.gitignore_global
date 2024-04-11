@@ -5,7 +5,7 @@
 ._*
 **/._*
 .*.swp
-**.pyc
+**/*.pyc
 
 # Word temporary
 ~$*.doc*

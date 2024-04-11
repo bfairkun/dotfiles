@@ -5,7 +5,7 @@
 #
 
 echo "Running  ${0}..."
-# ZSH_DISABLE_COMPFIX="false"
+ZSH_DISABLE_COMPFIX="true"
 
 # autoload -U compinit
 # compinit
@@ -35,9 +35,6 @@ setopt NO_BEEP
 
 # autoload -U colors
 #colors
-
-compdef _gnu_generic snakemake
-
 
 ### OH MY ZSH START
 # If you come from bash you might have to change your $PATH.
@@ -148,7 +145,12 @@ source $ZSH/oh-my-zsh.sh
 
 # Alises
 alias targz="tar -xvfz"
-alias sq="squeue -u bjf79"
+alias sq='squeue --me --format="%.18i %.9P %.60j %.8u %.8T %.10M %.9l %.6D %R"'
+
+# Functions
+function watchjobs {
+     watch -n 5 'squeue --me --format="%.18i %.9P %.60j %.8u %.8T %.10M %.9l %.6D %R"' 
+}
 
 # source fzf zsh plugin
 # https://github.com/junegunn/fzf#key-bindings-for-command-line
