@@ -1,0 +1,41 @@
+// Place your key bindings in this file to override the defaults
+[
+    {
+        "key": "ctrl+shift+t",
+        "command": "workbench.action.terminal.sendSequence",
+        "args": { "text": "${relativeFile}" },
+        "when": "terminalFocus"
+      },
+    {
+      "key": "ctrl+alt+r",
+      "description": "start tmux session with R for persistent session(s)",
+      "command": "runCommands",
+      "args": {
+        "commands": [
+          {
+            "command": "workbench.action.terminal.sendSequence",
+            "args": { "text": "tmux attach-session -t vscode_tmux_R || tmux new-session -s vscode_tmux_R 'R'\n" },
+          },
+          {
+            "command": "workbench.action.terminal.renameWithArg",
+            "args": {"name": "tmux.R"}
+          }
+        ],
+      },
+      "when": "editorLangId =~ /r|rmd/"
+    },
+    {
+    "key": "ctrl+shift+v",
+    "description": "run View on df head",
+    "command": "r.runCommandWithSelectionOrWord",
+    "when": "editorLangId =~ /r|rmd/ && editorTextFocus",
+    "args": "View($$)"
+    },
+    {
+    "key": "ctrl+shift+s",
+    "description": "run skimr::skim() on df",
+    "command": "r.runCommandWithSelectionOrWord",
+    "when": "editorLangId =~ /r|rmd/ && editorTextFocus",
+    "args": "skimr::skim($$)"
+    },
+]

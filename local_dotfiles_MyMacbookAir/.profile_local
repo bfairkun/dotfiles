@@ -1,0 +1,1 @@
+launchctl load ~/Library/LaunchAgents/pbcopy.plist

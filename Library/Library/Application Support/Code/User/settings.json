@@ -1,0 +1,36 @@
+{
+    "[markdown][plaintext][log]": {
+        "editor.quickSuggestions": {
+          "comments": "off",
+          "strings": "off",
+          "other": "off"
+        },
+      },
+    "[plaintext]": {
+      "editor.quickSuggestions": {
+        "comments": "off",
+        "strings": "off",
+        "other": "off"
+      }
+    },
+    "[markdown]": {
+      "editor.quickSuggestions": {
+        "comments": "off",
+        "strings": "off",
+        "other": "off"
+      }
+    },
+    "[log]": {
+      "editor.quickSuggestions": {
+        "comments": "off",
+        "strings": "off",
+        "other": "off"
+      }
+    },
+    "editor.minimap.enabled": false,
+    "workbench.colorTheme": "Default Light Modern",
+    "r.plot.useHttpgd": true,
+    "r.alwaysUseActiveTerminal": true,
+    "r.lsp.diagnostics": false,
+    "r.session.data.pageSize": 11,
+}

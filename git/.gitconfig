@@ -30,3 +30,5 @@
 	hide-status = 1
 [include]
     path = ~/.gitconfig_local
+[init]
+	defaultBranch = main
