@@ -27,10 +27,23 @@
         "other": "off"
       }
     },
-    "editor.minimap.enabled": false,
     "workbench.colorTheme": "Default Light Modern",
     "r.plot.useHttpgd": true,
     "r.alwaysUseActiveTerminal": true,
     "r.lsp.diagnostics": false,
     "r.session.data.pageSize": 11,
+    "editor.minimap.enabled": false,
+    "r.session.data.rowLimit": 5000,
+    "editor.hover.enabled": false,
+    "editor.wordWrap": "on" ,
+    "editor.acceptSuggestionOnEnter": "off",
+    "editor.renderWhitespace": "all",
+    "remote.SSH.connectTimeout": 60,
+    "inlineChat.finishOnType": true,
+    "terminal.integrated.profiles.linux":{ 
+      "tmux workspace session": {
+        "path": "tmux",
+        "args": ["new-session", "-A", "-s", "vscode_${workspaceFolder}"]
+      }
+    },
 }

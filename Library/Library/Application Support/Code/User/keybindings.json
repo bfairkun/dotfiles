@@ -1,11 +1,30 @@
 // Place your key bindings in this file to override the defaults
 [
+  // For all languages
+    {
+        "key": "ctrl+v tab",
+        "command": "type",
+        "args": { "text": "\t" },
+        "when": "editorTextFocus"
+    },
     {
         "key": "ctrl+shift+t",
         "command": "workbench.action.terminal.sendSequence",
         "args": { "text": "${relativeFile}" },
         "when": "terminalFocus"
-      },
+    },
+    {
+        "key": "ctrl+'",
+        "command": "editor.action.smartSelect.grow",
+        "when": "editorTextFocus"
+    },
+    {
+      "key": "shift shift",
+      "command": "editor.action.smartSelect.grow",
+      "when": "editorTextFocus"
+  },
+
+  // For r/rmd
     {
       "key": "ctrl+alt+r",
       "description": "start tmux session with R for persistent session(s)",
@@ -25,17 +44,54 @@
       "when": "editorLangId =~ /r|rmd/"
     },
     {
-    "key": "ctrl+shift+v",
-    "description": "run View on df head",
+      "key": "ctrl+cmd+enter",
+      "command": "r.view"
+    },
+    {
+    "key": "ctrl+alt+v",
+    "description": "run View on df head... this is less laggy than r.view for big dataframes",
     "command": "r.runCommandWithSelectionOrWord",
     "when": "editorLangId =~ /r|rmd/ && editorTextFocus",
     "args": "View($$)"
     },
     {
-    "key": "ctrl+shift+s",
+      "key": "ctrl+alt+h",
+      "description": "run head on selection",
+      "command": "r.runCommandWithSelectionOrWord",
+      "when": "editorLangId =~ /r|rmd/ && editorTextFocus",
+      "args": "head($$, width=Inf)"
+      },
+    {
+    "key": "ctrl+alt+s",
     "description": "run skimr::skim() on df",
     "command": "r.runCommandWithSelectionOrWord",
     "when": "editorLangId =~ /r|rmd/ && editorTextFocus",
     "args": "skimr::skim($$)"
+    },
+    {
+      "key": "ctrl+alt+p",
+      "description": "bring up plot viewer",
+      "command": "r.runCommand",
+      "when": "editorTextFocus && editorLangId =~ /r|rmd/",
+      "args": ".vsc.browser(httpgd::hgd_url(), viewer = \"Beside\")"
+    },
+    {
+      "key": "cmd+alt+i",
+      "description": "insert rmd chunk",
+      "command": "editor.action.insertSnippet",
+      "when": "editorTextFocus && editorLangId =~ /r|rmd/",
+      "args": {"snippet": "```{r}\n$0\n```"}
+    },
+    {
+      "key": "ctrl+alt+i",
+      "description": "insert rmd chunk",
+      "command": "editor.action.insertSnippet",
+      "when": "editorTextFocus && editorLangId =~ /r|rmd/",
+      "args": {"snippet": "```{r}\n$0\n```"}
+    },
+    {
+      "key": "f1",
+      "command": "r.helpPanel.openForSelection",
+      "when": "editorTextFocus && editorLangId == 'r' || editorTextFocus && editorLangId == 'rmd'"
     },
 ]
