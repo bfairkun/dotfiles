@@ -9,3 +9,4 @@ pkgs_dirs:
   - /project2/gilad/bjf79_project1/pkgs
 # channel_priority: strict
 show_channel_urls: true
+auto_activate_base: false
