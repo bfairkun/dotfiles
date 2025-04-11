@@ -9,6 +9,9 @@ rm -rf /tmp/tmux-*
 # Start jupyter notebook
 jupyter-notebook --no-browser --ip=$(/sbin/ip route get 8.8.8.8 | awk '{print $NF;exit}')
 
+# Start jupyter lab
+jupyter-lab --no-browser --ip=$(/sbin/ip route get 8.8.8.8 | awk '{print $NF;exit}')
+
 # kill pid
 kill -9 pid
 

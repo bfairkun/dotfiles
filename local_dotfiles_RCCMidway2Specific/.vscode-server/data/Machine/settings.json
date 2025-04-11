@@ -1,4 +1,4 @@
 {
     "python.defaultInterpreterPath": "/Users/benfair/anaconda3/bin/python",
-    "r.plot.useHttpgd": false,
+    "r.plot.useHttpgd": true,
 }
