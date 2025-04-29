@@ -92,6 +92,15 @@
     {
       "key": "f1",
       "command": "r.helpPanel.openForSelection",
-      "when": "editorTextFocus && editorLangId == 'r' || editorTextFocus && editorLangId == 'rmd'"
+      "when": "editorTextFocus && editorLangId == 'r' || editorTextFocus && editorLangId =~ /r|rmd/"
     },
+    {
+      "key": "ctrl+shift", // still need to fix this regex
+      "command": "selectbyregex.select",
+      "args": {
+          "regex": "[^\\n]*%>%[^\\n]*|[^\\n]*\\n",
+          "selectAllMatches": false
+      },
+      "when": "editorTextFocus && editorLangId =~ /r|rmd/"
+  }
 ]
