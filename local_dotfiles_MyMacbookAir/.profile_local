@@ -1,1 +1,3 @@
 launchctl load ~/Library/LaunchAgents/pbcopy.plist
+export PATH="$PATH:/opt/homebrew/bin:/Users/benjaminfair/miniconda3/bin:/Users/benfair/anaconda3/bin:/Users/bjf79/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+export PATH="$PATH:/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
