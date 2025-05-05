@@ -56,14 +56,14 @@ fi
 hostname | grep -q 'midway3'
 if [ $? -eq 0 ]; then
     module load mosh
-    module load R/4.2.1
+    module load R/4.3.1
     # module load rstudio
     module load tmux
     export TMPDIR='/tmp'
 fi
 
 
-# Attach or start split screen tmux session
-if [[ -z "$TMUX" ]] && [ "$SSH_CONNECTION" != "" ]; then
-    tmux attach-session -t ssh_tmux || (tmux new-session -s ssh_tmux \; split-window -h)
+# Attach or tmux session
+if [[ -z "$TMUX" && -n "$SSH_CONNECTION" && "$-" == *i* ]]; then
+    tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux
 fi

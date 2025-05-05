@@ -21,3 +21,6 @@ Backup of *.doc*
 
 # PowerPoint temporary
 ~$*.ppt*
+
+# generic Rdata saves
+**/session.RData
