@@ -49,7 +49,7 @@
     },
     {
     "key": "ctrl+alt+v",
-    "description": "run View on df head... this is less laggy than r.view for big dataframes",
+    "description": "run View on selection",
     "command": "r.runCommandWithSelectionOrWord",
     "when": "editorLangId =~ /r|rmd/ && editorTextFocus",
     "args": "View($$)"
@@ -61,13 +61,6 @@
       "when": "editorLangId =~ /r|rmd/ && editorTextFocus",
       "args": "head($$, width=Inf)"
       },
-    {
-    "key": "ctrl+alt+s",
-    "description": "run skimr::skim() on df",
-    "command": "r.runCommandWithSelectionOrWord",
-    "when": "editorLangId =~ /r|rmd/ && editorTextFocus",
-    "args": "skimr::skim($$)"
-    },
     {
       "key": "ctrl+alt+p",
       "description": "bring up plot viewer",
@@ -83,15 +76,29 @@
       "args": {"snippet": "```{r}\n$0\n```"}
     },
     {
-      "key": "ctrl+alt+i",
-      "description": "insert rmd chunk",
-      "command": "editor.action.insertSnippet",
-      "when": "editorTextFocus && editorLangId =~ /r|rmd/",
-      "args": {"snippet": "```{r}\n$0\n```"}
-    },
-    {
       "key": "f1",
       "command": "r.helpPanel.openForSelection",
-      "when": "editorTextFocus && editorLangId == 'r' || editorTextFocus && editorLangId == 'rmd'"
+      "when": "editorTextFocus && editorLangId == 'r' || editorTextFocus && editorLangId =~ /r|rmd/"
     },
+    {
+      "key": "ctrl+alt+s",
+      "command": "r.runCommandWithSelectionOrWord",
+      "when": "editorTextFocus && editorLangId =~ /r|rmarkdown/",
+      "args": "save_session()"
+    },
+    {
+      "key": "ctrl+alt+l",
+      "command": "r.runCommandWithSelectionOrWord",
+      "when": "editorTextFocus && editorLangId =~ /r|rmarkdown/",
+      "args": "load_session()"
+    },
+    {
+      "key": "ctrl+shift", // still need to fix this regex
+      "command": "selectbyregex.select",
+      "args": {
+          "regex": "[^\\n]*%>%[^\\n]*|[^\\n]*\\n",
+          "selectAllMatches": false
+      },
+      "when": "editorTextFocus && editorLangId =~ /r|rmd/"
+  }
 ]
