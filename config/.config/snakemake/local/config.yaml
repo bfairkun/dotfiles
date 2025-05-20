@@ -12,3 +12,4 @@ rerun-incomplete: True
 jobs: 5
 scheduler: greedy
 shadow-prefix: /scratch/midway2/bjf79
+conda-prefix: /project2/yangili1/bjf79/snakemake_conda_envs
