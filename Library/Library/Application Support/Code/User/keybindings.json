@@ -55,6 +55,46 @@
     "args": "View($$)"
     },
     {
+      "key": "ctrl+alt+t",
+      "description": "Versatile hackish substitute for View(df) in VScode... See view_df_tsv in Rprofile. Nice to pair with excel viewer preview to view the tsv.",
+      "command": "runCommands",
+      "args": {
+        "commands": [
+          {
+            "command": "r.runCommandWithSelectionOrWord",
+            "args": "view_df_tsv($$)",
+          },
+          {
+            "command": "workbench.action.tasks.runTask",
+            "args": "Open TSV in VS Code"
+          }
+        ],
+      },
+      "when": "editorLangId =~ /r|rmd/ && editorTextFocus"
+    },
+    {
+      "key": "ctrl+alt+e",
+      "description": "Versatile hackish substitute for View(df) in VScode with excel viewer. I don't think this works... The intention is to get excel viewer preview to automatically open",
+      "command": "runCommands",
+      "args": {
+        "commands": [
+          {
+            "command": "r.runCommandWithSelectionOrWord",
+            "args": "view_df_tsv($$)",
+          },
+          {
+            "command": "workbench.action.tasks.runTask",
+            "args": "Open TSV in VS Code"
+          },
+          {
+            "command": "excel.preview"
+          }
+
+        ],
+      },
+      "when": "editorLangId =~ /r|rmd/ && editorTextFocus"
+    },
+    {
       "key": "ctrl+alt+h",
       "description": "run head on selection",
       "command": "r.runCommandWithSelectionOrWord",

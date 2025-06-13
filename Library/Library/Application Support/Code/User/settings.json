@@ -54,4 +54,9 @@
       }
     },
     "github.copilot.advanced": {},
+    "python.terminal.shellIntegration.enabled": true,
+    "update.mode": "none",
+    "[csv]": {
+      "editor.inlayHints.maximumLength": 0
+    }
 }

@@ -1,0 +1,40 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "echo",
+            "type": "shell",
+            "command": "echo Hello"
+        },
+        {
+            "label": "Open TSV in VS Code",
+            "type": "shell",
+            "command": "code ~/tmp/df_view.tsv",
+            "problemMatcher": [],
+            "options": {"cwd": "${env:HOME}"},
+            "presentation": {
+                "echo": false,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "dedicated"
+            }
+        },
+        {
+            "label": "Open TSV with Excel Viewer",
+            "type": "shell",
+            "command": "code --command excel.preview ~/tmp/df_view.tsv",
+            "problemMatcher": [],
+            "options": {
+                "cwd": "${env:HOME}"
+            },
+            "presentation": {
+                "echo": false,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "dedicated"
+            }
+        }
+    ]
+}
