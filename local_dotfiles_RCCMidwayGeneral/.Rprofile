@@ -60,15 +60,19 @@ print_httpgd_tunnel_instructions <- function(local_port = 9999) {
 }
 
 # Automatically launch httpgd with tunnel info for all interactive sessions
-if (interactive() && requireNamespace("httpgd", quietly = TRUE)) {
-  options(device = function(...) {
-    httpgd::hgd(silent = TRUE)
-    print_httpgd_tunnel_instructions()
-    .vsc.browser(httpgd::hgd_url(history = FALSE), viewer = "Beside")
-  })
+# Detect if on a Midway compute node by hostname pattern
+is_midway_compute_node <- function() {
+  hostname <- Sys.getenv("HOSTNAME")
+  if (hostname == "") hostname <- system("hostname", intern = TRUE)
+  grepl("^midway[0-9]+-\\d+$", hostname)
+}
+if (interactive() && requireNamespace("httpgd", quietly = TRUE) && is_midway_compute_node()) {
+  library(httpgd)
+  hgd(silent = TRUE)
+  print_httpgd_tunnel_instructions()
 }
 
-# convenience functions for saving and loading R sessions
+# convenience functions for saving, loading and clearing R sessions
 load_session <- function(file = "session.RData") {
   if (file.exists(file)) {
     load(file, envir = .GlobalEnv)
@@ -85,4 +89,17 @@ save_session <- function(file = "session.RData") {
   for (v in vars) try(get(v, envir = .GlobalEnv), silent = TRUE)
   save(list = vars, file = file, envir = .GlobalEnv)
   cat("Session saved to", file, "\n")
+}
+
+clear_session <- function() {
+  rm(list = ls(envir = .GlobalEnv, all.names = TRUE), envir = .GlobalEnv)
+  cat("All objects have been removed from the global environment.\n")
+}
+
+view_df_tsv <- function(df, name = "df_view", dir = "~/tmp", lines = 5000) {
+  if (!dir.exists(dir)) dir.create(dir, recursive = TRUE)
+  file <- normalizePath(file.path(dir, paste0(name, ".tsv")), mustWork = FALSE)
+
+  write.table(head(df, lines), file = file, sep = "\t", quote = FALSE, row.names = FALSE)
+  Sys.sleep(0.5)
 }
