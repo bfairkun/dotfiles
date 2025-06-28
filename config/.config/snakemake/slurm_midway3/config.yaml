@@ -13,3 +13,4 @@ jobs: 150
 scheduler: greedy
 shadow-prefix: /scratch/midway2/bjf79
 cluster-cancel: scancel
+conda-prefix: /project/yangili1/bjf79/snakemake_conda_envs

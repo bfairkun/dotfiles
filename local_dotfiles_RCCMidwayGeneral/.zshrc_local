@@ -56,6 +56,8 @@ alias R='update_display && R'
 alias rstudio='update_display && rstudio'
 alias srstudio='sinteractive --mem=8g --time=2:00:00 --cpus-per-task=4 --command "update_display && rstudio"'
 
+eval "$(navi widget zsh)"
+
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
 __conda_setup="$('/home/bjf79/miniconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
@@ -71,4 +73,3 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
-eval "$(navi widget zsh)"
