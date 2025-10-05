@@ -1,16 +1,16 @@
 # default snakemake parameters for this profile
-restart-times: 1
+restart-times: 1 #sometimes this is a good default, but I often find myself overwriting this on the command line with `-T 0` so snakemake doesn't keep retrying to run jobs after it failed the first time. But some of the rules in my pipelines are set to attempt to retry a job with more mem if it fails the first time
 jobscript: "slurm-jobscript.sh"
 cluster: "slurm-submit.py"
 # cluster-status: "slurm-status.py"
 max-jobs-per-second: 1
 max-status-checks-per-second: 10
-local-cores: 5
+local-cores: 5 #I think the RCC logs you off if you do more than like 6 concurrent jobs on the login node.
 latency-wait: 60
 use-conda: True
-rerun-incomplete: True
-jobs: 150
-scheduler: greedy
-shadow-prefix: /scratch/midway2/bjf79
-cluster-cancel: scancel
-conda-prefix: /project/yangili1/bjf79/snakemake_conda_envs
+rerun-incomplete: True #If you cancel a snakemake mid-run, you probably want snakemake to rerun the jobs it did not finish last run.
+jobs: 150 #I also think there might be a max number of jobs you are allowed to submit to slurm, but 150 is well below the limit while be while above the number of jobs slurm will allow you to simulatenously run
+scheduler: greedy #I forgot why this is important or what it does exactly, but for some large workflows, things just work better with this I think
+shadow-prefix: /scratch/midway2/bjf79 #running shadow rules is sometimes useful, and scratch space is a sensible place for the shadow (temp) files
+cluster-cancel: scancel #when you cancel a snakemake, this allows snakemake to scancel the jobs already submitted to slurm
+conda-prefix: /project/yangili1/bjf79/snakemake_conda_envs #If this is not specified, snakemake will make conda envs in the snakemake project directory, meaning even if you have many projects/workflows that use identical conda env yamls, snakemake will create redundant enironment files for each project
