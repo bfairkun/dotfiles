@@ -1,0 +1,10 @@
+# Ignore everything by default (future-proof catch-all)
+*
+
+# Explicitly track only these
+!.gitignore
+!CLAUDE.md
+!settings.json
+!skills/
+!skills/*/
+!skills/*/*
