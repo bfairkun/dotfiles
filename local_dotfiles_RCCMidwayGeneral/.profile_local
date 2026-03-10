@@ -11,6 +11,7 @@ export TZ='America/Chicago'
 export PATH=$PATH:~/scripts
 # export PATH=$PATH:~/software
 export PATH="$HOME/bin:$PATH"
+export PATH="$HOME/.npm-global/bin:$PATH"
 
 # Source ssh settings or start ssh agent if not already running
 # Useful for ssh keys for git for example
@@ -28,8 +29,7 @@ function start_agent {
 
 # Source SSH settings, if applicable
 
-if [ -f "${SSH_ENV}" ]; then
-    . "${SSH_ENV}" > /dev/null
+if [ -f "${SSH_ENV}" ]; then . "${SSH_ENV}" > /dev/null
     #ps ${SSH_AGENT_PID} doesn't work under cywgin
     ps -ef | grep ${SSH_AGENT_PID} | grep ssh-agent$ > /dev/null || {
         start_agent;
@@ -38,6 +38,9 @@ else
     start_agent;
 fi
 
+
+# Available on both midway2 and midway3
+module load node
 
 # Midway2 specific stuff
 hostname | grep -q 'midway2'
