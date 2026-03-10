@@ -123,12 +123,39 @@ If not: add `- pygenometracks` to the relevant `code/envs/*.yaml`.
 
 ---
 
-## Quick IGV session tips
+## IGV Session XML files (for local IGV via SAMBA-mounted Midway)
 
-For interactive browsing, load a session via the VSCode IGV extension or command line:
-```bash
-# Load specific locus and tracks from command line
-igv -g hg38 -l chr2:1850700-1886852 sample.bam signal.bw
+IGV is run locally on Mac, with Midway filesystem mounted via SAMBA. The path prefix for HPC files is `/Volumes/project/` (not `/project/`).
+
+**Key XML structure:**
+- `<Resource path="filename.bw" type="bw"/>` — use **relative filename only** (IGV resolves relative to the session file location)
+- `<Track id="/Volumes/project/yangili1/bjf79/...">` — use **full `/Volumes/project/...` path** in the `id` attribute
+
+**Template for a stranded bigWig pair:**
+```xml
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Session genome="hg38" locus="All" version="8">
+    <Resources>
+        <Resource path="sample_plus.bw" type="bw"/>
+        <Resource path="sample_minus.bw" type="bw"/>
+    </Resources>
+    <Panel height="400" name="DataPanel" width="1500">
+        <Track attributeKey="sample_plus.bw" autoScale="true" clazz="org.broad.igv.track.DataSourceTrack" color="0,0,178" fontSize="10" id="/Volumes/project/yangili1/bjf79/PATH/sample_plus.bw" name="Sample +" renderer="BAR_CHART" visible="true" windowFunction="mean"/>
+        <Track attributeKey="sample_minus.bw" autoScale="true" clazz="org.broad.igv.track.DataSourceTrack" color="178,0,0" fontSize="10" id="/Volumes/project/yangili1/bjf79/PATH/sample_minus.bw" name="Sample -" negateValues="true" renderer="BAR_CHART" visible="true" windowFunction="mean"/>
+    </Panel>
+    <PanelLayout dividerFractions="0.9871428571428571"/>
+    <HiddenAttributes>
+        <Attribute name="DATA FILE"/>
+        <Attribute name="DATA TYPE"/>
+        <Attribute name="NAME"/>
+    </HiddenAttributes>
+</Session>
 ```
+
+- Plus strand: color `0,0,178` (blue)
+- Minus strand: color `178,0,0` (red), `negateValues="true"` to display downward
+- Save the `.xml` session file in the **same directory** as the bigWig files so relative paths resolve correctly
+
+## Quick IGV session tips
 
 For bulk export of screenshots, use igvtools batch mode or `igv-reports`.

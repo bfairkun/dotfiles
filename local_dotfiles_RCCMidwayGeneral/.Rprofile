@@ -2,7 +2,10 @@
 Sys.setenv(TERM_PROGRAM = "vscode")
 
 # Safely detect whether we're in a tmux_R window
-tmux_info <- tryCatch(system("tmux display -p", intern = TRUE, ignore.stderr = TRUE), error = function(e) "")
+# Only query tmux if we're actually inside a tmux session ($TMUX is set by tmux)
+tmux_info <- if (nzchar(Sys.getenv("TMUX"))) {
+  tryCatch(system("tmux display -p", intern = TRUE, ignore.stderr = TRUE), error = function(e) "")
+} else ""
 Is_tmuxR_window <- length(tmux_info) > 0 && grepl("tmux_R", tmux_info)
 
 # VS Code viewer setup if in tmux_R session
@@ -23,40 +26,22 @@ if (interactive() && Sys.getenv("RSTUDIO") == "" && Is_tmuxR_window) {
 
 # Always define this function, even outside tmux
 print_httpgd_tunnel_instructions <- function(local_port = 9999) {
-  if (!requireNamespace("httpgd", quietly = TRUE)) {
-    stop("The 'httpgd' package is not installed.")
-  }
-
-  url <- httpgd::hgd_url()
-  if (is.null(url)) stop("No httpgd server found. Run hgd() first.")
-
-  # Extract port and token from URL
-  port <- as.integer(gsub(".*:(\\d+)/.*", "\\1", url))
-  token <- sub(".+token=([^&]+).*", "\\1", url)
-  compute_host <- system("hostname", intern = TRUE)
+  stopifnot(requireNamespace("httpgd", quietly = TRUE))
+  url <- httpgd::hgd_url(); if (is.null(url)) { httpgd::hgd(silent = TRUE); url <- httpgd::hgd_url() }
+  port  <- as.integer(sub(".*:(\\d+)/.*", "\\1", url))
+  token <- sub(".*token=([^&]+).*", "\\1", url)
+  compute <- system("hostname -f", intern = TRUE)
   user <- Sys.getenv("USER")
-  login_host <- "your.login.node"
+  login <- Sys.getenv("SLURM_SUBMIT_HOST")
 
-  cat("\n=== httpgd Remote Tunnel Setup without Jump ===\n")
-  cat("1. On the LOGIN NODE (after you ssh in), run:\n\n")
-  cat(paste0("ssh -L ", port, ":localhost:", port, " ", compute_host, "\n\n"))
+  # If SLURM_SUBMIT_HOST is internal like *.rcc.local, fall back to alias "midway3"
+  use_alias <- (login == "" || grepl("\\.rcc\\.local$", login))
+  jump_arg <- if (use_alias) "midway3" else sprintf("%s@%s", user, login)
 
-  cat("2. On your LOCAL machine, run:\n\n")
-  cat(paste0("ssh -L ", local_port, ":localhost:", port, " ", user, "@", login_host, "\n\n"))
-
-  cat("3. Then open in browser or VS Code viewer:\n\n")
-  cat(paste0("http://localhost:", local_port, "/live?token=", token, "\n"))
-
-  cat("\n=== httpgd Remote Tunnel Setup with Jump ===\n")
-
-  cat("\n1. One-line SSH tunnel (preferred):\n\n")
-  cat(paste0(
-    "ssh -L ", local_port, ":localhost:", port, 
-    " -J ", user, "@", login_host, " ", user, "@", compute_host, "\n"
-  ))
-
-  cat("\n2. Then open this in your browser or VS Code viewer:\n\n")
-  cat(paste0("http://localhost:", local_port, "/live?token=", token, "\n"))
+  cat("\nSSH ProxyJump:\n")
+  cat(sprintf("ssh -vv -N -L %d:127.0.0.1:%d -J %s %s@%s\n", local_port, port, jump_arg, user, compute))
+  cat("\nOpen:\n")
+  cat(sprintf("http://localhost:%d/live?token=%s\n", local_port, token))
 }
 
 # Automatically launch httpgd with tunnel info for all interactive sessions

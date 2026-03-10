@@ -13,6 +13,9 @@ export PATH=$PATH:~/scripts
 export PATH="$HOME/bin:$PATH"
 export PATH="$HOME/.npm-global/bin:$PATH"
 
+# Ensure TMPDIR is /tmp so ssh-agent sockets don't land in $HOME
+export TMPDIR='/tmp'
+
 # Source ssh settings or start ssh agent if not already running
 # Useful for ssh keys for git for example
 mkdir -p $HOME/.ssh
@@ -62,7 +65,6 @@ if [ $? -eq 0 ]; then
     module load R/4.3.1
     # module load rstudio
     module load tmux
-    export TMPDIR='/tmp'
 fi
 
 
