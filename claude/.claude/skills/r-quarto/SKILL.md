@@ -100,8 +100,18 @@ saveRDS(big_object, "../code/scratch/big_object.rds")
 # From project root
 quarto render analysis/YYYYMMDD_name.qmd
 
-# Or open in VSCode and use the Quarto preview button
+# Render an Rmd (quarto can render .Rmd files too)
+quarto render analysis/YYYYMMDD_name.Rmd --output-dir docs
+
+# From within the analysis/ directory
+conda run -n base quarto render YYYYMMDD_name.Rmd --output-dir ../docs
+
 ```
+
+> **HPC note (RCC/Midway):** Do NOT use `Rscript -e "rmarkdown::render(...)"` on this cluster.
+> It fails silently with a `GLIBCXX_3.4.32 not found` error when loading `later.so` from the
+> user R library. `conda run -n base quarto render` works correctly and is the preferred approach
+> for both `.Rmd` and `.qmd` files.
 
 ## Common R packages for RNA-seq / genomics
 

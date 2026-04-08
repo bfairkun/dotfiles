@@ -118,6 +118,18 @@ snakemake --profile slurm_midway3 [targets]
 snakemake --profile slurm [targets]
 ```
 
+### ⚠️ Always dry-run before submitting to the cluster
+
+Before any real cluster run, do a dry-run and **check the job count breakdown carefully**:
+
+```bash
+snakemake -n 2>&1 | grep -E "^(Job stats|  [a-z]|total )"
+```
+
+Look for unexpected rules being triggered — especially rules with many jobs (hundreds or thousands) that correspond to already-existing outputs. A new output added to an existing rule can cascade into re-running all downstream jobs. If you see unexpectedly large job counts, investigate before submitting.
+
+If existing outputs were incorrectly flagged as stale (e.g., due to a rule modification updating an input file's timestamp), use `snakemake --touch --cores 1` to freeze all existing file timestamps, then dry-run again to confirm only the genuinely new jobs remain.
+
 ### Default cluster-config (applies to all rules unless overridden):
 - account: `pi-yangili1`
 - mem: `4000` MB

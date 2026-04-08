@@ -81,6 +81,16 @@ clear_session <- function() {
   cat("All objects have been removed from the global environment.\n")
 }
 
+# Use ragg (headless-safe) as the default graphics device on HPC (no X11)
+if (!isTRUE(capabilities("X11")) && requireNamespace("ragg", quietly = TRUE)) {
+  options(device = function(...) ragg::agg_png(tempfile(fileext = ".png"), ...))
+}
+
+# Register this interactive R session with btw so Claude Code can drive it
+if (interactive() && requireNamespace("btw", quietly = TRUE)) {
+  btw::btw_mcp_session()
+}
+
 view_df_tsv <- function(df, name = "df_view", dir = "~/tmp", lines = 5000) {
   if (!dir.exists(dir)) dir.create(dir, recursive = TRUE)
   file <- normalizePath(file.path(dir, paste0(name, ".tsv")), mustWork = FALSE)

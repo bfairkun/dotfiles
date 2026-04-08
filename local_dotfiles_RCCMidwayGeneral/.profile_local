@@ -11,6 +11,7 @@ export TZ='America/Chicago'
 export PATH=$PATH:~/scripts
 # export PATH=$PATH:~/software
 export PATH="$HOME/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/.npm-global/bin:$PATH"
 
 # Ensure TMPDIR is /tmp so ssh-agent sockets don't land in $HOME
@@ -42,16 +43,12 @@ else
 fi
 
 
-# Available on both midway2 and midway3
-module load node
-
 # Midway2 specific stuff
 hostname | grep -q 'midway2'
 if [ $? -eq 0 ]; then
     module unload gsl
     module load mosh
     module load gsl/2.5
-    module load R/4.2.0
     # module load rstudio
     module load netcat #useful to copy to local clipboard
     module load vim/8.1
@@ -62,7 +59,6 @@ fi
 hostname | grep -q 'midway3'
 if [ $? -eq 0 ]; then
     module load mosh
-    module load R/4.3.1
     # module load rstudio
     module load tmux
 fi
@@ -71,4 +67,12 @@ fi
 # Attach or tmux session
 if [[ -z "$TMUX" && -n "$SSH_CONNECTION" && "$-" == *i* ]]; then
     tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux
+fi
+
+# Ensure dispatcher watchdog cron job is registered.
+# Idempotent — only adds the entry if missing. Self-heals if crontab is wiped.
+if [ -f ~/.claude/dispatcher_watchdog.sh ]; then
+    if ! crontab -l 2>/dev/null | grep -q "dispatcher_watchdog.sh"; then
+        (crontab -l 2>/dev/null; echo "*/5 * * * * $HOME/.claude/dispatcher_watchdog.sh") | crontab -
+    fi
 fi

@@ -49,9 +49,19 @@ function update_display
 #trap 'preexec' DEBUG
 ##===================
 
+## Modules (loaded here so non-login shells like dispatcher windows get them too)
+module load node
+
+# Midway2 specific
+hostname | grep -q 'midway2' && module load R/4.2.0
+
+# Midway3 specific
+hostname | grep -q 'midway3' && module load R/4.3.1
+
 ## ALIASES
 # alias jupyterlab = 'jupyter lab --no-browser --ip $(/sbin/ip route get 8.8.8.8 | awk '{print $NF;exit}')'
 # Useful alias to fix when tmux display doesn't match display according to shell environment
+alias claude_dispatcher='tmux new-window -n "dispatcher" "claude --agent dispatcher -n dispatcher"'
 alias R='update_display && R'
 alias rstudio='update_display && rstudio'
 alias srstudio='sinteractive --mem=8g --time=2:00:00 --cpus-per-task=4 --command "update_display && rstudio"'
@@ -74,3 +84,26 @@ unset __conda_setup
 # <<< conda initialize <<<
 
 export PATH=$HOME/miniconda3/bin:$PATH
+
+# Load secret API keys (not tracked in dotfiles)
+[ -f ~/.secrets ] && source ~/.secrets
+
+# Auto-start agent plots HTTP server on port 8765
+if ! pgrep -f "agent_plots_server.py" > /dev/null 2>&1; then
+    mkdir -p $SCRATCH/$USER/agent_plots
+    nohup python3 ~/bin/agent_plots_server.py --port 8765 --directory $SCRATCH/$USER/agent_plots > $SCRATCH/$USER/agent_plots/server.log 2>&1 &
+fi
+
+# List running Jupyter kernels (newest first)
+function jk() {
+    local seen=()
+    local found=0
+    while IFS= read -r line; do
+        local cf=$(echo "$line" | grep -oE ' -+f[= ][^ ]+\.json' | grep -oE '[/~][^ ]+')
+        [[ -n "$cf" && -f "$cf" && ! ${seen[(r)$cf]} ]] || continue
+        seen+=("$cf")
+        printf "  %s  %s\n" "$(date -r $cf '+%Y-%m-%d %H:%M:%S')" "$cf"
+        found=1
+    done < <(pgrep -u $UID -af 'ipykernel' 2>/dev/null)
+    [[ $found -eq 0 ]] && echo "No running Jupyter kernels."
+}

@@ -11,9 +11,14 @@ argument-hint: [topic]
 ---
 title: "My Analysis"
 jupyter: py_general
+format:
+  html:
+    code-fold: true
+    toc: true
 ---
 ```
 - Always use `jupyter: py_general` (not `ipykernel`)
+- Always include `code-fold: true` and `toc: true` — these are defaults for all Python qmd notebooks
 - No `sys.path.insert` hacks needed — `my_utils` is installed in `py_general`
 
 ## Parameterized notebooks (papermill)
@@ -49,3 +54,26 @@ Use `from IPython.display import display` and call `display(plot)` — plain `pr
 conda run -n py_general python -m ipykernel install --user --name py_general
 ```
 Verify: `jupyter kernelspec list`
+
+## Rendering Python notebooks
+
+**Activate py_general before rendering** so quarto can find jupyter and the registered kernel:
+```bash
+conda activate py_general
+quarto render notebook.qmd
+```
+
+When running quarto from Claude via `conda run -n base`, the base env now has `ipykernel`, `nbformat`, `nbclient`, and `jupyter_client` installed, so it can discover the registered `py_general` kernel. No `QUARTO_PYTHON` needed:
+```bash
+conda run -n base quarto render notebook.qmd
+```
+
+**Verifying success:** `conda run` can return exit code 0 even when the notebook errors internally (e.g. a `NameError` in a cell). Always confirm render success by checking the task output contains `Output created:` and the HTML timestamp updated (`ls -la output.html`).
+
+## igv-reports
+
+`create_report` (igv-reports) is installed in `py_general`. Run via:
+```bash
+/project2/gilad/bjf79_project1/envs/py_general/bin/create_report sites.bed --genome hg38 --tracks *.bw --output report.html --standalone
+```
+Embed output in a notebook with `IPython.display.IFrame` or inline with `IPython.display.HTML`.

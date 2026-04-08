@@ -50,8 +50,38 @@
       "Bash(stow -v local_dotfiles_RCCMidwayGeneral)",
       "Read(//home/bjf79/**)",
       "Bash(git restore:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(ssh-add -l)",
+      "Read(//run/user/1352850516/**)",
+      "Bash(. ~/.ssh/agent-environment)",
+      "Bash(git -C ~/dotfiles push)",
+      "Bash(SSH_AUTH_SOCK=/run/user/1352850516/vscode-ssh-auth-sock-558828065 ssh-add -l)",
+      "Bash(jupyter kernelspec:*)",
+      "Bash(jk)",
+      "Read(//run/user/$UID/jupyter/**)",
+      "Bash(jupyter --runtime-dir)",
+      "Bash(xargs ls:*)",
+      "mcp__jupyter-kernel__start_kernel",
+      "mcp__jupyter-kernel__list_kernels",
+      "mcp__jupyter-kernel__connect_to_kernel",
+      "Bash(fuser 9044/tcp 9046/tcp)",
+      "Bash(ps -p 626186 -o pid,ppid,cmd --no-headers)",
+      "Read(//proc/626186/**)",
+      "Bash(alias jk:*)",
+      "Read(//project/yangili1/bjf79/20260310_diversesm_dr/**)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch",
+      "mcp__jupyter-kernel__run_python",
+      "Bash(tmux new-window*)",
+      "Bash(tmux kill-window*)",
+      "Bash(tmux list-windows*)",
+      "Bash(tmux list-sessions*)"
     ],
+    "defaultMode": "default",
     "additionalDirectories": [
       "/project/yangili1/bjf79/20260310_diversesm_dr/code/config",
       "/project/yangili1/bjf79/repos_not_projects/cookiecutter-quarto-smk/{{ cookiecutter.repo_name }}/code",
@@ -62,5 +92,6 @@
   "statusLine": {
     "type": "command",
     "command": "bash /home/bjf79/.claude/statusline-command.sh"
-  }
+  },
+  "skipDangerousModePermissionPrompt": true
 }

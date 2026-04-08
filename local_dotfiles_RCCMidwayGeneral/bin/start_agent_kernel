@@ -1,0 +1,74 @@
+#!/bin/bash
+
+## USAGE
+## start_agent_kernel [--env ENV] [--mem MEM] [--time TIME] [--cpus N] [--lang python|r]
+##
+## Submit a Jupyter kernel as a Slurm job. Once running, tell the agent:
+##   "connect to compute kernel"       (Python)
+##   "connect to compute R kernel"     (R)
+##
+## Defaults: --env py_general  --mem 48G  --time 4:00:00  --cpus 4  --lang python
+
+ENV="py_general"
+MEM="48G"
+TIME="4:00:00"
+CPUS=4
+LANG="python"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --env)   ENV="$2";  shift 2 ;;
+        --mem)   MEM="$2";  shift 2 ;;
+        --time)  TIME="$2"; shift 2 ;;
+        --cpus)  CPUS="$2"; shift 2 ;;
+        --lang)  LANG="$2"; shift 2 ;;
+        *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+done
+
+# Detect partition
+if hostname | grep -q 'midway2'; then
+    PARTITION="broadwl"
+elif hostname | grep -q 'midway3'; then
+    PARTITION="caslake"
+    ACCOUNT="--account pi-yangili1"
+else
+    echo "Warning: unknown host, no partition set"
+fi
+
+LOG=$SCRATCH/$USER/agent_kernel.log
+CF=$SCRATCH/$USER/agent_kernel.json
+[[ "$LANG" == "r" ]] && CF=$SCRATCH/$USER/agent_r_kernel.json
+
+# Remove stale connection file so we can detect when the new kernel is ready
+rm -f $CF
+
+SCRIPT=$(dirname $0)/agent_kernel.sbatch
+
+echo "Submitting kernel job (lang=$LANG, env=$ENV, mem=$MEM, time=$TIME, cpus=$CPUS, partition=$PARTITION)..."
+
+JOBID=$(sbatch --parsable \
+    --partition=$PARTITION $ACCOUNT \
+    --mem=$MEM --time=$TIME --cpus-per-task=$CPUS \
+    --output=$LOG \
+    $SCRIPT $ENV $LANG)
+
+echo "Job $JOBID submitted. Waiting for kernel to start..."
+
+# Poll until connection file appears (kernel is ready)
+while [[ ! -f $CF ]]; do
+    sleep 2
+    STATE=$(squeue --job=$JOBID --noheader --format=%T 2>/dev/null)
+    if [[ -z "$STATE" && ! -f $CF ]]; then
+        echo "Job finished without writing connection file. Check $LOG for errors."
+        exit 1
+    fi
+done
+
+echo ""
+echo "Kernel ready: $CF"
+if [[ "$LANG" == "r" ]]; then
+    echo "Tell the agent: connect to compute R kernel"
+else
+    echo "Tell the agent: connect to compute kernel"
+fi
