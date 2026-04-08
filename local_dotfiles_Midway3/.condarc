@@ -1,0 +1,11 @@
+channels:
+  - conda-forge
+  - bioconda
+  - r
+envs_dirs:
+  - /project/yangili1/bjf79/conda_envs
+pkgs_dirs:
+  - /project/yangili1/bjf79/conda_pkgs
+# channel_priority: strict
+show_channel_urls: true
+auto_activate_base: true
