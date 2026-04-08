@@ -1,0 +1,27 @@
+name: sm_splicingmodulators
+channels:
+  - conda-forge
+  - bioconda
+  - r
+dependencies:
+  - python=3.9
+  - bcftools
+  - bedtools
+  - biopython
+  - fastx_toolkit
+  - multiqc
+  - numpy
+  - pandas
+  - picard
+  - qualimap
+  - samtools
+  - scipy
+  - snakemake=7.32.4
+  - star=2.6.1b
+  - ucsc-bedgraphtobigwig
+  - ucsc-liftover
+  - bioconda::sra-tools
+  - ca-certificates
+  - certifi
+  - openssl
+prefix: /project2/gilad/bjf79_project1/envs/sm_splicingmodulators

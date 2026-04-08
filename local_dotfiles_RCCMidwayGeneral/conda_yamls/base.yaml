@@ -1,0 +1,17 @@
+name: base
+channels:
+  - conda-forge
+  - bioconda
+  - r
+dependencies:
+  - conda
+  - python=3.7
+  - mamba
+  - gnupg
+  - cmake
+  - nbconvert
+  - jupyterlab
+  - ca-certificates
+  - certifi
+  - openssl
+prefix: /home/bjf79/miniconda3
