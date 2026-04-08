@@ -1,2 +1,7 @@
 config/.config/nnn/sessions/
 config/.config/gh/hosts.yml
+**/__pycache__/
+
+# Secret credentials — never commit
+zsh/.secrets
+.secrets
