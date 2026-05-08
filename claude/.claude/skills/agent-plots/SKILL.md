@@ -12,7 +12,7 @@ The user views plots via two mechanisms depending on connection type:
 
 ## Workflow for plots
 
-1. Always save the plot to `$SCRATCH/$USER/agent_plots/`
+1. Always save the plot to `$SCRATCH/$USER/agent_plots/`. In shell commands, `SCRATCH` is the shell environment variable. In Python/Jupyter kernels on this HPC, `SCRATCH` may be unset, so verify `os.environ.get("SCRATCH")` before using `expandvars`, or use the explicit absolute path `/scratch/midway3/bjf79/agent_plots`.
 2. Tell the user the filename and to check `http://localhost:8765` if on SSH
 3. **Only use the `Read` tool to embed inline** when:
    - The user is on remote control and asks to see it, OR
@@ -46,7 +46,7 @@ For tables (HTML), the HTTP server is the only option — tell the user to check
 
 ## Infrastructure
 
-- **Plots directory:** `$SCRATCH/$USER/agent_plots/`
+- **Plots directory:** shell convention is `$SCRATCH/$USER/agent_plots/`; for this Midway3 setup the explicit absolute path is `/scratch/midway3/bjf79/agent_plots`.
 - **HTTP server:** `~/bin/agent_plots_server.py` (stowed from dotfiles), port **8765**, auto-started at login via `~/.zshrc_local`. Serves directory with toggleable sort order (`?sort=name` vs `?sort=mtime`, default mtime).
 - **SSH tunnel:** `LocalForward 8765 localhost:8765` in the user's local `~/.ssh/config`
 - **public_html:** Midway2 only (home dirs are NOT shared across Midway2/Midway3). URL: `http://users.rcc.uchicago.edu/~bjf79/`. Not currently set up.
@@ -57,7 +57,8 @@ For tables (HTML), the HTTP server is the only option — tell the user to check
 
 ```python
 import os
-outdir = os.path.expandvars("$SCRATCH/$USER/agent_plots")
+scratch = os.environ.get("SCRATCH")
+outdir = os.path.join(scratch, os.environ["USER"], "agent_plots") if scratch else "/scratch/midway3/bjf79/agent_plots"
 fig.savefig(os.path.join(outdir, "myplot.pdf"), bbox_inches="tight")
 # Use .png only if plot has thousands of text labels (e.g. gene name tick labels)
 ```
@@ -88,7 +89,8 @@ Saves as a single self-contained HTML using DataTables JS loaded from CDN (requi
 ```python
 import os, pandas as pd
 
-outdir = os.path.expandvars("$SCRATCH/$USER/agent_plots")
+scratch = os.environ.get("SCRATCH")
+outdir = os.path.join(scratch, os.environ["USER"], "agent_plots") if scratch else "/scratch/midway3/bjf79/agent_plots"
 html = df.to_html(index=False, border=0, classes="display", table_id="datatable")
 
 page = f"""<!DOCTYPE html>

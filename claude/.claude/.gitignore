@@ -5,6 +5,15 @@
 !.gitignore
 !CLAUDE.md
 !settings.json
+!mcp.json
+# settings.local.json is intentionally gitignored (machine-specific permissions)
+!list-sessions.sh
+!statusline-command.sh
+!dispatcher_watchdog.sh
 !skills/
 !skills/*/
 !skills/*/*
+!agents/
+!agents/*
+!commands/
+!commands/*

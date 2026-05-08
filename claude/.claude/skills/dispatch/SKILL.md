@@ -6,12 +6,13 @@ argument-hint: [project path or name]
 
 # Project Directory Listing
 
-These are cached snapshots (last updated 2026-03-21). If the user references a project not listed here, run `ls /project2/yangili1/bjf79/` and `ls /project/yangili1/bjf79/` to get the current list.
+These are cached snapshots (last updated 2026-04-14). If the user references a project not listed here, run `ls /project2/yangili1/bjf79/` and `ls /project/yangili1/bjf79/` to get the current list.
 
 ## `/project/yangili1/bjf79/` (repos, tools, reference genomes)
 ```
 2024_comparativesplicing
 2024_NMD_Junction_Classifier
+20250331_clinvar_spliceai
 20250521_poisonjuncs
 20250624_panexperiment_nmd_candidatejuncs
 20250818_figsforsplicingtimingr21proposal
@@ -21,6 +22,8 @@ These are cached snapshots (last updated 2026-03-21). If the user references a p
 20260310_diversesm_dr
 20260324_xon_mpra
 ChromatinSplicingQTLs
+conda_envs
+conda_pkgs
 data
 my_project
 OldProjects
@@ -36,7 +39,6 @@ snaptron-experiments
 20210618_Pangolin
 20210618_zhao
 20211209_JingxinRNAseq
-20250331_clinvar_spliceai
 202503_bo_rnaseq
 202503_stat1_rnaseqprocessing
 20250401_insulinandnmdflux
@@ -54,6 +56,7 @@ ReferenceGenomes
 repos_not_projects
 scratch
 sm_splicingmodulators
+snakemake_conda_envs
 snakemake-workflow_rna-seq
 snaptron-analysis
 SZS_pipeline
@@ -154,19 +157,31 @@ tmux list-panes -t <IDX> -F "#{pane_index}: #{pane_current_command}"
 
 You should see two panes. The **first listed** is the top shell (pane 1). The **second listed** is the bottom pane where Claude will run — call its index **P** (almost always 2).
 
-### Step F — Launch Claude in the bottom pane
+### Step F — Launch Claude or Codex in the bottom pane
 
-For a **fresh session**:
+**Claude — fresh session:**
 ```bash
 tmux send-keys -t "<IDX>.<P>" "claude -n '<window-name>'" Enter
 ```
 
-For **resuming a specific session by ID**:
+**Claude — resuming a specific session by ID:**
 ```bash
 tmux send-keys -t "<IDX>.<P>" "claude -r <session-id>" Enter
 ```
 
 Concrete example — IDX=5, P=2, fresh: `tmux send-keys -t "5.2" "claude -n 'my-project'" Enter`
+
+**Codex — fresh session** (stateless; no session resume):
+```bash
+tmux send-keys -t "<IDX>.<P>" "codex" Enter
+```
+
+Or with an initial prompt:
+```bash
+tmux send-keys -t "<IDX>.<P>" "codex '<initial-prompt>'" Enter
+```
+
+Ask the user which tool they want (claude or codex) if not specified. Default to claude.
 
 ### Step G — Wait and capture output
 
@@ -199,14 +214,14 @@ Follow the full "open a session" flow above (Steps A–G).
 tmux list-panes -t <IDX> -F "#{pane_index}: #{pane_current_command}"
 ```
 
-**Sub-case 2a — Two panes, bottom pane is running `claude`:**
-Claude is already active. Tell the user and ask what they want to do.
+**Sub-case 2a — Two panes, bottom pane is running `claude` or `codex`:**
+Session is already active. Tell the user and ask what they want to do.
 
-**Sub-case 2b — Two panes, bottom pane is a shell (Claude exited):**
+**Sub-case 2b — Two panes, bottom pane is a shell (exited):**
 ```bash
 tmux send-keys -t "<IDX>.2" "claude -r <session-id>" Enter
 ```
-Then do Step G.
+(Use `codex` instead if that was the original tool.) Then do Step G.
 
 **Sub-case 2c — Only one pane (no bottom pane yet):**
 ```bash
@@ -248,3 +263,6 @@ tmux new-window -n "dispatcher" "claude --agent dispatcher"
 Then run `/loop 3m date` inside it to keep Remote Control alive.
 
 **Note:** Custom agents in `~/.claude/agents/` can only be launched with `claude --agent <name>` — not via Claude's internal Agent tool. Dispatching from within a conversation is always done directly via `tmux new-window`.
+
+## IMPORTANT: Updating the skill directory cache
+When edits to the directory cache are needed, use the Write tool or a heredoc — never `sed -i` with substitutions, as this risks corrupting or wiping the file.

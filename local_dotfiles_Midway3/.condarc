@@ -3,9 +3,9 @@ channels:
   - bioconda
   - r
 envs_dirs:
-  - /project/yangili1/bjf79/conda_envs
+  - /project2/gilad/bjf79_project1/envs
 pkgs_dirs:
-  - /project/yangili1/bjf79/conda_pkgs
+  - /project2/gilad/bjf79_project1/pkgs
 # channel_priority: strict
 show_channel_urls: true
 auto_activate_base: true

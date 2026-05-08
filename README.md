@@ -24,12 +24,13 @@ I also picked up some tips from [this post](https://www.anishathalye.com/2014/08
 12 directories
 ```
 
+- `claude` : [Claude Code](https://claude.ai/code) config — MCP servers, skills, commands, and CLAUDE.md. See `claude/README.md` for setup instructions including the required `uv` install.
 - `bash` : my bash specific settings (eg: my `.bashrc` and `.bash_profile`)
 - `bin/bin` : Portable and distrutable executables that should be able to work on linux or mac without compiling. For example, a couple custom scripts which are generally useful to me. Also, the perl script [ack](https://beyondgrep.com/why-ack/) is here (Artistic License 2.0), The nested structure is so that stow will create a symlink in `$HOME` to the child `bin/bin` instead of `bin`
 - `git` : git settings
 - `local_dotfiles_*` : settings with computer-specific dotfiles that will be sourced in the general dotfiles. See installation step3.
 - `ohmyzsh` : git-submodule of [oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh). This includes some zsh themes and plugins sourced in my `.zshrc`. So there is no need to install oh-my-zsh independently; it is included in these dotfiles.
-- `other` : other random dotfiles
+- `other` : other random dotfiles, including `other/conda_minimal_yamls/py_general.yaml` — a portable conda environment YAML for a general-purpose Python env (install with `conda env create -f other/conda_minimal_yamls/py_general.yaml`)
 - `sh` : shell settings that I like in both zsh and bash. Both my `.zprofile` and `.bash_profile` source `sh/.profile`
 - `tmux` : tmux settings. Note the `tmux/.tmux/*` files for version specific tmux settings
 - `vim` : My vim settings. A git submodule of [my .vim repo](https://github.com/bfairkun/.vim) which contains its own README to help with installation of plugins

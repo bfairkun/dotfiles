@@ -17,29 +17,51 @@ class SortableHandler(http.server.SimpleHTTPRequestHandler):
         qs = parse_qs(urlparse(self.path).query)
         sort = qs.get("sort", ["mtime"])[0]
 
+        def _safe_isdir(p):
+            try:
+                return os.path.isdir(p)
+            except OSError:
+                return False
+
+        def _safe_mtime(p):
+            try:
+                return os.path.getmtime(p)
+            except OSError:
+                return 0.0
+
         if sort == "name":
-            entries.sort(key=lambda e: (not os.path.isdir(os.path.join(path, e)), e.lower()))
+            entries.sort(key=lambda e: (not _safe_isdir(os.path.join(path, e)), e.lower()))
             other_sort, other_label = "mtime", "sort by date"
         else:
-            entries.sort(key=lambda e: (not os.path.isdir(os.path.join(path, e)),
-                                        -os.path.getmtime(os.path.join(path, e))))
+            entries.sort(key=lambda e: (not _safe_isdir(os.path.join(path, e)),
+                                        -_safe_mtime(os.path.join(path, e))))
             other_sort, other_label = "name", "sort by name"
 
         r = ['<!DOCTYPE html><html><head><meta charset="utf-8">',
              '<style>body{font-family:monospace;padding:20px;line-height:1.6}'
-             'a{color:#2266cc} td{padding:1px 14px} .dim{color:#999}</style>',
+             'a{color:#2266cc} td{padding:1px 14px} .dim{color:#999}'
+             '.broken{color:#cc4444;font-style:italic}</style>',
              '</head><body>',
              f'<h2>agent_plots &nbsp; <small><a href="?sort={other_sort}">[{other_label}]</a></small></h2>',
              '<table>']
 
         for name in entries:
             fullpath = os.path.join(path, name)
-            isdir = os.path.isdir(fullpath)
-            mtime = datetime.fromtimestamp(os.path.getmtime(fullpath)).strftime("%Y-%m-%d %H:%M")
-            size = f"{os.path.getsize(fullpath):,}" if not isdir else "—"
-            display = html.escape(name + ("/" if isdir else ""))
+            isdir = _safe_isdir(fullpath)
+            broken = os.path.islink(fullpath) and not os.path.exists(fullpath)
+            try:
+                mtime = datetime.fromtimestamp(os.path.getmtime(fullpath)).strftime("%Y-%m-%d %H:%M")
+            except OSError:
+                mtime = "—"
+            try:
+                size = f"{os.path.getsize(fullpath):,}" if not isdir else "—"
+            except OSError:
+                size = "—"
+            suffix = "/" if isdir else (" → (broken)" if broken else "")
+            display = html.escape(name + suffix)
             href = html.escape(name) + ("/" if isdir else "") + (f"?sort={sort}" if isdir else "")
-            r.append(f'<tr><td><a href="{href}">{display}</a></td>'
+            row_class = ' class="broken"' if broken else ""
+            r.append(f'<tr{row_class}><td><a href="{href}">{display}</a></td>'
                      f'<td class="dim">{mtime}</td>'
                      f'<td class="dim" style="text-align:right">{size}</td></tr>')
 

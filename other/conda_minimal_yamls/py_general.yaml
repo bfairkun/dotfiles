@@ -1,0 +1,79 @@
+name: py_general
+channels:
+  - conda-forge
+  - bioconda
+  - r
+dependencies:
+  # Jupyter / notebook
+  - jupyterlab
+  - jupyter
+  - ipykernel
+  - ipython
+  - ipywidgets
+  - nbconvert
+  - nbformat
+  - nbclient
+  - papermill
+
+  # Core scientific
+  - numpy
+  - pandas
+  - scipy
+  - matplotlib
+  - seaborn
+  - plotnine
+  - altair
+  - bokeh
+  - plotly
+
+  # Data / IO
+  - polars
+  - pyarrow
+  - openpyxl
+  - xarray
+  - dask
+
+  # Stats / ML
+  - scikit-learn
+  - statsmodels
+  - arviz
+  - pymc>=5
+  - pip
+  - pytensor
+  - tensorflow
+
+  # Bioinformatics
+  - biopython
+  - bedtools
+  - pybedtools
+  - pysam
+  - pygenometracks
+  - bedparse
+  - pyfaidx
+  - gffutils
+  - pybigwig
+  - bioconda::igv-reports
+  - bioconda::spliceai
+  - bioconda::htseq
+  - bioconda::blast=2.17.0
+  - bioconda::snakemake=7.32.4
+  - bioconda::hgvs
+  - bioconda::logomaker
+
+  # Utilities
+  - jinja2
+  - pytest
+  - tqdm
+  - future
+  - pycryptodome
+  - ca-certificates
+  - certifi
+  - openssl
+  - natsort
+  - anndata
+
+  - pip:
+    - my-utils==0.1.0
+    - alphagenome==0.5.1
+    - pikachu-chem==1.1.5
+
