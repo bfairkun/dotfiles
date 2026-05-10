@@ -1,6 +1,6 @@
 ---
 name: agent-plots
-description: How to share plots and tables with the user on this HPC setup. Invoke when saving any plot or dataframe (Python/R/ggplot/matplotlib/etc.) so it appears in the user's browser.
+description: "RCC Midway HPC only. How to share plots and tables with the user on this HPC setup. Invoke when saving any plot or dataframe (Python/R/ggplot/matplotlib/etc.) so it appears in the user's browser."
 ---
 
 # Agent Plots Workflow

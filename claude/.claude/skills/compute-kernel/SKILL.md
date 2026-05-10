@@ -1,6 +1,6 @@
 ---
 name: compute-kernel
-description: Connect to a Jupyter kernel running on an HPC compute node. Invoke when the user says "connect to compute kernel" or "connect to compute R kernel", or when a login-node kernel is killed due to memory limits.
+description: "RCC Midway HPC only. Connect to a Jupyter kernel running on an HPC compute node. Invoke when the user says "connect to compute kernel" or "connect to compute R kernel", or when a login-node kernel is killed due to memory limits."
 ---
 
 # Compute Node Kernel Workflow

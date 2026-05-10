@@ -1,6 +1,6 @@
 ---
 name: clearplots
-description: Clear all files in the agent plots directory ($SCRATCH/$USER/agent_plots/). Invoked via /clearplots.
+description: "RCC Midway HPC only. Clear all files in the agent plots directory ($SCRATCH/$USER/agent_plots/). Invoked via /clearplots."
 ---
 
 Clear all plots and tables from the agent plots directory, preserving the server log.
