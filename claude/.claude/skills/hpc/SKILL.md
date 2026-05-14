@@ -1,6 +1,6 @@
 ---
 name: hpc
-description: Provides context about RCC (UChicago) HPC cluster setup and how to submit Slurm jobs on Midway2/Midway3. Invoke when user asks about submitting jobs, partitions, sinteractive, sbatch, or running Snakemake on the cluster.
+description: "RCC Midway HPC only. Provides context about RCC (UChicago) HPC cluster setup and how to submit Slurm jobs on Midway2/Midway3. Invoke when user asks about submitting jobs, partitions, sinteractive, sbatch, or running Snakemake on the cluster."
 argument-hint: [topic]
 ---
 
