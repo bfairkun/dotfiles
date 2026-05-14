@@ -2,9 +2,16 @@
 """
 Snakemake SLURM submit script.
 """
+import os
 import warnings  # use warnings.warn() rather than print() to output info in this script
 
 from snakemake.utils import read_job_properties
+
+# Ensure slurm binaries are in PATH regardless of how this script was invoked
+# (conda activate can drop system paths in non-login shells)
+_slurm_bin = "/software/slurm-current-el8-x86_64/bin"
+if _slurm_bin not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = _slurm_bin + ":" + os.environ.get("PATH", "")
 
 import slurm_utils
 

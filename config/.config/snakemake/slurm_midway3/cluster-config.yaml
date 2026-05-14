@@ -2,5 +2,6 @@ __default__:
     account: pi-yangili1
     partition: caslake # the partition you use
     mem: 4000
-    output: "/dev/null"
+    output: "logs/slurm/{rule}.%j.out"
+    error: "logs/slurm/{rule}.%j.err"
     job-name: "{rule}.{wildcards}"

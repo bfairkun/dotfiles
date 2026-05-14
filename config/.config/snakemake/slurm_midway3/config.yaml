@@ -11,6 +11,6 @@ use-conda: True
 rerun-incomplete: True #If you cancel a snakemake mid-run, you probably want snakemake to rerun the jobs it did not finish last run.
 jobs: 150 #I also think there might be a max number of jobs you are allowed to submit to slurm, but 150 is well below the limit while be while above the number of jobs slurm will allow you to simulatenously run
 scheduler: greedy #I forgot why this is important or what it does exactly, but for some large workflows, things just work better with this I think
-shadow-prefix: /scratch/midway2/bjf79 #running shadow rules is sometimes useful, and scratch space is a sensible place for the shadow (temp) files
+shadow-prefix: /scratch/midway3/bjf79 #running shadow rules is sometimes useful, and scratch space is a sensible place for the shadow (temp) files
 cluster-cancel: scancel #when you cancel a snakemake, this allows snakemake to scancel the jobs already submitted to slurm
 conda-prefix: /project/yangili1/bjf79/snakemake_conda_envs #If this is not specified, snakemake will make conda envs in the snakemake project directory, meaning even if you have many projects/workflows that use identical conda env yamls, snakemake will create redundant enironment files for each project

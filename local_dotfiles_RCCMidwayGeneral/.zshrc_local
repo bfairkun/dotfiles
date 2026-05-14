@@ -51,6 +51,7 @@ function update_display
 
 ## Modules (loaded here so non-login shells like dispatcher windows get them too)
 module load node
+module load slurm/current
 
 # Midway2 specific
 hostname | grep -q 'midway2' && module load R/4.2.0
