@@ -91,7 +91,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bash /home/bjf79/.claude/statusline-command.sh"
+    "command": "bash ~/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
     "codex@openai-codex": false
