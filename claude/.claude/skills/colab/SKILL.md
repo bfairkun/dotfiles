@@ -1,10 +1,14 @@
 ---
-name: colab
-description: Debugging and working with Google Colab notebooks. Invoke when the user is working in Colab, encounters errors, or asks about Colab-specific setup.
+name: colab-debug
+description: Debugging known Google Colab runtime issues — install failures, segfaults, kernel crashes, shell quirks. Invoke when the user reports an error or unexpected behavior in an existing Colab notebook. For interactively writing/editing a Colab notebook via the colab-mcp bridge, use the `colab-mcp` skill instead.
 argument-hint: [topic]
 ---
 
-# Google Colab Reference
+# Google Colab Debugging Reference
+
+For *interactive* editing of a Colab notebook (Claude adding/running cells in a live browser
+session), see the `colab-mcp` skill. This skill is the catalog of known fixes for problems
+that come up *inside* a Colab runtime.
 
 ## Debugging workflow
 Gather diagnostics in the **current session** before restarting — restarting loses all

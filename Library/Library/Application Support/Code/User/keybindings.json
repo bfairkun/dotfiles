@@ -27,19 +27,21 @@
   // For r/rmd
     {
       "key": "ctrl+alt+r",
-      "description": "start tmux session with R for persistent session(s)",
+      "description": "start tmux session with R for persistent session(s), per-workspace",
       "command": "runCommands",
       "args": {
         "commands": [
           {
             "command": "workbench.action.terminal.sendSequence",
-            "args": { "text": "tmux attach-session -t vscode_tmux_R || tmux new-session -s vscode_tmux_R 'R'\n" },
+            "args": {
+              "text": "WS_ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; WS_NAME=\"$(basename \"$WS_ROOT\")\"; WS_NAME_SANITIZED=$(printf '%s' \"$WS_NAME\" | sed -E 's/[^A-Za-z0-9_.-]+/_/g'); tmux attach-session -t \"vscode_${WS_NAME_SANITIZED}_tmux_R\" || tmux new-session -s \"vscode_${WS_NAME_SANITIZED}_tmux_R\" R; printf '\\033]0;tmux.R:%s\\007' \"$WS_NAME_SANITIZED\"\n"
+            }
           },
           {
             "command": "workbench.action.terminal.renameWithArg",
-            "args": {"name": "tmux.R"}
+            "args": { "name": "tmux.R" }
           }
-        ],
+        ]
       },
       "when": "editorLangId =~ /r|rmd/"
     },
@@ -114,6 +116,13 @@
       "command": "editor.action.insertSnippet",
       "when": "editorTextFocus && editorLangId =~ /r|rmd/",
       "args": {"snippet": "```{r}\n$0\n```"}
+    },
+    {
+      "key": "cmd+alt+i",
+      "description": "insert python chunk (quarto)",
+      "command": "editor.action.insertSnippet",
+      "when": "editorTextFocus && editorLangId == 'quarto'",
+      "args": { "snippet": "```{python}\n$0\n```" }
     },
     {
       "key": "f1",

@@ -1,6 +1,6 @@
 ---
 name: parse-logs
-description: "RCC Midway HPC only. Parse Snakemake or Slurm logs to find errors and diagnose failures. Invoke when a pipeline job fails, a Snakemake run errors out, or the user needs to understand what went wrong."
+description: Parse Snakemake or Slurm logs to find errors and diagnose failures. Invoke when a pipeline job fails, a Snakemake run errors out, or the user needs to understand what went wrong.
 argument-hint: "[job ID, rule name, or log file path]"
 ---
 

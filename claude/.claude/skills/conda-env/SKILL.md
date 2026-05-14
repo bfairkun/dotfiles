@@ -1,6 +1,6 @@
 ---
 name: conda-env
-description: "RCC Midway HPC only. Create or update conda environment YAML files in code/envs/. Invoke when adding packages to a pipeline env, creating a new rule-specific env, or debugging conda env build failures."
+description: Create or update conda environment YAML files in code/envs/. Invoke when adding packages to a pipeline env, creating a new rule-specific env, or debugging conda env build failures.
 argument-hint: "[env name or package to add]"
 ---
 

@@ -55,7 +55,7 @@ dependencies:
   - bioconda::igv-reports
   - bioconda::spliceai
   - bioconda::htseq
-  - bioconda::blast=2.17.0
+  - bioconda::blast=2.16.0
   - bioconda::snakemake=7.32.4
   - bioconda::hgvs
   - bioconda::logomaker
@@ -69,6 +69,7 @@ dependencies:
   - ca-certificates
   - certifi
   - openssl
+  - pyopenssl>=24  # avoid drift vs cryptography (X509_V_FLAG_NOTIFY_POLICY removed in cryptography>=42)
   - natsort
   - anndata
 

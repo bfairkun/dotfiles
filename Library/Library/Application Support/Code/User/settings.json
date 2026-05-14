@@ -58,5 +58,8 @@
     "update.mode": "none",
     "[csv]": {
       "editor.inlayHints.maximumLength": 0
-    }
+    },
+    "jupyter.interactiveWindow.creationMode": "perFile",
+    "security.workspace.trust.untrustedFiles": "open",
+    "claudeCode.preferredLocation": "panel"
 }
