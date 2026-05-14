@@ -5,14 +5,28 @@ description: How to share plots and tables with the user on this HPC setup. Invo
 
 # Agent Plots Workflow
 
-The user views plots via two mechanisms depending on connection type:
+## Which machine am I on?
 
-1. **SSH session** — HTTP server on port 8765 + SSH tunnel → user browses `http://localhost:8765`
-2. **Remote control (Claude web UI, no SSH tunnel)** — save plot to disk, then use the `Read` tool to embed it inline in the chat
+**Local Mac (dotfiles working dir, `/Users/bjf79/...`):**
+- Plots directory: `~/Documents/agent_plots/`
+- User runs Claude in tmux, so inline terminal image rendering doesn't work
+- Save the file, tell the user the path — they open it in Finder/Preview
+- Only use the `Read` tool to embed inline if asked, or to interpret the plot yourself
+
+**HPC (Midway2/Midway3, `/home/bjf79/...` or `/project/...`):**
+- Plots directory: `$SCRATCH/$USER/agent_plots/` (explicit: `/scratch/midway3/bjf79/agent_plots`)
+- Views via two mechanisms depending on connection type:
+  1. **SSH session** — HTTP server on port 8765 + SSH tunnel → user browses `http://localhost:8765`
+  2. **Remote control (Claude web UI, no SSH tunnel)** — use the `Read` tool to embed inline
 
 ## Workflow for plots
 
-1. Always save the plot to `$SCRATCH/$USER/agent_plots/`. In shell commands, `SCRATCH` is the shell environment variable. In Python/Jupyter kernels on this HPC, `SCRATCH` may be unset, so verify `os.environ.get("SCRATCH")` before using `expandvars`, or use the explicit absolute path `/scratch/midway3/bjf79/agent_plots`.
+**On Mac:**
+1. Save to `~/Documents/agent_plots/myplot.pdf`
+2. Tell the user the filename — they open it in Finder/Preview
+
+**On HPC:**
+1. Save to `$SCRATCH/$USER/agent_plots/`
 2. Tell the user the filename and to check `http://localhost:8765` if on SSH
 3. **Only use the `Read` tool to embed inline** when:
    - The user is on remote control and asks to see it, OR
@@ -58,7 +72,10 @@ For tables (HTML), the HTTP server is the only option — tell the user to check
 ```python
 import os
 scratch = os.environ.get("SCRATCH")
-outdir = os.path.join(scratch, os.environ["USER"], "agent_plots") if scratch else "/scratch/midway3/bjf79/agent_plots"
+if scratch:
+    outdir = os.path.join(scratch, os.environ["USER"], "agent_plots")  # HPC
+else:
+    outdir = os.path.expanduser("~/Documents/agent_plots")              # Mac
 fig.savefig(os.path.join(outdir, "myplot.pdf"), bbox_inches="tight")
 # Use .png only if plot has thousands of text labels (e.g. gene name tick labels)
 ```
@@ -66,7 +83,8 @@ fig.savefig(os.path.join(outdir, "myplot.pdf"), bbox_inches="tight")
 ### R / ggplot2
 
 ```r
-outdir <- file.path(Sys.getenv("SCRATCH"), Sys.getenv("USER"), "agent_plots")
+scratch <- Sys.getenv("SCRATCH")
+outdir <- if (nchar(scratch) > 0) file.path(scratch, Sys.getenv("USER"), "agent_plots") else path.expand("~/Documents/agent_plots")
 ggsave(file.path(outdir, "myplot.pdf"), plot = p, width = 7, height = 5)
 # Use .png only if plot has thousands of text labels
 ```
@@ -74,7 +92,8 @@ ggsave(file.path(outdir, "myplot.pdf"), plot = p, width = 7, height = 5)
 ### R / base graphics
 
 ```r
-outdir <- file.path(Sys.getenv("SCRATCH"), Sys.getenv("USER"), "agent_plots")
+scratch <- Sys.getenv("SCRATCH")
+outdir <- if (nchar(scratch) > 0) file.path(scratch, Sys.getenv("USER"), "agent_plots") else path.expand("~/Documents/agent_plots")
 pdf(file.path(outdir, "myplot.pdf"), width = 7, height = 5)
 # ... plot code ...
 dev.off()
@@ -90,7 +109,10 @@ Saves as a single self-contained HTML using DataTables JS loaded from CDN (requi
 import os, pandas as pd
 
 scratch = os.environ.get("SCRATCH")
-outdir = os.path.join(scratch, os.environ["USER"], "agent_plots") if scratch else "/scratch/midway3/bjf79/agent_plots"
+if scratch:
+    outdir = os.path.join(scratch, os.environ["USER"], "agent_plots")  # HPC
+else:
+    outdir = os.path.expanduser("~/Documents/agent_plots")              # Mac
 html = df.to_html(index=False, border=0, classes="display", table_id="datatable")
 
 page = f"""<!DOCTYPE html>
