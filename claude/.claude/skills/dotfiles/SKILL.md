@@ -94,3 +94,14 @@ When adding new files near submodules, be careful not to accidentally edit the s
 2. If adding a new file, place it in the right package following the path-mirroring rule
 3. If adding a new package, run `stow -v <package>` to create symlinks
 4. Commit changes with `git add` + `git commit` from `~/dotfiles`
+
+## Stow Conflict Resolution
+
+**Never use `stow -R` / `--restow` carelessly.** It first unstows (deletes all symlinks), then restows. If restow fails due to a conflict, you're left with nothing linked.
+
+When `stow -v <package>` fails with `CONFLICT: ... vs. ...`:
+1. Move the conflicting real file aside: `mv ~/.foo/bar ~/.foo/bar.bak`
+2. Run `stow -v <package>` — it will now create the symlink cleanly
+3. Decide: restore the real file over the symlink (`mv bar.bak bar` — keeps it as an unmanaged real file), or update the dotfiles copy to match and keep it managed
+
+Utility: `bin/bin/MoveStowConflicts.cli.py` automates moving all conflicting files to a backup dir in bulk.
