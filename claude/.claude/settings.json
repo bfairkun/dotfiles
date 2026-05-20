@@ -108,5 +108,6 @@
   "theme": "light",
   "remoteControlAtStartup": true,
   "inputNeededNotifEnabled": false,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true
 }

@@ -47,9 +47,17 @@ For multi-command shell blocks, redirect each command:
         """
 ```
 
+For Python scripts where data output goes to a file (via `--out` flag), and stdout is only progress messages, capture both to the rule log so nothing is lost in unreliable slurm `.out` files:
+```python
+    shell:
+        "python scripts/myscript.py --in {input} --out {output} >{log} 2>&1"
+```
+For scripts that write data to stdout, use the usual split (`>{output} 2>{log}`).
+
 ## Conda env directive
 - Use `conda: "envs/myenv.yaml"` for rule-specific envs
-- Common shared envs in `code/envs/`: `py_general.yaml`, check existing ones first
+- Check `code/envs/` for existing envs before creating a new one
+- Do NOT create `py_general.yaml` — that name collides with the user's managed system env and causes confusion. Use a descriptive name like `pysam_utils.yaml`
 - Always reference with path relative to Snakefile location (i.e., relative to `code/`)
 
 ## Resources
@@ -80,3 +88,37 @@ configfile: "config/config.yaml"
 2. Check `code/envs/` before creating a new conda env
 3. Place rule in the most appropriate existing `.smk` file, or create a new one in `code/rules/`
 4. Add target outputs to `rule all` in the main Snakefile
+
+## Before submitting to cluster (IMPORTANT)
+
+**For rules that run scripts or commands on large files — always test locally first on one small sample before targeting all samples.** This catches conda env issues, script bugs, and bad args cheaply.
+
+### Step 1: validate the conda env has the right packages
+```bash
+conda run -n <env> python -c "import pysam, numpy; print('ok')"
+```
+If creating a new `code/envs/<name>.yaml`, verify all script imports are present in that yaml.
+
+### Step 2: run the script directly on the smallest available sample
+```bash
+conda run -n <env> python scripts/myscript.py \
+  --input alignment/smallest_sample.bam \
+  --output scratch/test_out.tsv.gz 2>&1 | tail -20
+```
+Run to completion. Write test outputs to `scratch/`, not `output/`.
+
+### Step 3: target a single output for the first snakemake run
+```bash
+conda run -n sm_splicingmodulators snakemake --profile slurm_midway3 \
+  output/path/smallest_sample.ext -T 0
+```
+Only after this passes → submit all samples.
+
+## Debugging cluster failures
+
+1. **Slurm logs first**: `logs/slurm/<rule>.<jobid>.err` — the actual error
+2. **Rule log**: `logs/<rule>/<wildcard>.log` — stdout/stderr from the command
+3. **OOM**: sacct `ExitCode=1:0` with `MaxRSS` near `ReqMem` ceiling = OOM kill. `samtools sort -m X` overshoots ~50%; rule of thumb: `mem_mb ≥ (threads × -m_bytes × 1.5) + 2G`
+4. **sbatch not in PATH**: slurm module loads only for login shells. Fix: `module load slurm/current` in `~/.zshrc_local`
+5. **PermissionError on scratch**: `shadow-prefix` in profile config must match the node's actual scratch mount
+6. **Unexpected re-runs after adding `log:`**: adding/changing `log:` changes the rule code hash → snakemake re-runs the rule and all downstream

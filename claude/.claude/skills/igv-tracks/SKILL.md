@@ -133,6 +133,18 @@ Example: `/Users/bjf79/mnt/project/yangili1/bjf79/20260310_diversesm_dr/code/rna
 - `<Resource path="/Users/bjf79/mnt/project/yangili1/bjf79/..."/>` — use **full mac path** in Resource
 - `<Track id="/Users/bjf79/mnt/project/yangili1/bjf79/...">` — same full mac path in the `id` attribute
 
+**Where to save IGV session XML files:**
+- Save to `code/scratch/`, **not** `output/`. The `output/` directory is git-tracked; IGV sessions that reference untracked local files (bigWigs, scratch BEDs) have no value in git history.
+- Exception: only put a session in `output/` if the user explicitly requests it or the session references only committed/shared files.
+
+**Standard gene annotation tracks for human (hg38) sessions:**
+Always include all three of these in the `AnnotationPanel` for any human session:
+1. Default IGV gene track: `id="hg38_genes"`, `attributeKey="Gene"`
+2. `/Users/bjf79/mnt/project2/yangili1/bjf79/ReferenceGenomes/GRCh38_GencodeRelease44Comprehensive/MANE.bed.gz`
+3. `/Users/bjf79/mnt/project2/yangili1/bjf79/ReferenceGenomes/GRCh38_GencodeRelease44Comprehensive/Reference.ColoredTranscripts.bed.gz`
+
+Add all three as `FeatureTrack` entries in `AnnotationPanel`, with `displayMode="SQUISHED"` for the two BED files.
+
 **Panel layout rules:**
 - `FeaturePanel` is a **reserved IGV name** that is **always rendered at the bottom**, regardless of XML order. Avoid it.
 - Use any **custom panel name** (e.g. `AnnotationPanel`, `DataPanel`) — IGV stacks them top-to-bottom in XML order, separated by draggable dividers.
