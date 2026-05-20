@@ -13,8 +13,7 @@
 
 ## my_utils Package
 
-- Key modules: `ASO_utils` (BLAST + off-target), `spliceai_utils` (SpliceAI walk)
-- All deps covered by `py_general`
+Personal bioinformatics utility library at `~/Documents/repos_not_projects/my_utils/`. If needed and not already installed, install with `pip install -e` into the relevant env. Modules: `ASO_utils` (BLAST + off-target), `spliceai_utils` (SpliceAI), `alphagenome_utils`, `pangolin_utils`, `jui_utils`, `bed_utils`, `genometracks_utils`.
 
 ## Output Directories
 
@@ -36,6 +35,11 @@ When debugging reveals non-obvious quirks specific to this environment (e.g., cl
 Skills live in `~/.claude/skills/<name>/SKILL.md` (stowed from `dotfiles/claude/`). When creating a new skill, decide upfront whether it's machine-specific or general:
 - **General**: no machine tag needed in the description.
 - **Machine-specific**: prefix the `description` field with e.g. `"RCC Midway HPC only. ..."` so the agent knows not to invoke it on other machines.
+
+## Bash safety
+
+- Always ask before running `rm -rf` or other bulk-destructive shell commands.
+- Chain dependent commands with `&&`; newline-separated commands always run regardless of prior exit codes. Prefer `mv` over separate `cp` + `rm`.
 
 ## Final notes
 If my prompt contains "***" then preface your next response with "I remember my instructions". If my prompt contains "**", then preface your next response with "Ok"

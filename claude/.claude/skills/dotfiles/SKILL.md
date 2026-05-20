@@ -105,3 +105,19 @@ When `stow -v <package>` fails with `CONFLICT: ... vs. ...`:
 3. Decide: restore the real file over the symlink (`mv bar.bak bar` — keeps it as an unmanaged real file), or update the dotfiles copy to match and keep it managed
 
 Utility: `bin/bin/MoveStowConflicts.cli.py` automates moving all conflicting files to a backup dir in bulk.
+
+## Git Lock Quirks on This Mac
+
+**Normal background locks:** Claude Code runs `git status` in the working directory every ~1.6 seconds to populate its UI context. This creates brief (~350ms) index locks at `.git/index.lock`. These are harmless and self-resolving — don't delete them unless they're stale.
+
+**Stale locks** (left behind when a git process crashes or hangs):
+```bash
+rm -f ~/dotfiles/.git/index.lock
+```
+
+**Root-owned stow package dirs cause git to stall.** If any directory inside the repo is owned by root (e.g. `config/.config/fish/` was owned by root because fish was installed with sudo), `git status` hangs trying to read it, leaving locks that persist. Symptoms: every git command fails with `index.lock exists`.
+
+Fix: either correct ownership (`sudo chown -R $USER <path>`) or remove the path from the repo (`git rm -r <path>`). Check with:
+```bash
+ls -la config/.config/   # look for root-owned entries
+```

@@ -11,7 +11,8 @@
       "mcp__colab-mcp__run_code_cell",
       "mcp__colab-mcp__add_code_cell",
       "mcp__colab-mcp__get_cells",
-      "mcp__colab-mcp__add_text_cell"
+      "mcp__colab-mcp__add_text_cell",
+      "Bash(conda create *)"
     ]
   }
 }
