@@ -40,7 +40,7 @@ Verify: `import socket, sys; print(socket.gethostname(), sys.executable)`
 Use `mcp__jupyter-kernel__connect_to_kernel` with:
 `/scratch/midway3/bjf79/agent_r_kernel.json`
 
-Then send R code directly via `mcp__jupyter-kernel__run_code` (no `%%R` magic needed —
+Then send R code directly via `mcp__jupyter-kernel__run_python` (no `%%R` magic needed —
 the kernel IS R, so plain R code works):
 
 ```r
