@@ -40,6 +40,35 @@ does NOT expand in the MCP config `command` field — PATH resolution is require
 claude mcp add --scope user jupyter-kernel jupyter_kernel_mcp.py
 ```
 
+## Troubleshooting: MCP tools not loading
+
+If `mcp__jupyter-kernel__*` tools are absent from the deferred tools list, the MCP server failed to start. Diagnose in order:
+
+1. **Check the script is reachable:**
+   ```bash
+   python3 ~/bin/jupyter_kernel_mcp.py --help
+   ```
+   If `No such file or directory` → the symlink is broken.
+
+2. **Inspect the symlink chain:**
+   ```bash
+   ls -la ~/bin/jupyter_kernel_mcp.py
+   ls -la ~/dotfiles/bin/bin/jupyter_kernel_mcp.py  # if stow-managed
+   ```
+   A macOS-origin machine may have left an absolute `/Users/bjf79/...` symlink in
+   `dotfiles/bin/bin/` that breaks on Linux. Fix with a relative symlink:
+   ```bash
+   cd ~/dotfiles/bin/bin
+   rm jupyter_kernel_mcp.py
+   ln -s ../../claude/.claude/skills/jupyter-kernel/jupyter_kernel_mcp.py jupyter_kernel_mcp.py
+   ```
+   Then commit and restart Claude.
+
+3. **Or bypass stow entirely** with a direct symlink:
+   ```bash
+   ln -sf ~/.claude/skills/jupyter-kernel/jupyter_kernel_mcp.py ~/bin/jupyter_kernel_mcp.py
+   ```
+
 ## Tools
 
 | Tool | Purpose |
