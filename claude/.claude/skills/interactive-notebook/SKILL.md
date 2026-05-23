@@ -115,7 +115,7 @@ Then connect:
 # connection file: /scratch/midway3/bjf79/agent_r_kernel.json
 ```
 
-Send plain R code via `mcp__jupyter-kernel__run_python` — the kernel IS R, no `%%R` needed.
+Send plain R code via `mcp__jupyter-kernel__run_code` — the kernel IS R, no `%%R` needed.
 
 Verify: `cat(R.version.string, "\n"); cat("Host:", system("hostname", intern=TRUE), "\n")`
 

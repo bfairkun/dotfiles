@@ -1,1 +1,1 @@
-/Users/bjf79/.claude/skills/jupyter-kernel/jupyter_kernel_mcp.py
+../../claude/.claude/skills/jupyter-kernel/jupyter_kernel_mcp.py
