@@ -34,6 +34,8 @@ Tracking dotfiles in a git repository solves this: your entire environment is ve
 
 **Why Stow?** Rather than copying config files into `~` (which makes them hard to track), [GNU Stow](https://www.gnu.org/software/stow/) creates symlinks. Each top-level folder in the repo is a "package," and `stow <pkg>` symlinks its contents into `~`. The actual files stay in `~/dotfiles/` under git control, but programs find them at the expected paths. Edit a file, `git commit`, push — done.
 
+A `stow` binary is included in the repo at `local_dotfiles_RCCMidwayGeneral/bin/stow` (a Perl script) so it's available immediately after cloning, before anything else is set up. If you'd rather not run a binary from someone's dotfiles repo, install it yourself — from source, via your system package manager, or via Homebrew on Mac — and it'll work the same way.
+
 **Fork** the repo on GitHub so you can commit your own personalizations, then clone it:
 
 ```bash
