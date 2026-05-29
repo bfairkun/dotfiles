@@ -1,4 +1,4 @@
-# HPC Computational Biology Workflow: Onboarding Guide
+# My set up guide for HPC work
 
 This guide documents the HPC setup and workflow patterns that have made my work on UChicago HPC more comfortable over the years. Nothing here is the only way to do things — these are tools and habits that happen to work well together for me. As you get started, you'll find things you want to change, skip, or replace with something you prefer. That's expected and encouraged: fork the dotfiles repo, make it yours, and commit your own conventions.
 
