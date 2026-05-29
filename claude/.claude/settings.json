@@ -79,7 +79,19 @@
       "Bash(tmux new-window*)",
       "Bash(tmux kill-window*)",
       "Bash(tmux list-windows*)",
-      "Bash(tmux list-sessions*)"
+      "Bash(tmux list-sessions*)",
+      "mcp__plugin_slack_slack__slack_search_public_and_private",
+      "mcp__plugin_slack_slack__slack_search_public",
+      "mcp__plugin_slack_slack__slack_search_channels",
+      "mcp__plugin_slack_slack__slack_search_users",
+      "mcp__plugin_slack_slack__slack_search_emojis",
+      "mcp__plugin_slack_slack__slack_read_channel",
+      "mcp__plugin_slack_slack__slack_read_thread",
+      "mcp__plugin_slack_slack__slack_read_file",
+      "mcp__plugin_slack_slack__slack_read_canvas",
+      "mcp__plugin_slack_slack__slack_read_user_profile",
+      "mcp__plugin_slack_slack__slack_list_channel_members",
+      "mcp__plugin_slack_slack__slack_get_reactions"
     ],
     "defaultMode": "default",
     "additionalDirectories": [
@@ -94,7 +106,8 @@
     "command": "bash ~/.claude/statusline-command.sh"
   },
   "enabledPlugins": {
-    "codex@openai-codex": false
+    "codex@openai-codex": false,
+    "slack@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "openai-codex": {
