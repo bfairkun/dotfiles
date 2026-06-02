@@ -1,0 +1,22 @@
+# Snakemake SLURM profile for UMich Great Lakes HPC
+#
+# Usage: snakemake --profile slurm_greatlakes [other options]
+#
+# Great Lakes partitions: standard (default), largemem, gpu, debug
+# Set your SLURM account in cluster-config.yaml (run `my_accounts` to find yours)
+
+restart-times: 1
+jobscript: "slurm-jobscript.sh"
+cluster: "slurm-submit.py"
+# cluster-status: "slurm-status.py"
+max-jobs-per-second: 1
+max-status-checks-per-second: 10
+local-cores: 5
+latency-wait: 60
+use-conda: True
+rerun-incomplete: True
+jobs: 150
+scheduler: greedy
+# shadow-prefix: /scratch/YOURUNIQNAME  # Set to your $SCRATCH path for shadow rules
+cluster-cancel: scancel
+# conda-prefix: /nfs/turbo/LABNAME/snakemake_conda_envs  # Optional: shared conda env cache

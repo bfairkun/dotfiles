@@ -1,0 +1,68 @@
+# .profile_local for UMich Great Lakes HPC
+# Sourced by ~/.profile in both bash and zsh login shells.
+#
+# GREAT LAKES QUIRKS vs. MIDWAY:
+#   - mosh is NOT available (no module, not installed)
+#   - tmux is system-installed at /usr/bin/tmux (no module load needed)
+#   - zsh is system-installed at /usr/bin/zsh (no module load needed)
+#   - vim is system-installed (no module load needed)
+#   - netcat is NOT available as a module
+#   - Scratch space: /scratch/$USER (SCRATCH env var typically set by cluster)
+#   - Project/lab storage: /nfs/turbo/LABNAME/
+#   - Login nodes: gl-login*.arc-ts.umich.edu
+#   - Timezone: America/Detroit
+
+echo "Running  ${0}..."
+
+export TZ='America/Detroit'
+
+export PATH="$HOME/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+
+# $SCRATCH is set by the cluster to /scratch/$USER.
+# If for some reason it's not set, define it manually:
+[ -z "$SCRATCH" ] && export SCRATCH="/scratch/$USER"
+
+# Ensure TMPDIR is /tmp so ssh-agent sockets don't land in $HOME
+export TMPDIR='/tmp'
+
+# Source ssh settings or start ssh agent if not already running.
+# Useful for authenticating git operations over SSH without re-entering passphrases.
+mkdir -p $HOME/.ssh
+SSH_ENV="$HOME/.ssh/agent-environment"
+
+function start_agent {
+    echo "Initialising new SSH agent..."
+    /usr/bin/ssh-agent | sed 's/^echo/#echo/' > "${SSH_ENV}"
+    echo succeeded
+    chmod 600 "${SSH_ENV}"
+    . "${SSH_ENV}" > /dev/null
+    /usr/bin/ssh-add;
+}
+
+if [ -f "${SSH_ENV}" ]; then
+    . "${SSH_ENV}" > /dev/null
+    ps -ef | grep ${SSH_AGENT_PID} | grep ssh-agent$ > /dev/null || {
+        start_agent;
+    }
+else
+    start_agent;
+fi
+
+# Load newer tmux — system tmux is 2.7 which is too old for the tmux config
+# (status-style, window-status-current-style, window_start_flag all require 2.9+).
+module load tmux/3.3a 2>/dev/null
+
+# Attach to or create a tmux session on SSH login.
+# This keeps your work alive if you disconnect — reconnect and pick up where you left off.
+if [[ -z "$TMUX" && -n "$SSH_CONNECTION" && "$-" == *i* ]]; then
+    tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux
+fi
+
+# Ensure the Claude Code dispatcher watchdog cron job is registered.
+# Idempotent — only adds the entry if missing. Self-heals if crontab is wiped.
+if [ -f ~/.claude/dispatcher_watchdog.sh ]; then
+    if ! crontab -l 2>/dev/null | grep -q "dispatcher_watchdog.sh"; then
+        (crontab -l 2>/dev/null; echo "*/5 * * * * $HOME/.claude/dispatcher_watchdog.sh") | crontab -
+    fi
+fi

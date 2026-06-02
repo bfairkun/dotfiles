@@ -1,0 +1,16 @@
+# Cluster config for UMich Great Lakes SLURM
+#
+# Find your account name by running: my_accounts
+# Common partitions: standard, largemem, gpu, debug
+#
+# Per-rule overrides: add rule names as YAML keys, e.g.:
+#   my_heavy_rule:
+#     mem: 32000
+#     partition: largemem
+
+__default__:
+    account: YOURACCOUNT    # <-- change this to your SLURM account (run `my_accounts`)
+    partition: standard     # default partition; use largemem for >192GB RAM jobs
+    mem: 4000               # MB; override per-rule as needed
+    output: "/dev/null"
+    job-name: "{rule}.{wildcards}"
