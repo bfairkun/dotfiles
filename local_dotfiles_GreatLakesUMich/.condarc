@@ -2,15 +2,7 @@ channels:
   - conda-forge
   - bioconda
   - r
-# By default, conda environments are stored in ~/miniconda3/envs.
-#
-# If your lab has shared storage (e.g., /nfs/turbo/LABNAME/), consider
-# redirecting envs and pkgs there to save home directory quota:
-#
-#   envs_dirs:
-#     - /nfs/turbo/LABNAME/conda_envs
-#   pkgs_dirs:
-#     - /nfs/turbo/LABNAME/conda_pkgs
-#
+  - nodefaults
+channel_priority: strict
 show_channel_urls: true
 auto_activate_base: true

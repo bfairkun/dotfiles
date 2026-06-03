@@ -1,4 +1,11 @@
 name: py_general
+# Installation note (UMich Great Lakes / memory-constrained login nodes):
+#   conda env create is killed during solving (4 GB cgroup limit on login nodes).
+#   Use micromamba instead — much lower memory for the same solve:
+#     ~/bin/micromamba env create -f py_general.yaml --yes
+#   Install micromamba if needed (single binary, no conda required):
+#     curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj -C ~/bin/ --strip-components=1 bin/micromamba
+#   The pip section triggers a second solve pass; strip it from a temp copy and pip install afterward if needed.
 channels:
   - conda-forge
   - bioconda

@@ -18,6 +18,7 @@ export TZ='America/Detroit'
 
 export PATH="$HOME/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/miniconda3/bin:$PATH"
 
 # $SCRATCH is set by the cluster to /scratch/$USER.
 # If for some reason it's not set, define it manually:
