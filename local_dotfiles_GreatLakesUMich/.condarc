@@ -6,3 +6,6 @@ channels:
 channel_priority: strict
 show_channel_urls: true
 auto_activate_base: true
+envs_dirs:
+  - ~/micromamba/envs
+  - ~/miniconda3/envs

@@ -13,7 +13,7 @@
 
 ## my_utils Package
 
-Personal bioinformatics utility library at `~/Documents/repos_not_projects/my_utils/`. If needed and not already installed, install with `pip install -e` into the relevant env. Modules: `ASO_utils` (BLAST + off-target), `spliceai_utils` (SpliceAI), `alphagenome_utils`, `pangolin_utils`, `jui_utils`, `bed_utils`, `genometracks_utils`.
+Personal bioinformatics utility library at `~/Documents/repos_not_projects/my_utils/` (repo: `github.com/bfairkun/my_utils`). If needed and not already installed, install with `pip install -e` into the relevant env, or `pip install git+https://github.com/bfairkun/my_utils.git` on machines without a local clone. Modules: `ASO_utils` (BLAST + off-target), `spliceai_utils` (SpliceAI), `alphagenome_utils`, `pangolin_utils`, `jui_utils`, `bed_utils`, `genometracks_utils`.
 
 ## Output Directories
 

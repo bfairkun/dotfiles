@@ -41,7 +41,7 @@ Answer `y` to re-download if prompted (it caches the template).
 
 ### 4. What gets created
 
-- Project directory: `/project/yangili1/bjf79/<repo_name>/`
+- Project directory: `<PROJECTS_DIR from CLAUDE_local.md>/<repo_name>/`
 - Git repo initialized
 - Submodule at `code/module_workflows/rna_seq` → `snakemake-workflow_rna-seq` (main branch)
 - The rna_seq submodule itself pulls nested submodules: GenometracksByGenotype, leafcutter, leafcutter2, leafcutter2_chao
@@ -49,7 +49,7 @@ Answer `y` to re-download if prompted (it caches the template).
 ## Key paths after creation
 
 ```
-/project/yangili1/bjf79/<repo_name>/
+<PROJECTS_DIR>/<repo_name>/
 ├── analysis/          # Quarto notebooks go here
 ├── code/
 │   ├── module_workflows/
@@ -61,17 +61,18 @@ Answer `y` to re-download if prompted (it caches the template).
 
 ## Non-interactive usage (preferred for scripting)
 
-Use `--no-input` with extra context as `key=value` pairs. The `submodules` value is parsed via Python `eval()`, so use **single-quoted** Python dict syntax (not JSON double-quotes — the shell strips them and causes a SyntaxError):
+Use `--no-input` with `key=value` pairs. `submodules` is parsed via Python `eval()` — pass a real dict literal or `"{}"` for none:
 
 ```bash
-cd /project/yangili1/bjf79 && conda run -n cookiecutter cookiecutter git@github.com:bfairkun/cookiecutter-quarto-smk.git \
+cd <PROJECTS_DIR from CLAUDE_local.md> && conda run -n cookiecutter cookiecutter git@github.com:bfairkun/cookiecutter-quarto-smk.git \
   --no-input project_name="20260310_MyProject" \
-  submodules="{'rna_seq': {'url': 'git@github.com:bfairkun/snakemake-workflow_rna-seq.git', 'branch': 'main'}, 'dose_response': {'url': 'git@github.com:bfairkun/snakemake-workflow_dose-response.git', 'branch': 'main'}}"
+  submodules="{'rna_seq': {'url': 'git@github.com:bfairkun/snakemake-workflow_rna-seq.git', 'branch': 'main'}}"
 ```
 
 ## Notes
 
-- Projects are created in `/project/yangili1/bjf79/` (not `/project2/`)
-- The `cookiecutter` conda env must be active (not `sm_splicingmodulators`)
-- Submodule value uses Python single-quoted dict syntax (not JSON); leave `'{}'` if no submodules needed
-- After creation, `cd` into the new project and open in VSCode
+- Projects dir: `PROJECTS_DIR` from `CLAUDE_local.md`
+- `cookiecutter` conda env must be active
+- Submodules: pass `"{}"` for no submodules — NOT `"'{}'"` (string-in-string causes `AttributeError: 'str' has no 'keys'`)
+- Render notebooks: `conda run -n py_general quarto render analysis/notebook.qmd`
+- After creation, `cd` into the project and open in VSCode

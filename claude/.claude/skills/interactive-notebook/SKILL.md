@@ -41,8 +41,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Plot output dir
-AGENT_PLOTS = os.path.expandvars("$SCRATCH/$USER/agent_plots")
+AGENT_PLOTS = os.path.expanduser("~/agent_plots")  # AGENT_PLOTS from CLAUDE_local.md
 ```
 
 ### R skeleton
@@ -69,7 +68,7 @@ library(data.table)
 
 theme_set(theme_bw(base_size = 12))
 
-agent_plots <- file.path(Sys.getenv("SCRATCH"), Sys.getenv("USER"), "agent_plots")
+agent_plots <- path.expand("~/agent_plots")  # AGENT_PLOTS from CLAUDE_local.md
 ```
 ````
 
@@ -99,8 +98,7 @@ Then connect:
 
 - Verify: `import socket; print(socket.gethostname())`
 
-For compute-heavy work: ask the user to run `start_agent_kernel` first, then use
-`mcp__jupyter-kernel__connect_to_kernel` with `/scratch/midway3/bjf79/agent_kernel.json`.
+For compute-heavy work: ask the user to run `start_agent_kernel` first, then connect with `KERNEL_CF` from `CLAUDE_local.md`.
 
 ### R kernel
 
@@ -109,27 +107,15 @@ Ask the user to run:
 start_agent_kernel --lang r          # submits an R kernel to a compute node
 ```
 
-Then connect:
-```python
-# via mcp__jupyter-kernel__connect_to_kernel
-# connection file: /scratch/midway3/bjf79/agent_r_kernel.json
-```
+Then connect via `mcp__jupyter-kernel__connect_to_kernel` using `KERNEL_CF` (r variant) from `CLAUDE_local.md`.
 
 Send plain R code via `mcp__jupyter-kernel__run_python` — the kernel IS R, no `%%R` needed.
 
 Verify: `cat(R.version.string, "\n"); cat("Host:", system("hostname", intern=TRUE), "\n")`
 
-### After connecting — set up session state symlink
+### After connecting — session state files
 
-Once you have the kernel ID, immediately create symlinks so the state files are browsable:
-
-```bash
-ln -sf /tmp/claude_kernel_{kernel_id}_state.md $SCRATCH/$USER/agent_plots/state.md
-ln -sf /tmp/claude_kernel_{kernel_id}_state.json $SCRATCH/$USER/agent_plots/state.json
-```
-
-These symlinks cost nothing to update and let the user browse:
-
+State files go to `STATE_MD` / `STATE_JSON` from `CLAUDE_local.md` (NFS-shared, readable from login node immediately). Browsable at:
 - `http://localhost:8765/state.md`
 - `http://localhost:8765/state.json`
 
@@ -146,9 +132,9 @@ import json
 import os
 from pathlib import Path
 
-STATE_MD = Path("/tmp/claude_kernel_{kernel_id}_state.md")
-STATE_JSON = Path("/tmp/claude_kernel_{kernel_id}_state.json")
-AGENT_PLOTS = Path(os.path.expandvars("$SCRATCH/$USER/agent_plots"))
+STATE_MD   = Path(os.path.expanduser("~/agent_plots/state.md"))   # STATE_MD from CLAUDE_local.md
+STATE_JSON = Path(os.path.expanduser("~/agent_plots/state.json")) # STATE_JSON from CLAUDE_local.md
+AGENT_PLOTS = Path(os.path.expanduser("~/agent_plots"))            # AGENT_PLOTS from CLAUDE_local.md
 
 def _summarize_py_value(name, value):
     summary = {"name": name, "type": type(value).__name__}
@@ -254,8 +240,8 @@ Run this in the kernel after connect, then keep using `save_session_state(...)`:
 ```r
 library(jsonlite)
 
-state_md <- "/tmp/claude_kernel_{kernel_id}_state.md"
-state_json <- "/tmp/claude_kernel_{kernel_id}_state.json"
+state_md   <- path.expand("~/agent_plots/state.md")   # STATE_MD from CLAUDE_local.md
+state_json <- path.expand("~/agent_plots/state.json") # STATE_JSON from CLAUDE_local.md
 
 summarize_r_value <- function(name, env = .GlobalEnv) {
   if (!exists(name, envir = env, inherits = FALSE)) {
@@ -361,7 +347,7 @@ save_session_state <- function(
 The core workflow is: **run → show → discuss → refine → write to notebook**.
 
 1. **Run exploration code** in the kernel (load data, summarize, quick plots).
-2. **Save plots** to `$SCRATCH/$USER/agent_plots/` so the user can see them at http://localhost:8765.
+2. **Save plots** to `AGENT_PLOTS` (from `CLAUDE_local.md`) so the user can see them at http://localhost:8765.
 3. **Discuss** what the plot shows or what to refine.
 4. **Checkpoint session state** with `save_session_state(...)` after every validated milestone.
 5. **Write finalized code** back into the `.qmd` file (Edit tool) as a new chunk.
@@ -381,7 +367,7 @@ PDF preserves vector graphics and is the preferred format for inspection and pub
 
 ```python
 import os
-outdir = os.path.expandvars("$SCRATCH/$USER/agent_plots")
+outdir = os.path.expanduser("~/agent_plots")  # AGENT_PLOTS from CLAUDE_local.md
 fig.savefig(os.path.join(outdir, "myplot.pdf"), bbox_inches="tight")
 plt.close(fig)
 print(f"Saved → check http://localhost:8765/myplot.pdf")
@@ -390,7 +376,7 @@ print(f"Saved → check http://localhost:8765/myplot.pdf")
 ### R (ggplot2)
 
 ```r
-outdir <- file.path(Sys.getenv("SCRATCH"), Sys.getenv("USER"), "agent_plots")
+outdir <- path.expand("~/agent_plots")  # AGENT_PLOTS from CLAUDE_local.md
 ggsave(file.path(outdir, "myplot.pdf"), plot = p, width = 7, height = 5)
 cat("Saved → check http://localhost:8765/myplot.pdf\n")
 ```
@@ -398,7 +384,7 @@ cat("Saved → check http://localhost:8765/myplot.pdf\n")
 ### R (base graphics)
 
 ```r
-outdir <- file.path(Sys.getenv("SCRATCH"), Sys.getenv("USER"), "agent_plots")
+outdir <- path.expand("~/agent_plots")  # AGENT_PLOTS from CLAUDE_local.md
 pdf(file.path(outdir, "myplot.pdf"), width = 8, height = 6)
 # ... plot code ...
 dev.off()
@@ -453,12 +439,10 @@ Session state is not optional. Write checkpoint files:
 - before switching from exploration to notebook-writing
 - whenever the user asks for a pause, summary, or handoff
 
-**Path**: `/tmp/claude_kernel_{kernel_id}_state.md`
-**Path**: `/tmp/claude_kernel_{kernel_id}_state.json`
-**Browsable mirrors**:
+**Paths**: `STATE_MD` and `STATE_JSON` from `CLAUDE_local.md`. Browsable at:
 
-- `$SCRATCH/$USER/agent_plots/state.md`
-- `$SCRATCH/$USER/agent_plots/state.json`
+- `http://localhost:8765/state.md`
+- `http://localhost:8765/state.json`
 
 The markdown file is for human browsing. The JSON file is for machine recovery.
 
@@ -498,7 +482,7 @@ Do not try to serialize the whole workspace. Capture only the facts needed to re
 
 After context compaction or context clearing, do this in order:
 
-1. Read `/tmp/claude_kernel_{kernel_id}_state.md` and `/tmp/claude_kernel_{kernel_id}_state.json`.
+1. Read `STATE_MD` and `STATE_JSON` (paths from `CLAUDE_local.md`).
 2. Reconnect to the same kernel with `mcp__jupyter-kernel__connect_to_kernel`.
 3. Verify sentinel objects still exist by checking 2-5 key variables named in the state file.
 4. Verify `getwd()` / `os.getcwd()` and notebook path still match the saved state.

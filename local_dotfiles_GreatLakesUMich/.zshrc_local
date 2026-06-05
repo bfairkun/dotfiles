@@ -70,6 +70,12 @@ alias rstudio='update_display && rstudio'
 # Add your keys to ~/.secrets: export ANTHROPIC_API_KEY="sk-ant-..."
 [ -f ~/.secrets ] && source ~/.secrets
 
+# Auto-start agent plots HTTP server on port 8765
+if ! pgrep -f "agent_plots_server.py" > /dev/null 2>&1; then
+    mkdir -p ~/agent_plots
+    nohup python3 ~/bin/agent_plots_server.py --port 8765 --directory ~/agent_plots > ~/agent_plots/server.log 2>&1 &
+fi
+
 # List running Jupyter kernels (newest first).
 # Useful to see what compute kernels are active for Claude Code agent connections.
 function jk() {

@@ -1,5 +1,31 @@
 # .bashrc_local for UMich Great Lakes HPC
 # Sourced by ~/.bashrc (bash-specific, non-login shells).
+#
+# GREAT LAKES QUIRKS vs. MIDWAY:
+#   - No pet-select (pet not installed)
+#   - No navi widget (navi not installed by default)
+#   - No mosh
+#   - tmux/vim are system-installed; no module load needed
+#   - R available via module (4.4.3 is default; 4.6.0 is latest)
+
+echo "Running  ${0}..."
+
+function update_display {
+    # Sync the DISPLAY variable from tmux's environment.
+    # Call this before launching GUI apps (R, RStudio) from inside tmux,
+    # otherwise X11 forwarding may point to a stale display.
+    if [ ! -z $TMUX ]; then
+        export DISPLAY="`tmux show-env | sed -n 's/^DISPLAY=//p'`"
+    fi
+}
+
+# Load R module. Great Lakes offers R 4.2.0 through 4.6.0.
+# Default (no module load) gives 4.4.3. Change version as desired.
+module load R/4.4.3
+
+# Note: mosh is NOT available on Great Lakes (unlike Midway2/3).
+# Note: no module load needed for tmux or vim — all system-installed.
+# Note: node.js available if needed: check with `module spider node`
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
@@ -28,3 +54,43 @@ else
 fi
 unset __mamba_setup
 # <<< mamba initialize <<<
+
+# ALIASES
+# Compact squeue output showing your jobs
+alias sq='squeue --me --format="%.18i %.9P %.60j %.8u %.8T %.10M %.9l %.6D %R"'
+# Watch your jobs refresh every 5 seconds
+alias watchjobs='watch -n 5 "squeue --me --format=\"%.18i %.9P %.60j %.8u %.8T %.10M %.9l %.6D %R\""'
+# Start a Claude Code dispatcher window in tmux
+alias claude_dispatcher='tmux new-window -n "dispatcher" "claude --agent dispatcher -n dispatcher"'
+# Update display before launching R (fixes X11/tmux issue)
+alias R='update_display && R'
+alias rstudio='update_display && rstudio'
+
+# Load secret API keys (e.g., ANTHROPIC_API_KEY) — not tracked in dotfiles.
+# Add your keys to ~/.secrets: export ANTHROPIC_API_KEY="sk-ant-..."
+[ -f ~/.secrets ] && source ~/.secrets
+
+# Auto-start agent plots HTTP server on port 8765
+mkdir -p ~/agent_plots
+if ! pgrep -f "agent_plots_server.py" > /dev/null 2>&1; then
+    nohup python3 ~/bin/agent_plots_server.py --port 8765 --directory ~/agent_plots > ~/agent_plots/server.log 2>&1 &
+fi
+
+# List running Jupyter kernels (newest first).
+# Useful to see what compute kernels are active for Claude Code agent connections.
+function jk() {
+    local -a seen=()
+    local found=0
+    while IFS= read -r line; do
+        local cf
+        cf=$(echo "$line" | grep -oE ' -+f[= ][^ ]+\.json' | grep -oE '[/~][^ ]+')
+        [[ -n "$cf" && -f "$cf" ]] || continue
+        local already=0
+        for s in "${seen[@]}"; do [[ "$s" == "$cf" ]] && already=1 && break; done
+        [[ $already -eq 1 ]] && continue
+        seen+=("$cf")
+        printf "  %s  %s\n" "$(date -r $cf '+%Y-%m-%d %H:%M:%S')" "$cf"
+        found=1
+    done < <(pgrep -u $UID -af 'ipykernel' 2>/dev/null)
+    [[ $found -eq 0 ]] && echo "No running Jupyter kernels."
+}

@@ -8,8 +8,10 @@
 
 ENV=${1:-py_general}
 LANG=${2:-python}
-CF=$SCRATCH/$USER/agent_kernel.json
-[[ "$LANG" == "r" ]] && CF=$SCRATCH/$USER/agent_r_kernel.json
+
+mkdir -p "$SCRATCH/$USER" 2>/dev/null && KERNEL_DIR="$SCRATCH/$USER" || KERNEL_DIR="$HOME"
+CF="$KERNEL_DIR/agent_kernel.json"
+[[ "$LANG" == "r" ]] && CF="$KERNEL_DIR/agent_r_kernel.json"
 
 HOST_IP=$(ip route get 8.8.8.8 | awk '{print $7;exit}')
 echo "Node: $HOSTNAME  IP: $HOST_IP  Env: $ENV  Lang: $LANG"

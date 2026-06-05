@@ -42,11 +42,11 @@ fi
 
 # $SCRATCH is set by the cluster to /scratch/$USER
 [ -z "$SCRATCH" ] && SCRATCH="/scratch/$USER"
-mkdir -p $SCRATCH/$USER
+mkdir -p "$SCRATCH/$USER" 2>/dev/null && KERNEL_DIR="$SCRATCH/$USER" || KERNEL_DIR="$HOME"
 
-LOG=$SCRATCH/$USER/agent_kernel.log
-CF=$SCRATCH/$USER/agent_kernel.json
-[[ "$LANG" == "r" ]] && CF=$SCRATCH/$USER/agent_r_kernel.json
+LOG="$KERNEL_DIR/agent_kernel.log"
+CF="$KERNEL_DIR/agent_kernel.json"
+[[ "$LANG" == "r" ]] && CF="$KERNEL_DIR/agent_r_kernel.json"
 
 # Remove stale connection file so we can detect when the new kernel is ready
 rm -f $CF
@@ -59,7 +59,7 @@ echo "Submitting kernel job (lang=$LANG, env=$ENV, mem=$MEM, time=$TIME, cpus=$C
 JOBID=$(sbatch --parsable \
     --partition=$PARTITION $ACCOUNT_FLAG \
     --mem=$MEM --time=$TIME --cpus-per-task=$CPUS \
-    --output=$LOG \
+    --output="$LOG" \
     $SCRIPT $ENV $LANG)
 
 echo "Job $JOBID submitted. Waiting for kernel to start..."
