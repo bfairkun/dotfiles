@@ -110,7 +110,8 @@ no conda required to install it.
 
 Strip the pip section first (use home dir, not /tmp — /tmp is node-local):
 ```bash
-head -82 ~/dotfiles/other/conda_minimal_yamls/py_general.yaml > ~/py_general_no_pip.yaml
+pip_line=$(grep -n '^\s*pip:' ~/dotfiles/other/conda_minimal_yamls/py_general.yaml | head -1 | cut -d: -f1)
+head -$((pip_line - 1)) ~/dotfiles/other/conda_minimal_yamls/py_general.yaml > ~/py_general_no_pip.yaml
 ```
 
 Then run on a compute node — use `--channel-priority flexible` to avoid a solver conflict
@@ -150,22 +151,6 @@ quarto --version
 ```
 
 `~/.local/bin` is already in PATH via `.profile_local`.
-
----
-
-## Phase 9: Install Node.js and Codex CLI
-
-Node.js is not in PATH by default — load the module first:
-```bash
-module load nodejs
-node --version  # verify
-npm install -g @openai/codex
-```
-
-To make `node` available in new shells, add to `.bashrc_local`:
-```bash
-module load nodejs
-```
 
 ---
 
@@ -221,6 +206,20 @@ Interactive session:
 ```bash
 srun --account=hastingm0 --partition=standard --cpus-per-task=4 --mem=16G --time=4:00:00 --pty bash
 ```
+
+### Internet access from compute nodes
+
+Compute nodes don't have internet by default but can reach the web via the ARC-TS proxy.
+Add this line to sbatch scripts **after** the SLURM options (already in `agent_kernel.sbatch`):
+
+```bash
+source /etc/profile.d/http_proxy.sh
+```
+
+This sets `http_proxy=http://proxy1.arc-ts.umich.edu:3128/` and related vars.
+**Do not hardcode the proxy hostname** — the system file picks the correct one (`proxy1`, not `proxy`).
+
+Verified 2026-06: `curl` and Python `urllib` work from compute nodes after sourcing this file.
 
 ### No mosh
 mosh is not available on Great Lakes. SSH only.
