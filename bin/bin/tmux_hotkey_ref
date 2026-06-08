@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+# Reads # [ref: SECTION] key >> description comments from tmux config files.
+# Add or update entries there; this script just displays them.
+import sys, os, re, glob, shutil, tty, termios
+
+SECTION_ORDER = ['PANES', 'WINDOWS', 'SPLITS', 'COPY MODE', 'CLIPBOARD', 'MOUSE', 'POPUPS', 'HPC POPUPS']
+PATTERN = re.compile(r'^#\s*\[ref:\s*([^\]]+)\]\s*(.+?)\s*>>\s*(.+?)\s*$')
+
+def find_config_files():
+    files = []
+    main = os.path.expanduser('~/.tmux.conf')
+    if os.path.exists(main):
+        files.append(main)
+    for f in sorted(glob.glob(os.path.expanduser('~/.tmux/*/*.conf'))):
+        files.append(f)
+    local = os.path.expanduser('~/.tmux_local.conf')
+    if os.path.exists(local):
+        files.append(local)
+    return files
+
+def parse_refs(files):
+    sections = {}
+    for f in files:
+        try:
+            for line in open(f):
+                m = PATTERN.match(line.strip())
+                if m:
+                    sec, key, desc = m.group(1).strip(), m.group(2).strip(), m.group(3).strip()
+                    sections.setdefault(sec, []).append((key, desc))
+        except OSError:
+            pass
+    return sections
+
+def ordered_sections(sections):
+    result = [s for s in SECTION_ORDER if s in sections]
+    result += [s for s in sections if s not in SECTION_ORDER]
+    return result
+
+W = 79
+cols, _ = shutil.get_terminal_size()
+use_box = cols >= W + 4
+
+def row(s=''):
+    return '  │' + s.ljust(W) + '│'
+
+def kv(k, desc):
+    return row('    {:<22}  {}'.format(k, desc)[:W].ljust(W))
+
+sections = parse_refs(find_config_files())
+order = ordered_sections(sections)
+
+print()
+if use_box:
+    print('  ┌' + '─' * W + '┐')
+    print(row('  prefix = Ctrl+b    M = Alt / Option key'))
+    for sec in order:
+        print(row())
+        print(row('  ' + sec))
+        for k, desc in sections[sec]:
+            print(kv(k, desc))
+    print(row())
+    print('  └' + '─' * W + '┘')
+else:
+    print('  prefix = Ctrl+b    M = Alt / Option key')
+    for sec in order:
+        print('\n  ' + sec)
+        for k, desc in sections[sec]:
+            print('    {:<22}  {}'.format(k, desc))
+print()
+
+print('  press any key to close...', end='', flush=True)
+try:
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+except (termios.error, ValueError):
+    input()
+print()

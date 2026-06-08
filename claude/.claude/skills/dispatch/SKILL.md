@@ -6,10 +6,11 @@ argument-hint: [project path or name]
 
 # Project Directory Listing
 
-These are cached snapshots (last updated 2026-04-14). If the user references a project not listed here, run `ls /project2/yangili1/bjf79/` and `ls /project/yangili1/bjf79/` to get the current list.
+These are cached snapshots (last updated 2026-05-26). If the user references a project not listed here, run `ls /project2/yangili1/bjf79/` and `ls /project/yangili1/bjf79/` to get the current list.
 
 ## `/project/yangili1/bjf79/` (repos, tools, reference genomes)
 ```
+20200302_ColaSeq
 2024_comparativesplicing
 2024_NMD_Junction_Classifier
 20250331_clinvar_spliceai
@@ -21,6 +22,7 @@ These are cached snapshots (last updated 2026-04-14). If the user references a p
 20260307_narnaseq_sse
 20260310_diversesm_dr
 20260324_xon_mpra
+20260430_xon_titration
 ChromatinSplicingQTLs
 conda_envs
 conda_pkgs
@@ -52,9 +54,17 @@ snaptron-experiments
 20250925_simulateshortreadsfromlongreads
 20250928_treatmentplusrisdiplamcombinationtitrations
 ChromatinSplicingQTLs
+containerize-conda
+Fastq
+GenometracksByGenotype
+gwas_summary_stats
+R
 ReferenceGenomes
 repos_not_projects
+rstudioserver
+rstudio-server-conda_share
 scratch
+singularity_sifs
 sm_splicingmodulators
 snakemake_conda_envs
 snakemake-workflow_rna-seq

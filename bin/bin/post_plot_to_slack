@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""Upload a plot file to Slack and post it to a channel/DM.
+
+Usage:
+    post_plot_to_slack <file> [channel_id]
+
+channel_id defaults to the value in ~/.config/slack_plot_channel (or DM yourself
+by putting your own Slack user ID there, e.g. UC94MAVLL).
+
+Token is read from ~/.config/slack_plot_token (a Slack bot token: xoxb-...).
+"""
+
+import sys, os, json, urllib.request, urllib.parse, mimetypes
+
+CHANNEL_FILE = os.path.expanduser('~/.config/slack_plot_channel')
+
+def die(msg):
+    print(f'error: {msg}', file=sys.stderr)
+    sys.exit(1)
+
+def get_token():
+    token = os.environ.get('SLACK_PLOT_TOKEN')
+    if token:
+        return token
+    path = os.path.expanduser('~/.config/slack_plot_token')
+    try:
+        return open(path).read().strip()
+    except FileNotFoundError:
+        die('No Slack token found. Set SLACK_PLOT_TOKEN in ~/.secrets or write token to ~/.config/slack_plot_token')
+
+def slack_form(token, method, payload):
+    """Call a Slack API method with form-encoded body (required by some endpoints)."""
+    data = urllib.parse.urlencode(payload).encode()
+    req = urllib.request.Request(
+        f'https://slack.com/api/{method}',
+        data=data,
+        headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/x-www-form-urlencoded'},
+    )
+    with urllib.request.urlopen(req) as r:
+        resp = json.loads(r.read())
+    if not resp.get('ok'):
+        die(f'Slack API {method} failed: {resp.get("error", resp)}')
+    return resp
+
+def slack_json(token, method, payload):
+    """Call a Slack API method with JSON body."""
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        f'https://slack.com/api/{method}',
+        data=data,
+        headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+    )
+    with urllib.request.urlopen(req) as r:
+        resp = json.loads(r.read())
+    if not resp.get('ok'):
+        die(f'Slack API {method} failed: {resp.get("error", resp)}')
+    return resp
+
+def upload_file(token, filepath, channel, initial_comment=''):
+    filename = os.path.basename(filepath)
+    filesize = os.path.getsize(filepath)
+    mime = mimetypes.guess_type(filepath)[0] or 'application/octet-stream'
+
+    # Step 1: get upload URL (requires form-encoded)
+    resp = slack_form(token, 'files.getUploadURLExternal', {
+        'filename': filename,
+        'length': filesize,
+    })
+    upload_url = resp['upload_url']
+    file_id    = resp['file_id']
+
+    # Step 2: upload the file bytes
+    with open(filepath, 'rb') as f:
+        file_data = f.read()
+    req = urllib.request.Request(upload_url, data=file_data,
+                                  headers={'Content-Type': mime}, method='POST')
+    with urllib.request.urlopen(req):
+        pass
+
+    # If channel looks like a user ID (U...), open the DM first to get channel ID
+    if channel.startswith('U'):
+        resp2 = slack_json(token, 'conversations.open', {'users': channel})
+        channel = resp2['channel']['id']
+
+    # Step 3: complete the upload and share to channel (JSON body)
+    payload = {'files': [{'id': file_id, 'title': filename}], 'channel_id': channel}
+    if initial_comment:
+        payload['initial_comment'] = initial_comment
+    slack_json(token, 'files.completeUploadExternal', payload)
+    print(f'posted {filename} to Slack channel {channel}')
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print(__doc__)
+        sys.exit(1)
+
+    filepath = sys.argv[1]
+    if not os.path.exists(filepath):
+        die(f'file not found: {filepath}')
+
+    token   = get_token()
+    if len(sys.argv) > 2:
+        channel = sys.argv[2]
+    else:
+        channel = os.environ.get('SLACK_PLOT_CHANNEL') or open(CHANNEL_FILE).read().strip()
+
+    upload_file(token, filepath, channel)

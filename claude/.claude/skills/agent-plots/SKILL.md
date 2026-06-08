@@ -13,8 +13,9 @@ Machine-specific paths are in `CLAUDE_local.md → Agent Reference` (always in c
 
 1. Save to `AGENT_PLOTS` dir (from `CLAUDE_local.md`; Mac: `~/Documents/agent_plots/`)
 2. Tell the user the filename
-3. On HPC: "check `http://localhost:8765`"
-4. **Embed inline** (`Read` tool) only when: no SSH tunnel (remote control), user asks, or you need to interpret the plot to continue
+3. On HPC SSH: "check `http://localhost:8765`"
+4. If user asks to see it on remote control: run `post_plot_to_slack <filepath>` (save as PNG first — Slack previews PNG inline, not PDF) or use `Read` tool to embed inline
+5. **Embed inline** (`Read` tool) only when user asks, or you need to interpret the plot to continue
 
 ## PDF vs PNG
 
@@ -88,3 +89,4 @@ DT::saveWidget(
 - Server auto-started at login via `*rc_local`, port 8765
 - If not running: `nohup python3 ~/bin/agent_plots_server.py --port 8765 --directory ~/agent_plots > ~/agent_plots/server.log 2>&1 &`
 - SSH tunnel: `LocalForward 8765 localhost:8765` in local `~/.ssh/config`
+- **Slack upload:** `post_plot_to_slack <filepath> [channel_id]` — posts to Slack DM via `hpc_agent_plots` bot. Token in `$SLACK_PLOT_TOKEN` (`~/.secrets`). Default channel in `~/.config/slack_plot_channel` (your Slack user ID). To post to a lab channel: invite `@hpc_agent_plots` then pass its channel ID. Bot token does not expire. New machine: add `SLACK_PLOT_TOKEN` to `~/.secrets`, create `~/.config/slack_plot_channel` with your Slack user ID.
