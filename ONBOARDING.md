@@ -310,7 +310,7 @@ What each option does:
 
 ### 2.2 Clipboard Sync (Mac)
 
-The tmux `Ctrl+C` keybinding copies the tmux buffer to your Mac clipboard via the SSH tunnel. For this to work, your Mac needs to listen on port 2224.
+The tmux `Ctrl+C` keybinding copies the tmux buffer to your Mac clipboard via the SSH tunnel. For this to work, your Mac needs to listen on port 2224 and maintain a persistent reverse tunnel to each HPC.
 
 Stow the Mac package on your Mac (not on HPC):
 ```bash
@@ -318,9 +318,20 @@ Stow the Mac package on your Mac (not on HPC):
 cd ~/dotfiles
 stow local_dotfiles_MyMacbookAir
 launchctl load ~/Library/LaunchAgents/pbcopy.plist
+launchctl load ~/Library/LaunchAgents/localhost.autossh-tunnels.plist
 ```
 
-This installs a launchd service that listens on port 2224 and pipes anything it receives to `/usr/bin/pbcopy`. It starts automatically at login.
+Two launchd services are installed:
+- **`pbcopy.plist`** — listens on port 2224 and pipes anything received to `/usr/bin/pbcopy`
+- **`localhost.autossh-tunnels.plist`** — maintains persistent reverse SSH tunnels (port 2224) to each HPC, restarting automatically if the connection drops
+
+The list of HPC hosts is in `~/.config/autossh_tunnel_hosts` (stowed from the Mac package). To add a new host, add its SSH alias (from `~/.ssh/config`) to that file and reload:
+```bash
+launchctl unload ~/Library/LaunchAgents/localhost.autossh-tunnels.plist
+launchctl load ~/Library/LaunchAgents/localhost.autossh-tunnels.plist
+```
+
+Tunnel logs go to `/tmp/autossh-tunnels.log` if you need to debug.
 
 ---
 
@@ -565,7 +576,7 @@ This function (defined in `.zshrc_local`) re-reads the current X11 display varia
 
 **`module load node` is required for Claude Code** — this is handled automatically by `.zshrc_local` after stowing, but if Claude Code isn't found, check that node is loaded: `module list`.
 
-**Clipboard sync not working:** Check that the launchd plist is loaded on your Mac (`launchctl list localhost.pbcopy`) and that your SSH connection has the `RemoteForward` active.
+**Clipboard sync not working:** Check that both launchd services are loaded (`launchctl list localhost.pbcopy` and `launchctl list localhost.autossh-tunnels`). If the tunnel service is loaded but port 2224 is still not reachable on HPC, check `/tmp/autossh-tunnels.log`. The `autossh-tunnels` service maintains the tunnel automatically — you no longer need to restart your SSH connection to restore it.
 
 **Running Snakemake:** Always do a dry run first (`-n` flag). The `local-cores: 5` limit in the profile respects RCC's login node policy — don't raise it.
 

@@ -1,0 +1,26 @@
+#!/bin/bash
+# Maintains persistent reverse SSH tunnels (port 2224) for all hosts in
+# ~/.config/autossh_tunnel_hosts (one SSH host alias per line; # = comment)
+
+HOSTS_FILE="$HOME/.config/autossh_tunnel_hosts"
+
+start_tunnel() {
+    local host="$1"
+    while true; do
+        /opt/homebrew/bin/autossh -M 0 -N \
+            -o ServerAliveInterval=60 \
+            -o ServerAliveCountMax=3 \
+            -o ExitOnForwardFailure=yes \
+            -R 2224:127.0.0.1:2224 \
+            "$host"
+        echo "$(date): tunnel for $host exited, restarting in 10s..." >&2
+        sleep 10
+    done
+}
+
+while IFS= read -r host || [[ -n "$host" ]]; do
+    [[ -z "$host" || "$host" == \#* ]] && continue
+    start_tunnel "$host" &
+done < "$HOSTS_FILE"
+
+wait
