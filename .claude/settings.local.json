@@ -12,7 +12,8 @@
       "mcp__colab-mcp__add_code_cell",
       "mcp__colab-mcp__get_cells",
       "mcp__colab-mcp__add_text_cell",
-      "Bash(conda create *)"
+      "Bash(conda create *)",
+      "mcp__plugin_slack_slack__slack_search_public_and_private"
     ]
   }
 }

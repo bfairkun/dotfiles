@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.bjf79.umich-smb-automount</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/bjf79/bin/smb_automount.sh</string>
+        <string>umich-smb</string>
+        <string>benfair</string>
+        <string>benfair</string>
+        <string>umms-hastingm-win.turbo.storage.umich.edu</string>
+        <string>umms-hastingm</string>
+        <string>/Users/bjf79/mnt/umms-hastingm</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>60</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/umich-smb-automount.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/umich-smb-automount.log</string>
+</dict>
+</plist>
