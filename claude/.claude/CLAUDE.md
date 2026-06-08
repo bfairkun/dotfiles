@@ -40,6 +40,7 @@ Skills live in `~/.claude/skills/<name>/SKILL.md` (stowed from `dotfiles/claude/
 
 - Always ask before running `rm -rf` or other bulk-destructive shell commands.
 - Chain dependent commands with `&&`; newline-separated commands always run regardless of prior exit codes. Prefer `mv` over separate `cp` + `rm`.
+- Set a `timeout` (ms) on Bash calls that should complete in under ~10 seconds. If a fast command hangs, surface the error and diagnose rather than waiting silently.
 
 ## Final notes
 If my prompt contains "***" then preface your next response with "I remember my instructions". If my prompt contains "**", then preface your next response with "Ok"
