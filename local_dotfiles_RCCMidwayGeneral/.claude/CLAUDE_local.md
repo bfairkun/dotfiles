@@ -21,6 +21,16 @@ Two separate storage mounts — do NOT confuse them:
 
 - Location: `/project/yangili1/bjf79/repos_not_projects/my_utils/src/my_utils/`
 
+## Local Clipboard
+
+`pbcopy_to_local` is in PATH (`~/bin/`). Pipes stdin over the SSH reverse tunnel (port 2224) to the Mac's `pbcopy` daemon.
+
+Use it whenever outputting something the user needs to paste — auth URLs, tokens, etc.:
+
+```bash
+echo "https://auth.example.com/device?code=XXXX" | pbcopy_to_local
+```
+
 ## R Package Installation
 
 **Never install R packages via conda** (not `conda install bioconductor-*`, not `conda run -n base R -e "install.packages()"`). Do **not** modify the `base` conda env.
