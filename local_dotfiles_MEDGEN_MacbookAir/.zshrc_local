@@ -14,3 +14,8 @@ unset __conda_setup
 # <<< conda initialize <<<
 
 export PATH="$HOME/.local/bin:$PATH"
+
+# Establish background SSH tunnel to an HPC host (use any alias from ~/.ssh/config).
+# Run this when the tmux prefix+Ctrl+c pbcopy_to_local trick stops working (tunnel
+# dropped after 24h ControlPersist expiry or network disruption). e.g. tun midway
+tun() { ssh -fN "$1"; }

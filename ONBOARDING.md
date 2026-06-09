@@ -147,7 +147,7 @@ What each package provides:
 | `local_dotfiles_RCCMidwayGeneral` | SSH agent, module loads, tmux auto-attach, conda init, aliases, `~/bin` scripts, Claude Code settings | **Personalize conda paths** |
 | `claude` | Claude Code `settings.json`, `mcp.json`, skills | |
 
-**Do NOT stow on HPC:** `local_dotfiles_MyMacbookAir` (Mac only — see Part 2), `local_dotfiles_HPStream`, `local_dotfiles_MEDGEN_MacbookAir`, `local_dotfiles_RCCMidway2Specific`, `local_dotfiles_RCCMidway3Specific`.
+**Do NOT stow on HPC:** `local_dotfiles_MEDGEN_MacbookAir` (Mac only — see Part 2), `local_dotfiles_HPStream`, `local_dotfiles_MyMacbookAir`, `local_dotfiles_RCCMidway2Specific`, `local_dotfiles_RCCMidway3Specific`.
 
 After stowing, log out and back in (or `source ~/.profile`) for all changes to take effect.
 
@@ -282,7 +282,7 @@ claude
 
 ### 2.1 SSH Config
 
-Add the following to `~/.ssh/config` on your Mac (or stow `local_dotfiles_MyMacbookAir` if you clone the dotfiles there too):
+Add the following to `~/.ssh/config` on your Mac (or stow `local_dotfiles_MEDGEN_MacbookAir` if you clone the dotfiles there too):
 
 ```
 Host midway*
@@ -316,7 +316,7 @@ Stow the Mac package on your Mac (not on HPC):
 ```bash
 # On your Mac:
 cd ~/dotfiles
-stow local_dotfiles_MyMacbookAir
+stow local_dotfiles_MEDGEN_MacbookAir
 launchctl load ~/Library/LaunchAgents/pbcopy.plist
 launchctl load ~/Library/LaunchAgents/localhost.autossh-tunnels.plist
 ```
