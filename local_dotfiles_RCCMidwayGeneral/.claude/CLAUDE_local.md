@@ -31,6 +31,16 @@ Use it whenever outputting something the user needs to paste — auth URLs, toke
 echo "https://auth.example.com/device?code=XXXX" | pbcopy_to_local
 ```
 
+## Agent Reference
+
+Paths used by agent skills — **always detect at runtime rather than hardcoding**:
+
+- **`AGENT_PLOTS`** (HTTP server directory): the server's `--directory` may point to scratch, not `~/agent_plots`. Detect with:
+  ```bash
+  ps aux | grep agent_plots_server | grep -o -- '--directory [^ ]*' | awk '{print $2}'
+  ```
+  Current value: `/scratch/midway3/bjf79/agent_plots`
+
 ## R Package Installation
 
 **Never install R packages via conda** (not `conda install bioconductor-*`, not `conda run -n base R -e "install.packages()"`). Do **not** modify the `base` conda env.

@@ -1,1 +1,11 @@
-cat | nc -q 1 localhost 2224
+#!/bin/sh
+# Pipe stdin to Mac's pbcopy over an SSH reverse tunnel (port 2224).
+if hostname | grep -q 'midway2'; then
+    # Midway2 runs ncat (Linux/nmap netcat), which supports -q (quit N seconds
+    # after EOF on stdin). This closes the connection cleanly after sending.
+    cat | nc -q 1 localhost 2224
+else
+    # Midway3 runs OpenBSD netcat, which doesn't support -q. Use -w (idle
+    # timeout) instead — same effect: closes the connection once data is sent.
+    cat | nc -w 1 localhost 2224
+fi

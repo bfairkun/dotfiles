@@ -1,1 +1,5 @@
-../../local_dotfiles_RCCMidwayGeneral/bin/pbcopy_to_local
+#!/bin/sh
+# Pipe stdin to Mac's pbcopy over an SSH reverse tunnel (port 2224).
+# Great Lakes runs OpenBSD netcat, which doesn't support -q (a Linux/nmap
+# netcat flag). Use -w (idle timeout) instead for the same clean close.
+cat | nc -w 1 localhost 2224
