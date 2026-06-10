@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HPC &amp; Claude Code for Bioinformatics</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/theme/moon.min.css"/>
+<style>
+  :root {
+    --maize: #FFCB05;
+    --blue:  #00274C;
+    --light: #e8e8e8;
+  }
+  .reveal { font-size: 28px; }
+  .reveal h1, .reveal h2 { color: var(--maize); }
+  .reveal h3 { color: #aaddff; }
+  .reveal a { color: var(--maize); }
+  .reveal a:hover { color: #fff; }
+
+  /* Two-column layout */
+  .cols { display: flex; gap: 2em; align-items: flex-start; }
+  .col  { flex: 1; }
+
+  /* Comparison tables */
+  table.compare { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+  table.compare th { background: var(--blue); color: var(--maize); padding: 0.4em 0.7em; }
+  table.compare td { padding: 0.35em 0.7em; border-bottom: 1px solid #334; }
+  table.compare tr:nth-child(even) td { background: rgba(255,255,255,0.05); }
+
+  /* Code snippets */
+  pre.cmd { background: #111; border-left: 3px solid var(--maize); padding: 0.6em 1em;
+            font-size: 0.7em; border-radius: 4px; text-align: left; white-space: pre-wrap; }
+
+  /* Badge chips */
+  .chip { display: inline-block; background: var(--blue); border: 1px solid var(--maize);
+          color: var(--maize); border-radius: 12px; padding: 0.1em 0.7em; font-size: 0.7em; margin: 0.2em; }
+
+  /* Warning / tip boxes */
+  .box-warn { background: rgba(255,100,80,0.15); border-left: 3px solid #ff6450;
+              padding: 0.5em 1em; border-radius: 4px; font-size: 0.8em; text-align: left; }
+  .box-tip  { background: rgba(80,200,120,0.12); border-left: 3px solid #50c878;
+              padding: 0.5em 1em; border-radius: 4px; font-size: 0.8em; text-align: left; }
+
+  /* Itinerary table */
+  table.itinerary { width: 100%; border-collapse: collapse; font-size: 0.78em; }
+  table.itinerary th { background: var(--blue); color: var(--maize); padding: 0.4em 0.8em; }
+  table.itinerary td { padding: 0.3em 0.8em; border-bottom: 1px solid #334; }
+  table.itinerary td:first-child { color: var(--maize); font-family: monospace; white-space: nowrap; }
+
+  /* SVG diagram labels */
+  .svg-label { font-family: sans-serif; font-size: 13px; fill: #ddd; }
+  .svg-sublabel { font-family: sans-serif; font-size: 10px; fill: #aaa; }
+  .svg-arrow { stroke: #aaa; stroke-width: 2; fill: none; marker-end: url(#arr); }
+  .svg-box-blue { fill: var(--blue); stroke: var(--maize); stroke-width: 1.5; rx: 8; }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ─── 1. TITLE ─────────────────────────────────────────────── -->
+<section>
+  <h1 style="font-size:1.4em;">HPC &amp; Claude Code<br>for Bioinformatics</h1>
+  <p style="color:#aaa; margin-top: 1em;">Hastings Lab · June 2026</p>
+  <p style="font-size:0.7em; color:#888; margin-top:2em;">
+    ⏱ &nbsp;~1.5 hours &nbsp;·&nbsp; Slides: <em>arrow keys or spacebar to navigate</em>
+  </p>
+  <aside class="notes">
+    Welcome everyone. Today is a whirlwind tour — learning this well takes more than 1.5 hours,
+    but the goal is to show you what's possible and get you started.
+    As you tweak your setup and Claude learns your workflow, everything gets faster.
+  </aside>
+</section>
+
+<!-- ─── 2. ITINERARY ─────────────────────────────────────────── -->
+<section>
+  <h2>Today's Itinerary</h2>
+  <table class="itinerary">
+    <tr><th>Time</th><th>Topic</th></tr>
+    <tr><td>0:00</td><td>Overview &amp; housekeeping</td></tr>
+    <tr><td>0:05</td><td>What is HPC? — architecture, Slurm, terminal basics</td></tr>
+    <tr><td>0:20</td><td>Google Colab as a lightweight alternative</td></tr>
+    <tr><td>0:25</td><td>What are AI agents?</td></tr>
+    <tr><td>0:35</td><td>Claude Code — demos &amp; key features</td></tr>
+    <tr><td>0:55</td><td>Bigger demos: cookiecutter project, ASO walk</td></tr>
+    <tr><td>1:15</td><td>Interactive time / troubleshoot / try it yourself</td></tr>
+  </table>
+  <p style="font-size:0.65em; color:#888; margin-top:1.2em;">
+    ⚠️ &nbsp;Full setup (conda, dotfiles, MCP) takes longer than 1.5 h — don't stress if you don't finish today.
+  </p>
+</section>
+
+<!-- ─── 3. WHAT IS HPC? ──────────────────────────────────────── -->
+<section>
+  <section>
+    <h2>What is HPC?</h2>
+    <p style="font-size:0.85em; color:#aaa;">High-Performance Computing — shared compute clusters for big jobs</p>
+    <div class="cols" style="margin-top:1em;">
+      <div class="col">
+        <ul style="font-size:0.8em;">
+          <li class="fragment">UMich cluster: <strong>Great Lakes</strong></li>
+          <li class="fragment">Need VPN if off-campus</li>
+          <li class="fragment">Access via <strong>SSH</strong></li>
+          <li class="fragment">Jobs scheduled by <strong>Slurm</strong></li>
+          <li class="fragment">Shared storage: <strong>Turbo</strong> &amp; home dir</li>
+        </ul>
+      </div>
+      <div class="col">
+        <p style="font-size:0.7em; color:#888;">
+          <a href="https://documentation.its.umich.edu/arc-hpc/greatlakes/user-guide" target="_blank">
+            📖 UMich Great Lakes User Guide ↗
+          </a>
+        </p>
+        <div class="box-tip fragment" style="margin-top:1em; font-size:0.72em;">
+          <strong>ARMIS</strong> = HIPAA-safe compute cluster for sensitive/patient data. Same Slurm concepts, separate resource request.
+        </div>
+      </div>
+    </div>
+    <aside class="notes">Note that some of you may need to apply for an account first.</aside>
+  </section>
+
+  <!-- Architecture diagram -->
+  <section>
+    <h2>HPC Architecture</h2>
+    <svg viewBox="0 0 780 340" width="100%" style="max-width:780px;">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#aaa"/>
+        </marker>
+      </defs>
+
+      <!-- Laptop -->
+      <rect x="20" y="130" width="110" height="60" rx="8" fill="#00274C" stroke="#FFCB05" stroke-width="1.5"/>
+      <text x="75" y="157" class="svg-label" text-anchor="middle">💻 Your</text>
+      <text x="75" y="173" class="svg-label" text-anchor="middle">Laptop</text>
+      <text x="75" y="205" class="svg-sublabel" text-anchor="middle">VPN if off-campus</text>
+
+      <!-- SSH arrow -->
+      <line x1="130" y1="160" x2="190" y2="160" class="svg-arrow"/>
+      <text x="160" y="152" class="svg-sublabel" text-anchor="middle">SSH</text>
+
+      <!-- Login node -->
+      <rect x="190" y="110" width="130" height="100" rx="8" fill="#00274C" stroke="#FFCB05" stroke-width="1.5"/>
+      <text x="255" y="148" class="svg-label" text-anchor="middle">Login Node</text>
+      <text x="255" y="166" class="svg-sublabel" text-anchor="middle">greatlakes.arc-ts</text>
+      <text x="255" y="183" class="svg-sublabel" text-anchor="middle">.umich.edu</text>
+      <text x="255" y="222" class="svg-sublabel" text-anchor="middle" fill="#ff9977">⚠ no heavy jobs here</text>
+
+      <!-- Slurm arrow -->
+      <line x1="320" y1="160" x2="390" y2="160" class="svg-arrow"/>
+      <text x="355" y="150" class="svg-sublabel" text-anchor="middle">sbatch /</text>
+      <text x="355" y="162" class="svg-sublabel" text-anchor="middle">sinteractive</text>
+
+      <!-- Slurm box -->
+      <rect x="390" y="125" width="110" height="70" rx="8" fill="#1a1a3a" stroke="#aaddff" stroke-width="1.5"/>
+      <text x="445" y="155" class="svg-label" text-anchor="middle" fill="#aaddff">Slurm</text>
+      <text x="445" y="172" class="svg-sublabel" text-anchor="middle">scheduler</text>
+
+      <!-- Compute nodes -->
+      <line x1="500" y1="145" x2="570" y2="100" class="svg-arrow"/>
+      <line x1="500" y1="160" x2="570" y2="165" class="svg-arrow"/>
+      <line x1="500" y1="175" x2="570" y2="230" class="svg-arrow"/>
+
+      <rect x="570" y="70" width="110" height="50" rx="8" fill="#00274C" stroke="#50c878" stroke-width="1.5"/>
+      <text x="625" y="92" class="svg-label" text-anchor="middle" fill="#50c878">Compute</text>
+      <text x="625" y="108" class="svg-sublabel" text-anchor="middle">CPU node</text>
+
+      <rect x="570" y="138" width="110" height="50" rx="8" fill="#00274C" stroke="#50c878" stroke-width="1.5"/>
+      <text x="625" y="160" class="svg-label" text-anchor="middle" fill="#50c878">Compute</text>
+      <text x="625" y="176" class="svg-sublabel" text-anchor="middle">GPU node</text>
+
+      <rect x="570" y="205" width="110" height="50" rx="8" fill="#00274C" stroke="#50c878" stroke-width="1.5"/>
+      <text x="625" y="227" class="svg-label" text-anchor="middle" fill="#50c878">Compute</text>
+      <text x="625" y="243" class="svg-sublabel" text-anchor="middle">high-mem node</text>
+
+      <!-- Shared storage -->
+      <rect x="170" y="290" width="480" height="52" rx="8" fill="#1a1a2a" stroke="#FFCB05" stroke-width="1.5" stroke-dasharray="6,3"/>
+      <text x="410" y="310" class="svg-label" text-anchor="middle" fill="#FFCB05">🗄 Shared Storage — visible from all nodes</text>
+      <text x="300" y="330" class="svg-sublabel" text-anchor="middle" fill="#aaa">Home dir: 80 GB/user</text>
+      <text x="520" y="330" class="svg-sublabel" text-anchor="middle" fill="#aaa">Turbo: 100 TB (Hastings lab total)</text>
+
+      <!-- Storage vertical lines -->
+      <line x1="255" y1="210" x2="255" y2="290" stroke="#555" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="445" y1="195" x2="445" y2="290" stroke="#555" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="625" y1="255" x2="625" y2="290" stroke="#555" stroke-width="1" stroke-dasharray="4,3"/>
+    </svg>
+    <aside class="notes">
+      Compute nodes often can't reach the internet — keep that in mind when running scripts that try to download things.
+    </aside>
+  </section>
+
+  <!-- Login vs Compute -->
+  <section>
+    <h2>Login Node vs. Compute Node</h2>
+    <table class="compare">
+      <tr><th>Task</th><th>Login node ✅</th><th>Compute node ✅</th></tr>
+      <tr><td>Navigate files, edit scripts</td><td>✅</td><td></td></tr>
+      <tr><td>Small test runs (&lt;1 min, 1 CPU)</td><td>✅</td><td></td></tr>
+      <tr><td>Submit/monitor jobs</td><td>✅</td><td></td></tr>
+      <tr><td>Running Claude Code / tmux</td><td>✅</td><td></td></tr>
+      <tr><td>Heavy computation (align reads, ML training)</td><td>❌ please don't</td><td>✅</td></tr>
+      <tr><td>GPU workloads (SpliceAI, AlphaGenome)</td><td>❌</td><td>✅ GPU partition</td></tr>
+      <tr><td>Large memory jobs (&gt;4 GB RAM)</td><td>❌</td><td>✅</td></tr>
+    </table>
+    <aside class="notes">Login nodes are shared by everyone — a runaway job there hurts all users.</aside>
+  </section>
+
+  <!-- Slurm basics -->
+  <section>
+    <h2>Slurm Basics</h2>
+    <div class="cols">
+      <div class="col">
+        <h3>Submit a job</h3>
+        <pre class="cmd">sbatch my_script.sh
+sinteractive --account=&lt;account&gt; \
+  --nodes=1 --ntasks=4 \
+  --mem=16G --time=02:00:00</pre>
+        <h3 style="margin-top:0.8em;">Monitor &amp; cancel</h3>
+        <pre class="cmd">squeue -u $USER       # your jobs
+scancel &lt;job_id&gt;      # cancel job
+sacct -j &lt;job_id&gt;     # job history</pre>
+      </div>
+      <div class="col">
+        <h3>Job script template</h3>
+        <pre class="cmd">#!/bin/bash
+#SBATCH --account=pi_hastings
+#SBATCH --partition=standard
+#SBATCH --nodes=1
+#SBATCH --ntasks=8
+#SBATCH --mem=32G
+#SBATCH --time=04:00:00
+#SBATCH --output=logs/%j.out
+
+module load python/3.10
+conda activate my_env
+python my_analysis.py</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Terminal cheatsheet -->
+  <section>
+    <h2>Terminal Basics</h2>
+    <div class="cols">
+      <div class="col">
+        <h3>Navigation &amp; files</h3>
+        <pre class="cmd">ssh bjf79@greatlakes.arc-ts.umich.edu
+ls -lh                 # list files
+cd /nfs/turbo/lsa-...  # change dir
+cat file.txt           # print file
+mkdir -p outputs/      # make dir
+cp src.txt dst.txt     # copy
+mv old.txt new.txt     # rename/move
+rm file.txt            # delete</pre>
+      </div>
+      <div class="col">
+        <h3>Python &amp; conda</h3>
+        <pre class="cmd">conda activate py_general
+python script.py
+nano hello.py          # edit file
+# then: Ctrl+O save, Ctrl+X exit</pre>
+        <h3 style="margin-top:0.8em;">tmux (persistent sessions)</h3>
+        <pre class="cmd">tmux new -s work       # new session
+tmux attach -t work    # re-attach
+# Ctrl+B D to detach</pre>
+        <div class="box-tip" style="margin-top:0.6em; font-size:0.72em;">
+          💡 In my dotfiles, <strong>Ctrl+B then b</strong> pops up a tmux key binding cheatsheet
+        </div>
+      </div>
+    </div>
+    <aside class="notes">Demo live: ssh in, ls turbo space, cd to project dir, nano a hello world, run it.</aside>
+  </section>
+</section>
+
+<!-- ─── 4. COLAB ─────────────────────────────────────────────── -->
+<section>
+  <h2>Colab as an Alternative</h2>
+  <div class="cols">
+    <div class="col">
+      <h3>When to use Colab</h3>
+      <ul style="font-size:0.8em;">
+        <li class="fragment">Your laptop isn't powerful enough</li>
+        <li class="fragment">You need a GPU <em>right now</em> (free tier has T4)</li>
+        <li class="fragment">Don't want to spend time setting up HPC</li>
+        <li class="fragment">Sharing a runnable notebook with collaborators</li>
+      </ul>
+      <div class="box-warn fragment" style="margin-top:1em;">
+        ⚠️ Free Colab GPUs are not guaranteed — get preempted, session timeout after ~12 h
+      </div>
+    </div>
+    <div class="col">
+      <h3>SpliceAI Walk demos</h3>
+      <p style="font-size:0.78em;">Predicts splice-site changes for a list of variants using SpliceAI + my_utils package.</p>
+      <p style="margin-top:0.6em;">
+        🔗 <a href="https://drive.google.com/file/d/12mGpEiA0GDHAepOMxp4yCh1smBfdy-HO/view?usp=share_link" target="_blank">CLN3 walk ↗</a>
+        <span style="color:#888; font-size:0.85em;">(work in progress — adding mutation support)</span>
+      </p>
+      <p style="font-size:0.7em; color:#888; margin-top:0.8em;">
+        Select <strong>Runtime → Change runtime type → T4 GPU</strong> before running.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 5. WHAT ARE AGENTS? ──────────────────────────────────── -->
+<section>
+  <section>
+    <h2>Chatbots vs. Agents</h2>
+    <table class="compare">
+      <tr><th></th><th>Chatbot (e.g. Claude.ai)</th><th>Agent (e.g. Claude Code)</th></tr>
+      <tr><td>Reads your files</td><td>Only if you paste them</td><td>✅ directly</td></tr>
+      <tr><td>Runs code</td><td>Sandboxed / limited</td><td>✅ on your machine</td></tr>
+      <tr><td>Edits files</td><td>❌</td><td>✅</td></tr>
+      <tr><td>Connects to tools</td><td>Limited plugins</td><td>✅ MCP servers</td></tr>
+      <tr><td>Multi-step tasks</td><td>You copy-paste manually</td><td>✅ autonomous loops</td></tr>
+      <tr><td>Risk level</td><td>Low — read-only</td><td>Higher — has real permissions</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Plans &amp; Pitfalls</h2>
+    <div class="cols">
+      <div class="col">
+        <h3>Cost / access</h3>
+        <ul style="font-size:0.78em;">
+          <li>Claude Code Pro: $20/month</li>
+          <li>Codex (OpenAI): $8/month — similar features</li>
+          <li><strong>UMich staff: free Claude Code</strong><br>
+            <a href="https://its.umich.edu/computing/ai/claude-code-gpt-toolkit" target="_blank" style="font-size:0.85em;">
+              its.umich.edu/computing/ai/claude-code-gpt-toolkit ↗
+            </a>
+          </li>
+          <li>Usage resets every 5-hour window</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h3>Pitfalls ⚠️</h3>
+        <ul style="font-size:0.78em;">
+          <li class="fragment">Overconfident — verify its work</li>
+          <li class="fragment">Verbose — can pad responses</li>
+          <li class="fragment">Not a domain expert — useful brainstorm partner, not authority</li>
+          <li class="fragment">Can go down wrong paths if undirected</li>
+          <li class="fragment">Non-deterministic outputs</li>
+          <li class="fragment">Has real permissions — be careful what you allow</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</section>
+
+<!-- ─── 6. CLAUDE CODE ───────────────────────────────────────── -->
+<section>
+  <section>
+    <h2>Claude Code — Installing</h2>
+    <p style="font-size:0.8em; color:#aaa;">Follow the official quickstart — it covers auth too.</p>
+    <p style="margin-top:0.5em;">
+      <a href="https://code.claude.com/docs/en/quickstart" target="_blank">📖 code.claude.com/docs/en/quickstart ↗</a>
+    </p>
+    <div class="box-tip" style="margin-top:1em; font-size:0.78em;">
+      Both <strong>Claude Code</strong> and <strong>Codex</strong> have desktop apps — great experience for local work, recommended if you're just getting started on your laptop.
+    </div>
+    <div class="box-warn" style="margin-top:0.7em; font-size:0.78em;">
+      On HPC there's no desktop. Most stable setup: run the <strong>CLI inside a tmux session</strong> on a login node — survives SSH disconnects, easy to re-attach.
+    </div>
+    <aside class="notes">Avoid unofficial install methods (e.g. npm global install via community guides) — there have been reports of security concerns with some workarounds.</aside>
+  </section>
+
+  <section>
+    <h2>Context Window</h2>
+    <div class="cols">
+      <div class="col">
+        <!-- Context degradation sketch -->
+        <svg viewBox="0 0 300 200" width="100%">
+          <defs>
+            <marker id="arr2" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L7,3 z" fill="#aaa"/>
+            </marker>
+          </defs>
+          <!-- axes -->
+          <line x1="40" y1="20" x2="40" y2="170" stroke="#aaa" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <line x1="40" y1="170" x2="290" y2="170" stroke="#aaa" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <text x="10" y="100" font-family="sans-serif" font-size="11" fill="#aaa" transform="rotate(-90,10,100)">Quality</text>
+          <text x="165" y="190" font-family="sans-serif" font-size="11" fill="#aaa" text-anchor="middle">Context used →</text>
+          <!-- curve -->
+          <path d="M50,40 C100,38 140,50 180,90 C220,130 250,155 275,165"
+                stroke="#FFCB05" stroke-width="2.5" fill="none"/>
+          <!-- zone labels -->
+          <text x="90" y="60" font-family="sans-serif" font-size="10" fill="#50c878">🟢 sharp</text>
+          <text x="185" y="110" font-family="sans-serif" font-size="10" fill="#ffaa44">🟡 ok</text>
+          <text x="240" y="148" font-family="sans-serif" font-size="10" fill="#ff6450">🔴 foggy</text>
+        </svg>
+      </div>
+      <div class="col" style="font-size:0.8em;">
+        <ul>
+          <li class="fragment">Claude gets worse as context fills up</li>
+          <li class="fragment">Check with <code>/context</code></li>
+          <li class="fragment">Run <code>/compact</code> to summarize &amp; reset</li>
+          <li class="fragment">Keep CLAUDE.md concise — it loads every time</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>CLAUDE.md &amp; MEMORY.md</h2>
+    <div class="cols">
+      <div class="col">
+        <h3>CLAUDE.md</h3>
+        <p style="font-size:0.75em; color:#aaa;">Persistent instructions loaded into every conversation for a project (or globally in <code>~/.claude/CLAUDE.md</code>)</p>
+        <pre class="cmd"># .claude/CLAUDE.md example
+- Use conda env: py_general
+- Write outputs to code/scratch/
+- Never install into py_general
+- Use Snakemake for pipelines</pre>
+        <a href="https://github.com/bfairkun/dotfiles/blob/main/claude/.claude/CLAUDE.md"
+           target="_blank" style="font-size:0.7em;">📄 My CLAUDE.md on GitHub ↗</a>
+      </div>
+      <div class="col">
+        <h3>MEMORY.md</h3>
+        <p style="font-size:0.75em; color:#aaa;">Auto-maintained index of things Claude has learned about you across sessions</p>
+        <pre class="cmd"># ~/.claude/projects/.../MEMORY.md
+- MCP config file: ~/.claude.json
+- py_general needs kernelspec
+  registration before Jupyter use
+- Prefer cookiecutter for new
+  analysis projects</pre>
+        <div class="box-tip" style="margin-top:0.7em; font-size:0.75em;">
+          💡 Ask Claude to "remember" things explicitly; it also saves on its own.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Plan Mode &amp; Skills</h2>
+    <div class="cols">
+      <div class="col">
+        <h3>Plan mode</h3>
+        <p style="font-size:0.8em;">Claude proposes a plan <em>before</em> touching any files. You review and approve.</p>
+        <pre class="cmd">Shift+Tab  → toggle plan mode</pre>
+        <ul style="font-size:0.78em;">
+          <li class="fragment">Catches misunderstandings early</li>
+          <li class="fragment">Shows which files will be changed</li>
+          <li class="fragment">Recommended for anything non-trivial</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h3>Skills files</h3>
+        <p style="font-size:0.8em;">Reusable instructions stored in <code>~/.claude/skills/&lt;name&gt;/SKILL.md</code></p>
+        <pre class="cmd">/snakemake-rule   # generate a rule
+/ucsc-api         # query UCSC REST
+/hpc              # Slurm job help
+/igv-tracks       # plot genomic tracks</pre>
+        <a href="https://github.com/bfairkun/dotfiles/tree/main/claude/.claude/skills"
+           target="_blank" style="font-size:0.7em;">📂 My skills on GitHub ↗</a>
+      </div>
+    </div>
+    <aside class="notes">Demo: use /ucsc-api to plot SCN1B exon coverage from Allen Brain Atlas.</aside>
+  </section>
+
+  <section>
+    <h2>MCP &amp; Skills — Extending Claude</h2>
+    <div class="cols" style="margin-top:0.5em;">
+      <div class="col">
+        <h3>MCP examples</h3>
+        <ul style="font-size:0.75em;">
+          <li class="fragment">🐍 &nbsp;<strong>Jupyter kernel</strong> — run &amp; see Python output live</li>
+          <li class="fragment">💬 &nbsp;<strong>Slack</strong> — read/send messages</li>
+          <li class="fragment">📧 &nbsp;<strong>Gmail</strong> — search, draft emails</li>
+          <li class="fragment">📅 &nbsp;<strong>Google Calendar</strong> — schedule meetings</li>
+          <li class="fragment">📊 &nbsp;<strong>Google Drive / Colab</strong> — read/write notebooks</li>
+        </ul>
+        <pre class="cmd" style="margin-top:0.6em;">claude mcp add --scope user \
+  jupyter-kernel \
+  npx @anthropic-ai/jupyter-mcp</pre>
+      </div>
+      <div class="col">
+        <h3>Skills vs MCPs</h3>
+        <p style="font-size:0.75em; color:#aaa;">Both can give Claude new capabilities:</p>
+        <ul style="font-size:0.75em;">
+          <li class="fragment"><strong>Skills</strong> = a markdown file Claude reads on demand (<code>/ucsc-api</code>). No server process, zero config. Great for wrapping an API.</li>
+          <li class="fragment"><strong>MCPs</strong> = a running server Claude connects to. Better for live/interactive tools (a running kernel, your inbox).</li>
+          <li class="fragment">For querying a REST API, a skill is often simpler than an MCP</li>
+        </ul>
+        <div class="box-tip fragment" style="margin-top:0.6em; font-size:0.72em;">
+          💡 Claude is good at writing both. Describe a capability you want, ask it whether a skill or MCP fits better — it can often build it for you on the spot.
+        </div>
+      </div>
+    </div>
+  </section>
+</section>
+
+<!-- ─── 7. DEMOS ─────────────────────────────────────────────── -->
+<section>
+  <section>
+    <h2>Cookiecutter Project</h2>
+    <pre class="cmd">pip install cookiecutter
+cookiecutter gh:bfairkun/cookiecutter-quarto-smk</pre>
+    <!-- Folder diagram -->
+    <svg viewBox="0 0 680 160" width="100%" style="max-width:680px; margin-top:0.4em;">
+      <defs>
+        <marker id="fa" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#666"/>
+        </marker>
+      </defs>
+      <!-- Folders -->
+      <rect x="10"  y="20" width="90" height="36" rx="5" fill="#00274C" stroke="#FFCB05" stroke-width="1.2"/>
+      <text x="55"  y="44" text-anchor="middle" font-family="monospace" font-size="13" fill="#FFCB05">data/</text>
+
+      <rect x="120" y="20" width="90" height="36" rx="5" fill="#00274C" stroke="#aaddff" stroke-width="1.2"/>
+      <text x="165" y="44" text-anchor="middle" font-family="monospace" font-size="13" fill="#aaddff">code/</text>
+
+      <rect x="230" y="20" width="100" height="36" rx="5" fill="#00274C" stroke="#aaddff" stroke-width="1.2"/>
+      <text x="280" y="44" text-anchor="middle" font-family="monospace" font-size="13" fill="#aaddff">analysis/</text>
+
+      <rect x="345" y="20" width="90" height="36" rx="5" fill="#00274C" stroke="#50c878" stroke-width="1.2"/>
+      <text x="390" y="44" text-anchor="middle" font-family="monospace" font-size="13" fill="#50c878">output/</text>
+
+      <rect x="450" y="20" width="100" height="36" rx="5" fill="#1a1a3a" stroke="#888" stroke-width="1.2"/>
+      <text x="500" y="38" text-anchor="middle" font-family="monospace" font-size="11" fill="#aaa">Snakefile</text>
+      <text x="500" y="52" text-anchor="middle" font-family="monospace" font-size="11" fill="#aaa">config.yaml</text>
+
+      <!-- Labels -->
+      <text x="55"  y="80" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#888">raw inputs</text>
+      <text x="55"  y="92" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#888">never modified</text>
+
+      <text x="165" y="80" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#888">scripts &amp;</text>
+      <text x="165" y="92" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#888">Snakemake rules</text>
+
+      <text x="280" y="80" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#888">Quarto notebooks</text>
+      <text x="280" y="92" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#888">viz &amp; interpretation</text>
+
+      <text x="390" y="80" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#50c878">committed results</text>
+      <text x="390" y="92" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#50c878">figures, tables</text>
+
+      <!-- Separation arrow + label -->
+      <line x1="215" y1="38" x2="225" y2="38" stroke="#555" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <text x="340" y="130" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#aaa">← heavy processing</text>
+      <text x="500" y="130" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#aaa">visualization →</text>
+      <line x1="215" y1="125" x2="450" y2="125" stroke="#555" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="215" y1="120" x2="215" y2="130" stroke="#555" stroke-width="1"/>
+      <line x1="450" y1="120" x2="450" y2="130" stroke="#555" stroke-width="1"/>
+    </svg>
+    <div class="cols" style="margin-top:0.2em; font-size:0.72em;">
+      <div class="col">
+        <strong style="color:#aaddff;">Why separate them?</strong> Notebooks accumulate hidden state and don't parallelize. Keeping heavy processing in <code>code/</code> and viz in <code>analysis/</code> gives you reproducibility + interactivity.
+      </div>
+      <div class="col">
+        <strong style="color:#aaddff;">Snakemake</strong> describes rules as <em>inputs → outputs</em>, runs steps in parallel, skips what's already done, integrates with Slurm. Not every project needs it — but the folder structure pays off even if you skip the pipeline.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>ASO Walk Demo 🎬</h2>
+    <ul style="font-size:0.82em;">
+      <li>Open project, launch <code>claude</code> in a tmux session</li>
+      <li>Ask it to run an ASO tiling walk for a target exon</li>
+      <li>Claude writes the Snakemake rule, submits via Slurm, monitors output</li>
+      <li>Plot and interpret results in a Quarto notebook</li>
+    </ul>
+  </section>
+</section>
+
+<!-- ─── 8. TIPS ──────────────────────────────────────────────── -->
+<section>
+  <h2>Tips from the Field</h2>
+  <div class="cols">
+    <div class="col">
+      <h3>Workflow</h3>
+      <ul style="font-size:0.8em;">
+        <li class="fragment"><strong>Plan → Execute → Evaluate</strong> loop (Shift+Tab)</li>
+        <li class="fragment">Use voice for detailed specs</li>
+        <li class="fragment">Don't let it go autonomous too long without checking</li>
+        <li class="fragment">Version control <em>everything</em> — git is your safety net</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Code quality</h3>
+      <ul style="font-size:0.8em;">
+        <li class="fragment">Use <strong>Quarto / jupytext</strong> over plain .ipynb — friendlier for git &amp; context window</li>
+        <li class="fragment">Keep <code>CLAUDE.md</code> updated — it's free permanent memory</li>
+        <li class="fragment">Regular refactor passes to trim Claude-generated sprawl</li>
+        <li class="fragment">Proficiency requires prior manual coding experience — know when you're on thin ice</li>
+      </ul>
+    </div>
+  </div>
+  <p style="font-size:0.65em; margin-top:1em;">
+    Source: <a href="https://www.neuroai.science/p/claude-code-for-scientists" target="_blank">neuroai.science — Claude Code for Scientists ↗</a>
+  </p>
+</section>
+
+<!-- ─── 9. RESOURCES ─────────────────────────────────────────── -->
+<section>
+  <h2>Resources</h2>
+  <div class="cols">
+    <div class="col">
+      <h3>HPC</h3>
+      <ul style="font-size:0.78em; list-style:none; padding:0;">
+        <li>📖 <a href="https://documentation.its.umich.edu/arc-hpc/greatlakes/user-guide" target="_blank">UMich Great Lakes User Guide ↗</a></li>
+        <li>🆓 <a href="https://its.umich.edu/computing/ai/claude-code-gpt-toolkit" target="_blank">UMich Free Claude Code for Staff ↗</a></li>
+      </ul>
+      <h3 style="margin-top:1em;">Dotfiles &amp; config</h3>
+      <ul style="font-size:0.78em; list-style:none; padding:0;">
+        <li>⚙️ <a href="https://github.com/bfairkun/dotfiles" target="_blank">bfairkun/dotfiles on GitHub ↗</a></li>
+        <li>📄 <a href="https://github.com/bfairkun/dotfiles/blob/main/claude/.claude/CLAUDE.md" target="_blank">My CLAUDE.md ↗</a></li>
+        <li>🧰 <a href="https://github.com/bfairkun/dotfiles/tree/main/claude/.claude/skills" target="_blank">My skills files ↗</a></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Claude Code docs</h3>
+      <ul style="font-size:0.78em; list-style:none; padding:0;">
+        <li>📚 <a href="https://docs.anthropic.com/en/docs/claude-code" target="_blank">Official Claude Code docs ↗</a></li>
+        <li>🎓 <a href="https://claudecodecourse.com" target="_blank">Free online certification course ↗</a></li>
+        <li>🧪 <a href="https://www.neuroai.science/p/claude-code-for-scientists" target="_blank">10 tips for scientists ↗</a></li>
+      </ul>
+      <h3 style="margin-top:1em;">Demo notebooks</h3>
+      <ul style="font-size:0.78em; list-style:none; padding:0;">
+        <li>🔬 <a href="https://drive.google.com/file/d/12mGpEiA0GDHAepOMxp4yCh1smBfdy-HO/view?usp=share_link" target="_blank">SpliceAI Walk — CLN3 (WIP) ↗</a></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 10. INTERACTIVE ──────────────────────────────────────── -->
+<section>
+  <h2>Interactive Time 🛠</h2>
+  <p style="font-size:0.85em; color:#aaa;">Try it yourself — install, explore, ask questions</p>
+  <div class="cols" style="margin-top:0.8em;">
+    <div class="col">
+      <h3>Quick start</h3>
+      <pre class="cmd"># 1. SSH into Great Lakes
+ssh uniqname@greatlakes.arc-ts.umich.edu
+
+# 2. Clone my dotfiles
+git clone git@github.com:bfairkun/dotfiles.git
+
+# 3. Install — follow official guide:
+# code.claude.com/docs/en/quickstart
+# then launch in a tmux session:
+tmux new -s claude
+claude</pre>
+      <div class="box-tip" style="margin-top:0.6em; font-size:0.72em;">
+        💡 Having Claude installed before stowing dotfiles is helpful — it can guide you through the setup.
+        Skills like <code>/ucsc-api</code> come along automatically after stowing.
+      </div>
+    </div>
+    <div class="col">
+      <h3>Things to try</h3>
+      <ul style="font-size:0.78em;">
+        <li class="fragment">Ask Claude to explain a file in your project</li>
+        <li class="fragment">Ask: <em>"install the ucsc-api skill from my dotfiles repo"</em></li>
+        <li class="fragment">Use plan mode (Shift+Tab) for a small task</li>
+        <li class="fragment">Ask: <em>"I'm new to HPC setup, guide me through setup from the dotfiles repo"</em> — or just use <code>/greatlakes-hpc-setup</code> skill</li>
+        <li class="fragment">Run a cookiecutter scaffold</li>
+      </ul>
+      <div class="box-warn fragment" style="margin-top:0.8em; font-size:0.72em;">
+        Full setup (conda env, MCP servers, all dotfiles) will take &gt;30 min — pick and choose what to tackle today.
+      </div>
+    </div>
+  </div>
+  <p style="font-size:0.65em; color:#666; margin-top:1.5em;">
+    Press <kbd style="background:#222; border:1px solid #555; padding:0.1em 0.4em; border-radius:3px;">S</kbd>
+    for speaker notes &nbsp;·&nbsp;
+    Press <kbd style="background:#222; border:1px solid #555; padding:0.1em 0.4em; border-radius:3px;">F</kbd>
+    for fullscreen &nbsp;·&nbsp;
+    Press <kbd style="background:#222; border:1px solid #555; padding:0.1em 0.4em; border-radius:3px;">?</kbd>
+    for keyboard help
+  </p>
+</section>
+
+</div><!-- /slides -->
+</div><!-- /reveal -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.js"></script>
+<script>
+Reveal.initialize({
+  hash: true,
+  slideNumber: 'c/t',
+  transition: 'fade',
+  transitionSpeed: 'fast',
+  controls: true,
+  progress: true,
+  center: true,
+  plugins: []
+});
+</script>
+</body>
+</html>
