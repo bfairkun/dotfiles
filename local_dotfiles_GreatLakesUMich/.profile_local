@@ -60,10 +60,3 @@ if [[ -z "$TMUX" && -n "$SSH_CONNECTION" && "$-" == *i* ]]; then
     tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux
 fi
 
-# Ensure the Claude Code dispatcher watchdog cron job is registered.
-# Idempotent — only adds the entry if missing. Self-heals if crontab is wiped.
-if [ -f ~/.claude/dispatcher_watchdog.sh ]; then
-    if ! crontab -l 2>/dev/null | grep -q "dispatcher_watchdog.sh"; then
-        (crontab -l 2>/dev/null; echo "*/5 * * * * $HOME/.claude/dispatcher_watchdog.sh") | crontab -
-    fi
-fi

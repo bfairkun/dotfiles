@@ -9,38 +9,114 @@ argument-hint: "[phase or topic]"
 Cluster: `gl-login*.arc-ts.umich.edu`, user home: `/home/<uniqname>`
 Dotfiles repo: `git@github.com:bfairkun/dotfiles.git` (stow-based)
 
+## Applying this skill — agent behavior (read first)
+
+This goal: set up a fresh Great Lakes account to behave like the maintainer's environment
+(comfortable shell, conda/micromamba, tmux that survives disconnects, supporting tools). The
+person at the keyboard may be brand new to HPC.
+
+The reference below is terse on purpose. **When you apply it, do the opposite — explain
+generously:**
+
+1. **Before each step, say what it does and why, in plain language**, then run it. Never paste
+   an opaque command. The one-line "**Why**" on each phase is your script — expand on it.
+2. **Optional phases are marked `(optional)`. Offer them, don't assume them.** Briefly give the
+   purpose and tradeoff, then let the user decline if they don't need it (e.g. skip vim if they
+   don't use vim, skip Quarto if they won't render notebooks). Required phases (clone, stow,
+   shell, conda/micromamba) are not opt-out — explain those too, but proceed.
+3. **Run phases in order.** Later phases depend on earlier ones (e.g. `~/bin` must be on PATH
+   before micromamba lands there).
+
+Phases: clone dotfiles → stow → shell → vim/fzf → conda/micromamba/py_general → quarto →
+MCPs & secrets.
+
 ---
 
-## Phase 0: Prerequisites / SSH
+## Phase 0: Fork or clone the dotfiles repo
 
-- SSH in: `ssh <uniqname>@greatlakes.arc-ts.umich.edu`
-- No mosh available (unlike Midway). SSH only.
-- Set up SSH key for GitHub (HTTPS push is blocked by GUI askpass errors):
-  ```bash
-  cat ~/.ssh/id_rsa.pub   # or id_ed25519.pub
-  # Add to https://github.com/settings/keys
-  git remote set-url origin git@github.com:bfairkun/dotfiles.git
-  ```
+**Why:** "Dotfiles" are the hidden config files in your home directory (`.bashrc`,
+`.gitconfig`, `.tmux.conf`, …) that control how your shell and tools behave. Keeping them in
+a git repo means a new machine or new HPC account is one `git clone` away from feeling like
+home, instead of an afternoon of re-tweaking. This repo bundles all of them plus some helper
+scripts.
+
+**Fork vs. clone — pick one:**
+
+- **Fork** (recommended if you have a GitHub account, or are willing to make one now):
+  Go to `https://github.com/bfairkun/dotfiles`, click **Fork**. You now own a copy at
+  `github.com/<you>/dotfiles`. Clone *that*. This is the right choice if you ever want to
+  **git-track your own dotfiles** — the moment you change a config to suit yourself, your
+  files diverge from the maintainer's, and a fork is the only way to commit and keep those
+  changes under version control.
+- **Just clone** (fine for now if you don't have a GitHub account and don't feel like making
+  one): clone the maintainer's repo directly. You'll get everything and it'll work. The
+  catch: you can `git pull` updates but you **cannot commit your own changes upstream**, and
+  if your local edits diverge you'll eventually hit merge friction. If that day comes, make a
+  fork then. Forking later is easy; you won't lose work.
+
+Set the clone URL accordingly in Phase 1 (`<you>` for a fork, `bfairkun` for a plain clone).
+
+### SSH key for GitHub
+
+**Why:** Great Lakes blocks the GUI password prompt that HTTPS git push relies on, so use an
+SSH key. (Cloning over HTTPS read-only also works if you never push.)
+
+```bash
+cat ~/.ssh/id_ed25519.pub 2>/dev/null || cat ~/.ssh/id_rsa.pub   # generate with ssh-keygen -t ed25519 if neither exists
+# Paste the printed key into https://github.com/settings/keys
+```
+
+Note: **no mosh** on Great Lakes (unlike Midway) — plain SSH only:
+`ssh <uniqname>@greatlakes.arc-ts.umich.edu`
 
 ---
 
-## Phase 1: Clone dotfiles and stow
+## Phase 1: Clone the dotfiles and link them in with stow
+
+**Why stow:** The repo is organized into "packages" — `bash/`, `tmux/`, `bin/`, etc. — each
+mirroring where its files belong under `~`. **GNU Stow** is a tiny tool that creates
+*symlinks* from your home directory into the repo. So `~/.bashrc` becomes a link pointing at
+`~/dotfiles/bash/.bashrc`. Edit the file in the repo, and `~` sees the change instantly; the
+single source of truth stays git-tracked. Nothing is copied, so there's no "which copy is
+real?" confusion.
 
 ```bash
 cd ~
-git clone git@github.com:bfairkun/dotfiles.git
+git clone git@github.com:bfairkun/dotfiles.git    # or git@github.com:<you>/dotfiles.git for your fork
 cd dotfiles
+# The repo ships a stow binary; run it with perl since nothing is on PATH yet:
 perl local_dotfiles_RCCMidwayGeneral/bin/stow sh bash zsh ohmyzsh fzf git tmux vim config bin claude local_dotfiles_GreatLakesUMich
 ```
 
-**Stow packages for Great Lakes**: `sh bash zsh ohmyzsh fzf git tmux vim config bin claude local_dotfiles_GreatLakesUMich`
-(Do NOT stow `local_dotfiles_RCCMidway*` or `local_dotfiles_MyMacbookAir`)
+**Stow packages for Great Lakes** (this exact list):
+`sh bash zsh ohmyzsh fzf git tmux vim config bin claude local_dotfiles_GreatLakesUMich`
 
-The repo includes a stow binary at `local_dotfiles_RCCMidwayGeneral/bin/stow`. Use `perl` to run it directly before anything is on PATH.
+Do **not** stow other machines' packages (`local_dotfiles_RCCMidway*`,
+`local_dotfiles_Midway*`, `local_dotfiles_*MacbookAir*`, `Library`, etc.) — they hold
+config for different computers and will create symlinks you don't want here.
+
+After this step `~/bin/stow` exists (the `bin`/GreatLakes packages provide it), so from now on
+you can just type `stow` instead of `perl …/stow`.
+
+### Using stow day-to-day (and a sharp edge to avoid)
+
+- **Add the links for a package:** `stow <package>` (run from `~/dotfiles`). Safe to re-run —
+  it skips links that already exist correctly and only creates missing ones. This is also how
+  you pick up **new files after a `git pull`**: just `stow <package>` again.
+- **Remove a package's links:** `stow -D <package>`.
+- **⚠️ Do NOT use `stow --restow` / `stow -R` with this stow (v1.3.2).** That option is broken
+  in this old version: instead of relinking, it runs away — it crawls the filesystem and
+  balloons to multiple GB of RAM, which the login node's 4 GB cgroup will eventually kill (or
+  you'll have to `kill` it by hand). If you genuinely need to refresh links (e.g. a file was
+  *deleted* upstream and you want the stale symlink gone), do it explicitly:
+  `stow -D <package> && stow <package>`. For the common case (pull added new files), plain
+  `stow <package>` is all you need.
 
 ---
 
 ## Phase 2: Shell — stay in bash
+
+**Why:** You might prefer zsh, but on Great Lakes you can't make the switch stick.
 
 Great Lakes uses LDAP for user accounts. `chsh` changes to local `/etc/passwd` are
 overridden by LDAP and do not persist. **Login shell stays bash.** Do not attempt to
@@ -51,10 +127,12 @@ harmless to keep (in case zsh is invoked manually) but bash is the working shell
 
 ---
 
-## Phase 3: Install vim plugins
+## Phase 3: Install vim plugins (optional — skip if the user doesn't use vim)
 
-vim-plug crashes at startup if the gruvbox colorscheme is missing — PlugInstall must
-be run with a fake TTY to avoid the crash:
+**Why:** The vim config expects a set of plugins (and the gruvbox colorscheme). They have to
+be fetched once. vim-plug crashes at startup if gruvbox is missing, so the first
+`PlugInstall` must run under a fake TTY to dodge the crash:
+
 ```bash
 curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
   https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
@@ -63,7 +141,10 @@ script -q -c "vim +PlugInstall +qa" /dev/null
 
 ---
 
-## Phase 4: Install fzf
+## Phase 4: Install fzf (optional but recommended)
+
+**Why:** fzf is a fuzzy finder — it powers `Ctrl-R` history search and fuzzy file completion
+that the shell config wires up.
 
 ```bash
 git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
@@ -74,13 +155,16 @@ git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 
 ## Phase 5: Install miniconda
 
+**Why:** conda manages Python/R environments. It's the baseline; the heavy environment
+solving happens with micromamba (next phase) because of the login-node memory limit.
+
 ```bash
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh
 bash /tmp/miniconda.sh -b -p ~/miniconda3
 ~/miniconda3/bin/conda init bash
 ```
 
-**Accept conda ToS** (required before any env create):
+**Accept conda ToS** (required before any env create — conda refuses otherwise):
 ```bash
 ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
 ~/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
@@ -90,23 +174,26 @@ bash /tmp/miniconda.sh -b -p ~/miniconda3
 
 ## Phase 6: Install micromamba
 
-Login nodes have a **4 GB per-user cgroup v2 memory limit**. `conda env create` for
-large environments (e.g. `py_general`) is killed during solving. Use micromamba instead:
+**Why:** Login nodes have a **4 GB per-user memory cap**. conda's solver for a big
+environment blows past that and gets silently killed. micromamba is a fast, standalone C++
+reimplementation of conda's solver — same channels, far less memory — so it's the tool we
+actually create environments with.
 
 ```bash
 curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest \
   | tar -xvj -C ~/bin/ --strip-components=1 bin/micromamba
 ```
 
-`~/bin` is already in PATH via `.profile_local`. micromamba is a standalone C++ binary —
-no conda required to install it.
+`~/bin` is already in PATH via `.profile_local`. micromamba is a single binary — no conda
+required to install it.
 
 ---
 
-## Phase 7: Create py_general conda environment
+## Phase 7: Create the py_general conda environment (optional — only if doing Python/R analysis)
 
-**Do not use `conda env create` for large envs on login nodes — it will be killed.**
-**Must run on a SLURM compute node** (even micromamba's two solve passes exceed 4 GB).
+**Why:** `py_general` is the default environment for Python notebooks and analysis. It's
+large, so even micromamba's solve exceeds 4 GB — it **must run on a SLURM compute node**, not
+the login node.
 
 Strip the pip section first (use home dir, not /tmp — /tmp is node-local):
 ```bash
@@ -139,9 +226,11 @@ srun --account=hastingm0 --partition=standard --cpus-per-task=2 --mem=4G --time=
 
 ---
 
-## Phase 8: Install Quarto
+## Phase 8: Install Quarto (optional — only if rendering .qmd notebooks)
 
-Quarto is not available as a module. Install to `~/.local/`:
+**Why:** Quarto renders the `.qmd` analysis notebooks to HTML. It isn't available as a
+module, so install it into `~/.local/`:
+
 ```bash
 VER=$(curl -sLI https://github.com/quarto-dev/quarto-cli/releases/latest | grep -i location | grep -oP 'v\K[0-9.]+')
 wget -q "https://github.com/quarto-dev/quarto-cli/releases/download/v${VER}/quarto-${VER}-linux-amd64.tar.gz" -O /tmp/quarto.tar.gz
@@ -154,7 +243,92 @@ quarto --version
 
 ---
 
+## Phase 9: Secrets and MCPs (optional — set up the integrations you'll use)
+
+**Why:** MCPs let Claude reach external services (a live Jupyter kernel, Slack, Google
+Drive/Gmail/Calendar). Most need a per-machine secret or auth step, so they're **not** carried
+by stow — set up only the ones the user wants. Offer each; skip what they don't need.
+
+### 9a. The `~/.secrets` file (API keys and tokens)
+
+**Why:** `.bashrc_local` and `.zshrc_local` both do `[ -f ~/.secrets ] && source ~/.secrets`,
+so anything exported there is available to interactive shells (and to the Claude Code Bash
+tool after `source ~/.secrets`). It lives in `$HOME`, never in the repo, so secrets are never
+git-tracked. Create it `chmod 600`:
+
+```bash
+umask 077
+cat > ~/.secrets <<'EOF'
+# Exported secrets — sourced by .bashrc_local / .zshrc_local. Never commit this file.
+export ALPHAGENOME_API_KEY="..."          # AlphaGenome API (alphagenome_utils)
+export SLACK_PLOT_TOKEN="xoxb-..."         # Slack bot token for post_plot_to_slack (9d)
+export SLACK_PLOT_CHANNEL="UXXXXXXXX"      # Slack user ID (DM self) or channel ID for plots
+# export ANTHROPIC_API_KEY="sk-ant-..."    # only if running Claude with a raw API key
+EOF
+chmod 600 ~/.secrets
+```
+
+The maintainer's file currently exports: `ALPHAGENOME_API_KEY`, `SLACK_PLOT_TOKEN`,
+`SLACK_PLOT_CHANNEL`. Add only the keys the user actually has — leave the rest out.
+
+### 9b. Jupyter-kernel MCP (local, already wired up by stow)
+
+The only MCP whose code lives on this machine. `mcp.json` (stowed to `~/.claude/mcp.json`)
+registers it and the script ships in `~/bin/jupyter_kernel_mcp.py`. Nothing to do beyond
+stowing. If the tools don't appear in Claude, invoke the `jupyter-kernel` skill to troubleshoot.
+
+### 9c. Account/plugin MCPs — Google Drive, Gmail, Calendar, Slack (remote, no local code)
+
+**Why:** These are **remote** MCP servers (HTTP endpoints hosted by Google/Slack) — no code is
+downloaded here. They differ only in how they're registered, and **each machine must
+authenticate once** even though the registration travels:
+
+- **Google Drive / Gmail / Calendar** — account-level **connectors**. Enable them once in the
+  Claude desktop app or at claude.ai (Settings → Connectors). They then appear in Claude Code
+  anywhere you're signed in with that Anthropic account. Nothing to configure on the cluster.
+- **Slack** — registered as the `slack@claude-plugins-official` **plugin**, already enabled in
+  the tracked `settings.json`, so it travels with the dotfiles. But the OAuth token is
+  per-machine: in Claude Code run `/mcp`, pick `slack`, and complete authentication. (This
+  Slack MCP — for reading/searching Slack — is **separate** from the plot-upload script in 9d.)
+
+Verify what's live on the current machine: `claude mcp list`.
+
+### 9d. Slack plot upload — `post_plot_to_slack` (optional, great for Remote Control)
+
+**Why this exists:** plots saved to the agent-plots dir are normally viewed in a browser over
+an SSH tunnel. But when driving Claude from **Remote Control on a phone** (e.g. voice-commanding
+Claude while walking), there's no tunnel and no browser — you can't see the plots. Pushing a
+plot straight into a Slack DM means it shows up on your phone instantly. It's purely about a
+nicer remote/mobile experience.
+
+This is a standalone script (`~/bin/post_plot_to_slack`), **not** the Slack MCP. It uses a Slack
+**bot token**, independent of the 9c plugin auth:
+
+1. Set `SLACK_PLOT_TOKEN` (`xoxb-...`) and `SLACK_PLOT_CHANNEL` in `~/.secrets` (9a). The token
+   is a Slack **bot** token; the bot needs scopes `files:write`, `chat:write`, and `im:write`
+   (the last for DMing yourself). Alternatively write the token to `~/.config/slack_plot_token`
+   and the target to `~/.config/slack_plot_channel` (both `chmod 600`).
+2. `SLACK_PLOT_CHANNEL` can be your own Slack **user ID** (starts `U`, e.g. `UC94MAVLL`) to DM
+   yourself, or a **channel ID** (starts `C`) the bot has been invited to (`/invite @yourbot`,
+   else `not_in_channel`).
+3. Test (remember the Bash tool is non-interactive — source secrets first):
+   ```bash
+   source ~/.secrets
+   post_plot_to_slack /path/to/plot.png          # optional 2nd arg overrides the channel
+   ```
+   Success prints `posted <file> to Slack channel <id>` and the image appears in that DM/channel.
+
+Verified working on gl-login3 (2026-06): DM to self via user ID resolves through
+`conversations.open` to a `D...` DM channel and the upload lands.
+
+---
+
 ## Known Quirks and Gotchas
+
+### stow --restow is broken (v1.3.2)
+See Phase 1. Never use `--restow`/`-R` — it runs away and eats GBs of RAM until killed. Use
+plain `stow <package>` to add/refresh links, or `stow -D <package> && stow <package>` to force
+a clean relink.
 
 ### tmux: system version is 2.7 (too old)
 System tmux at `/usr/bin/tmux` is version 2.7. The dotfiles tmux config uses features
@@ -175,6 +349,12 @@ makes TMOUT readonly, then any subsequent bash login shell crashes with:
 **Fix**: Kill the tmux server (`tmux kill-server`) and start a fresh session. This resets
 the inherited shell environment. No permanent fix — recurs if a bash login shell is
 started inside a tmux that already has TMOUT readonly.
+
+### No crontab on Great Lakes
+The cluster does not provide per-user crontab; sourcing a startup script that calls `crontab`
+prints an error. Startup scripts here must **not** register cron jobs (this is why
+`.profile_local` carries no crontab block). If you need periodic work, use a SLURM job or a
+long-running tmux loop instead.
 
 ### conda not in PATH for non-interactive shells
 The conda shell function is only initialized in interactive bash via `.bashrc_local`.
