@@ -66,6 +66,7 @@ dependencies:
   - bioconda::snakemake=7.32.4
   - bioconda::hgvs
   - bioconda::logomaker
+  - bioconda::gseapy  # GO/pathway enrichment (ORA + GSEA); gp.enrich() supports custom background
 
   # Utilities
   - jinja2
