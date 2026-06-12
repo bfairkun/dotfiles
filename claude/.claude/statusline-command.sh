@@ -4,14 +4,35 @@
 
 input=$(cat)
 
-# Extract fields from JSON
-cwd=$(echo "$input" | jq -r '.cwd // .workspace.current_dir // ""')
-model=$(echo "$input" | jq -r '.model.display_name // ""')
-used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
-remaining_pct=$(echo "$input" | jq -r '.context_window.remaining_percentage // empty')
-five_hour_pct=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
-seven_day_pct=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
-output_style=$(echo "$input" | jq -r '.output_style.name // ""')
+# Extract fields from JSON with python3 (portable; avoids a jq dependency,
+# which isn't installed on every machine — e.g. RCC Midway). python3 is always
+# on PATH via miniconda. One subprocess instead of seven.
+eval "$(printf '%s' "$input" | python3 -c '
+import sys, json, shlex
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    d = {}
+def g(*path):
+    cur = d
+    for k in path:
+        if isinstance(cur, dict) and cur.get(k) is not None:
+            cur = cur[k]
+        else:
+            return ""
+    return cur
+fields = {
+    "cwd": g("cwd") or g("workspace", "current_dir"),
+    "model": g("model", "display_name"),
+    "used_pct": g("context_window", "used_percentage"),
+    "remaining_pct": g("context_window", "remaining_percentage"),
+    "five_hour_pct": g("rate_limits", "five_hour", "used_percentage"),
+    "seven_day_pct": g("rate_limits", "seven_day", "used_percentage"),
+    "output_style": g("output_style", "name"),
+}
+for k, v in fields.items():
+    print(f"{k}={shlex.quote(str(v))}")
+' 2>/dev/null)"
 
 # Shorten cwd: replace $HOME with ~, then truncate middle if too long
 home_dir="$HOME"
