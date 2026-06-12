@@ -84,10 +84,10 @@ output_path <- "../output/results.csv"
 - Large files → `code/scratch/` (not committed), reference from notebook
 
 ## After creating the notebook
-Remind the user to render it with:
+Remind the user to render it with `render_notebook` (a quarto shim in `~/bin/` that records the render env into a hidden block in the `.qmd`; see `compute-kernel` skill):
 ```bash
 # From project root or analysis/ dir
-quarto render analysis/YYYYMMDD_name.qmd
+render_notebook render analysis/YYYYMMDD_name.qmd
 ```
 Or for Python notebooks, register the kernel first if needed:
 ```bash

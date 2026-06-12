@@ -74,5 +74,5 @@ cd <PROJECTS_DIR from CLAUDE_local.md> && conda run -n cookiecutter cookiecutter
 - Projects dir: `PROJECTS_DIR` from `CLAUDE_local.md`
 - `cookiecutter` conda env must be active
 - Submodules: pass `"{}"` for no submodules — NOT `"'{}'"` (string-in-string causes `AttributeError: 'str' has no 'keys'`)
-- Render notebooks: `conda run -n py_general quarto render analysis/notebook.qmd`
+- Render notebooks: `conda run -n py_general render_notebook render analysis/notebook.qmd` (`render_notebook` is a quarto shim in `~/bin/` that records the render env; see `compute-kernel` skill)
 - After creation, `cd` into the project and open in VSCode

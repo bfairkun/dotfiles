@@ -43,7 +43,7 @@ walk_interval = (int(walk_interval_start), int(walk_interval_end))
 
 ### Rendering with overrides
 ```bash
-quarto render notebook.qmd -P gene:MBD5 -P walk_interval_start:148505696
+render_notebook render notebook.qmd -P gene:MBD5 -P walk_interval_start:148505696
 ```
 
 ### Displaying multiple plots in one cell
@@ -57,15 +57,17 @@ Verify: `jupyter kernelspec list`
 
 ## Rendering Python notebooks
 
+Use `render_notebook` (in `~/bin/`) in place of `quarto` — a transparent shim that passes all args through and records the render environment (host, Slurm allocation, actual peak memory) into a hidden block at the end of the `.qmd`. See the `compute-kernel` skill for details.
+
 **Activate py_general before rendering** so quarto can find jupyter and the registered kernel:
 ```bash
 conda activate py_general
-quarto render notebook.qmd
+render_notebook render notebook.qmd
 ```
 
-When running quarto from Claude via `conda run -n base`, the base env now has `ipykernel`, `nbformat`, `nbclient`, and `jupyter_client` installed, so it can discover the registered `py_general` kernel. No `QUARTO_PYTHON` needed:
+When running from Claude via `conda run -n base`, the base env now has `ipykernel`, `nbformat`, `nbclient`, and `jupyter_client` installed, so it can discover the registered `py_general` kernel. No `QUARTO_PYTHON` needed:
 ```bash
-conda run -n base quarto render notebook.qmd
+conda run -n base render_notebook render notebook.qmd
 ```
 
 **Verifying success:** `conda run` can return exit code 0 even when the notebook errors internally (e.g. a `NameError` in a cell). Always confirm render success by checking the task output contains `Output created:` and the HTML timestamp updated (`ls -la output.html`).

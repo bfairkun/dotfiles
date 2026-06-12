@@ -248,5 +248,6 @@ Render from inside the `analysis/` directory (where `_quarto.yml` lives),
 which directs output to `../docs/`:
 
 ```bash
-cd analysis && conda run -n py_general quarto render YYYYMMDD_name.qmd
+cd analysis && conda run -n py_general render_notebook render YYYYMMDD_name.qmd
 ```
+(`render_notebook` is a quarto shim in `~/bin/` that records the render env; see `compute-kernel` skill.)

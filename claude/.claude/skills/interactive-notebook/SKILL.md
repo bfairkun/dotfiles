@@ -419,12 +419,14 @@ For R chunks use `#|` chunk options (Quarto style, not `{r, echo=FALSE}` header 
 
 Render only when the user wants a polished HTML output — not during exploration.
 
+Use `render_notebook` (a quarto shim in `~/bin/` that records the render env into a hidden block in the `.qmd`; see `compute-kernel` skill):
+
 ```bash
 # Python
-conda run -n py_general quarto render analysis/YYYYMMDD_name.qmd
+conda run -n py_general render_notebook render analysis/YYYYMMDD_name.qmd
 
 # R (from project root)
-quarto render analysis/YYYYMMDD_name.qmd
+render_notebook render analysis/YYYYMMDD_name.qmd
 ```
 
 ---

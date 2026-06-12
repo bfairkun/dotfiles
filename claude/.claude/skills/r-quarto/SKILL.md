@@ -96,22 +96,27 @@ saveRDS(big_object, "../code/scratch/big_object.rds")
 
 ## Rendering
 
+Use `render_notebook` (in `~/bin/`) in place of `quarto` — it's a transparent shim that
+passes all args through to quarto and records the render environment (host, Slurm
+allocation, actual peak memory) into a hidden block at the end of the `.qmd`. See the
+`compute-kernel` skill for details.
+
 ```bash
 # From project root
-quarto render analysis/YYYYMMDD_name.qmd
+render_notebook render analysis/YYYYMMDD_name.qmd
 
-# Render an Rmd (quarto can render .Rmd files too)
-quarto render analysis/YYYYMMDD_name.Rmd --output-dir docs
+# Render an Rmd (quarto can render .Rmd files too; env block only added for .qmd)
+render_notebook render analysis/YYYYMMDD_name.Rmd --output-dir docs
 
 # From within the analysis/ directory
-conda run -n base quarto render YYYYMMDD_name.Rmd --output-dir ../docs
+conda run -n base render_notebook render YYYYMMDD_name.Rmd --output-dir ../docs
 
 ```
 
 > **HPC note (RCC/Midway):** Do NOT use `Rscript -e "rmarkdown::render(...)"` on this cluster.
 > It fails silently with a `GLIBCXX_3.4.32 not found` error when loading `later.so` from the
-> user R library. `conda run -n base quarto render` works correctly and is the preferred approach
-> for both `.Rmd` and `.qmd` files.
+> user R library. `conda run -n base render_notebook render` works correctly and is the preferred
+> approach for both `.Rmd` and `.qmd` files.
 
 ## Common R packages for RNA-seq / genomics
 
@@ -145,7 +150,7 @@ library(org.Hs.eg.db)
 
 ```bash
 # Render with verbose output to see exactly which chunk fails
-quarto render analysis/mynotebook.qmd --execute-debug
+render_notebook render analysis/mynotebook.qmd --execute-debug
 
 # Check R version
 R --version
