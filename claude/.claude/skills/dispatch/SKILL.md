@@ -82,7 +82,7 @@ Claude dispatches directly via the Bash tool — no intermediate agent needed.
 - Be brief. Confirm what you did in one sentence after completing each action.
 - Always show captured pane output after every spawn or resume.
 - Pick a descriptive window name based on what the user says the task is.
-- The dispatcher session is always named `dispatcher` — never kill or replace it.
+- The dispatcher tmux window is always named `dispatcher` — never kill or replace it.
 - Never skip `--dangerously-skip-permissions` if the user explicitly asks for it.
 
 ---
@@ -267,7 +267,7 @@ tmux kill-window -t <IDX>
 
 Start it:
 ```bash
-tmux new-window -n "dispatcher" "claude --agent dispatcher"
+tmux new-window -n "dispatcher" "claude --agent dispatcher -n \"dispatcher-$(hostname -s)\""
 ```
 
 Then run `/loop 3m date` inside it to keep Remote Control alive.
