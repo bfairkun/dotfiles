@@ -40,6 +40,12 @@ does NOT expand in the MCP config `command` field — PATH resolution is require
 claude mcp add --scope user jupyter-kernel jupyter_kernel_mcp.py
 ```
 
+> **Do NOT add a `--latest` arg.** With `--latest` the server auto-connects to the newest
+> `kernel-*.json` at startup; if that file is stale (dead kernel) the server crashes before
+> any jupyter tool is usable, silently breaking the whole MCP server until restart. Leave the
+> args bare and connect explicitly via `connect_to_kernel` instead. (This corrects older notes
+> that showed `--latest` as the default.)
+
 ## Troubleshooting: MCP tools not loading
 
 If `mcp__jupyter-kernel__*` tools are absent from the deferred tools list, the MCP server failed to start. Diagnose in order:

@@ -20,6 +20,9 @@ srun --account=hastingm0 --partition=standard --cpus-per-task=4 --mem=16G --time
 
 | Key | Value |
 |---|---|
+| `MACHINE` | UMich Great Lakes HPC |
+| `HOSTNAME_VERIFY` | `echo $HOST` matches `gl-login*` |
+| `BRAIN_PATH` | `/nfs/turbo/umms-hastingm/benfair/repos_not_projects/brain` _(verify/clone on machine)_ |
 | `AGENT_PLOTS` | `~/agent_plots` |
 | `KERNEL_CF` | `~/agent_kernel.json` (scratch not provisioned yet) |
 | `STATE_MD` | `~/agent_plots/state.md` |

@@ -43,12 +43,14 @@ Each top-level directory is a **stow package**. Running `stow <package>` from `~
 **Machine-specific packages** (`local_dotfiles_<MachineName>`):
 | Package | Machine |
 |---------|---------|
-| `local_dotfiles_RCCMidwayGeneral/` | RCC Midway HPC (both nodes) — `.zshrc_local`, `.bashrc_local`, `.profile_local`, `.Rprofile`, `.condarc`, extra `bin/`, `conda_yamls/` |
-| `local_dotfiles_RCCMidway2Specific/` | Midway2 node only — VSCode remote server settings |
-| `local_dotfiles_RCCMidway3Specific/` | Midway3 node only |
-| `local_dotfiles_MyMacbookAir/` | Personal MacBook Air — shell locals, SSH config, LaunchAgents |
-| `local_dotfiles_MEDGEN_MacbookAir/` | MEDGEN MacBook Air |
-| `local_dotfiles_HPStream/` | HP Stream device |
+| `local_dotfiles_RCCMidwayGeneral/` | RCC Midway HPC (**both** login nodes) — `.zshrc_local`, `.bashrc_local`, `.profile_local`, `.Rprofile`, `.condarc`, `.npmrc`, extra `bin/`, `conda_yamls/`, `.claude/CLAUDE_local.md` |
+| `local_dotfiles_RCCMidway2/` | Midway2 node only — VSCode remote-server settings |
+| `local_dotfiles_GreatLakesUMich/` | UMich Great Lakes HPC — shell locals, `.condarc`, extra `bin/`, `.claude/CLAUDE_local.md` |
+| `local_dotfiles_MyMacbookAir/` | Personal MacBook Air — shell locals, SSH config, LaunchAgents, `.claude/CLAUDE_local.md` |
+| `local_dotfiles_MEDGEN_MacbookAir/` | MEDGEN (work) MacBook Air — same shape as MyMacbookAir |
+| `local_dotfiles_HPStream/` | HP Stream laptop (Linux, i3wm) |
+
+One package per physical machine. There is intentionally **no** `RCCMidway3`-specific package — nothing is Midway3-unique (the once-per-node `.condarc` is identical across nodes and now lives in `RCCMidwayGeneral`). Create `local_dotfiles_RCCMidway3/` only if a genuinely Midway3-only file appears. Per-machine agent facts (paths, SLURM account, `BRAIN_PATH`, hostname verification) go in each package's `.claude/CLAUDE_local.md` as a key/value table — canonical format in `local_dotfiles_GreatLakesUMich/.claude/CLAUDE_local.md`. The RCC Midway `CLAUDE_local.md` is in `RCCMidwayGeneral/` (serves both nodes; tells them apart by `hostname`), so per-node packages must not also stow `~/.claude/CLAUDE_local.md`.
 
 ## Local Override Pattern
 
@@ -74,10 +76,11 @@ When adding new files near submodules, be careful not to accidentally edit the s
 |------|-------|
 | New portable tool config (XDG) | `config/.config/<tool>/` |
 | New portable script | `bin/bin/` |
-| RCC Midway shell/env settings | `local_dotfiles_RCCMidwayGeneral/` |
-| Midway2-only settings | `local_dotfiles_RCCMidway2Specific/` |
-| Midway3-only settings | `local_dotfiles_RCCMidway3Specific/` |
-| macOS settings | `local_dotfiles_MyMacbookAir/` |
+| RCC Midway shell/env settings (both nodes) | `local_dotfiles_RCCMidwayGeneral/` |
+| Midway2-only settings | `local_dotfiles_RCCMidway2/` |
+| Midway3-only settings | create `local_dotfiles_RCCMidway3/` (none exist yet) |
+| Per-machine agent facts (paths, hostname verify) | that machine's `.claude/CLAUDE_local.md` |
+| macOS settings | `local_dotfiles_MyMacbookAir/` or `local_dotfiles_MEDGEN_MacbookAir/` |
 | Claude Code config/skills | `claude/.claude/` |
 | Misc dotfiles with no better home | `other/` |
 | Snakemake cluster profiles | `config/.config/snakemake/<profile-name>/` |

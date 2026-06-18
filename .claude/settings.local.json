@@ -13,7 +13,10 @@
       "mcp__colab-mcp__get_cells",
       "mcp__colab-mcp__add_text_cell",
       "Bash(conda create *)",
-      "mcp__plugin_slack_slack__slack_search_public_and_private"
+      "mcp__plugin_slack_slack__slack_search_public_and_private",
+      "WebFetch(domain:developers.openai.com)",
+      "Bash(gh auth *)",
+      "Bash(gh api *)"
     ]
   }
 }

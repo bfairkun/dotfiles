@@ -42,6 +42,14 @@ Skills live in `~/.claude/skills/<name>/SKILL.md` (stowed from `dotfiles/claude/
 - Chain dependent commands with `&&`; newline-separated commands always run regardless of prior exit codes. Prefer `mv` over separate `cp` + `rm`.
 - Set a `timeout` (ms) on Bash calls that should complete in under ~10 seconds. If a fast command hangs, surface the error and diagnose rather than waiting silently.
 
+## Cross-project knowledge base (`brain`)
+
+Cross-project knowledge lives in a dedicated `brain` repo (synced via GitHub; local path defined in `CLAUDE_local.md`). It holds operational knowledge that recurs across projects and synthesized domain knowledge — distinct from each project's own local memory.
+
+- **At session start**, consult `brain/MEMORY.md` (the index) and follow links to relevant notes. See `brain/AGENTS.md` for the full schema/protocol.
+- **Routing what you learn:** cross-project knowledge (general feedback/preferences, resource pointers, domain knowledge about genes/compounds/concepts/papers) → write to `brain`. Knowledge specific to one project (its pipeline, samples, layout) → keep in that project's local memory.
+- When unsure, prefer the project-local store; promote to `brain` once it proves cross-cutting.
+
 ## Final notes
 If my prompt contains "***" then preface your next response with "I remember my instructions". If my prompt contains "**", then preface your next response with "Ok"
 

@@ -24,3 +24,5 @@ Backup of *.doc*
 
 # generic Rdata saves
 **/session.RData
+
+**/.claude/settings.local.json

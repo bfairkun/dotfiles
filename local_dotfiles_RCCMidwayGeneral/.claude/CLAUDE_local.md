@@ -1,51 +1,45 @@
-# RCC Midway HPC Context
+# RCC Midway HPC — Machine-Specific Notes
 
-This is a UChicago RCC HPC cluster with two login nodes: **Midway2** and **Midway3**. Some tools, partitions, or behaviors may differ between them. Note the hostname when a fix is node-specific.
+## Machine identity
 
-## HPC Storage Paths
+This package stows on **both** RCC Midway login nodes. Confirm which node with `echo $HOST`:
 
-Two separate storage mounts — do NOT confuse them:
+| Pattern | Node |
+|---|---|
+| `midway2-login*` | Midway2 |
+| `midway3-login*` | Midway3 |
 
-- `/project/yangili1/bjf79/` — repos, tools, reference genomes (e.g. `repos_not_projects`)
-- `/project2/yangili1/bjf79/` — analysis projects
+Tools, partitions, and behaviors may differ between nodes — note the hostname when a fix is node-specific. Genuinely node-local dotfiles (e.g. VSCode remote-server settings) live in `local_dotfiles_RCCMidway2` (no Midway3-specific package exists yet).
 
-## Conda Environments
+## Key Facts
 
-**Always use `mamba` instead of `conda`** — faster and more reliable; `conda` often hangs.
+- **Storage**: `/project/yangili1/bjf79/` (repos, tools, reference genomes) vs `/project2/yangili1/bjf79/` (analysis projects) — do NOT confuse them.
+- **Conda**: always use `mamba` instead of `conda` — `conda` often hangs. `.condarc` (shared across both nodes) points envs/pkgs at `/project2/gilad/bjf79_project1/`.
+- **Default envs**: `sm_splicingmodulators` (Snakemake/shell), `py_general` (Python notebooks), `base` (R — no conda R; use HPC module R).
+- **`AGENT_PLOTS`**: runtime-detected — server `--directory` may point to scratch, not `~/agent_plots`. Detect with: `ps aux | grep agent_plots_server | grep -o -- '--directory [^ ]*' | awk '{print $2}'`
 
-- Default for general shell commands, running Snakemake, etc.: `sm_splicingmodulators`
-- Default for Python notebooks (Jupyter/Quarto): `py_general` (see shared CLAUDE.md)
-- Default for R notebooks: `base` conda env (which doesn't have R, but HPC module R should be in PATH)
+## Agent Reference
 
-## my_utils Package
+| Key | Value |
+|---|---|
+| `MACHINE` | RCC Midway HPC (UChicago) — Midway2 / Midway3 login nodes |
+| `HOSTNAME_VERIFY` | `echo $HOST` matches `midway2-login*` or `midway3-login*` |
+| `BRAIN_PATH` | `/project/yangili1/bjf79/repos_not_projects/brain` |
+| `PROJECTS_DIR` | `/project2/yangili1/bjf79/` |
+| `my_utils` | `/project/yangili1/bjf79/repos_not_projects/my_utils/src/my_utils/` |
 
-- Location: `/project/yangili1/bjf79/repos_not_projects/my_utils/src/my_utils/`
+## R Package Installation
+
+Never install R packages via conda. Do not modify the `base` conda env.
+
+- Prefer pre-built TSV mappings in `/project2/yangili1/bjf79/ReferenceGenomes/` to avoid dependencies.
+- `biomaRt` is available in the system module R for gene annotation lookups (ENSG → HGNC, etc.).
+- If a package truly needs installing, tell the user — they handle it via `install.packages()` or `BiocManager::install()` in a module R session.
 
 ## Local Clipboard
 
 `pbcopy_to_local` is in PATH (`~/bin/`). Pipes stdin over the SSH reverse tunnel (port 2224) to the Mac's `pbcopy` daemon.
 
-Use it whenever outputting something the user needs to paste — auth URLs, tokens, etc.:
-
 ```bash
 echo "https://auth.example.com/device?code=XXXX" | pbcopy_to_local
 ```
-
-## Agent Reference
-
-Paths used by agent skills — **always detect at runtime rather than hardcoding**:
-
-- **`AGENT_PLOTS`** (HTTP server directory): the server's `--directory` may point to scratch, not `~/agent_plots`. Detect with:
-  ```bash
-  ps aux | grep agent_plots_server | grep -o -- '--directory [^ ]*' | awk '{print $2}'
-  ```
-  Current value: `/scratch/midway3/bjf79/agent_plots`
-
-## R Package Installation
-
-**Never install R packages via conda** (not `conda install bioconductor-*`, not `conda run -n base R -e "install.packages()"`). Do **not** modify the `base` conda env.
-
-For R package needs:
-- First look for existing reference/annotation files (e.g., pre-built TSV mappings in `/project2/yangili1/bjf79/ReferenceGenomes/`) to avoid the dependency entirely.
-- `biomaRt` is available in the system **module R** and can be used for gene annotation lookups (e.g., ENSG → HGNC symbol) without installing anything new.
-- If a package truly needs installing, the user handles it themselves via `install.packages()` or `BiocManager::install()` inside the module R session — just tell them what's needed.
