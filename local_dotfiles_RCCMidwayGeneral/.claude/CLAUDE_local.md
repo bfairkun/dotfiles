@@ -26,20 +26,11 @@ Tools, partitions, and behaviors may differ between nodes — note the hostname 
 | `HOSTNAME_VERIFY` | `echo $HOST` matches `midway2-login*` or `midway3-login*` |
 | `BRAIN_PATH` | `/project/yangili1/bjf79/repos_not_projects/brain` |
 | `PROJECTS_DIR` | `/project2/yangili1/bjf79/` |
-| `my_utils` | `/project/yangili1/bjf79/repos_not_projects/my_utils/src/my_utils/` |
 
 ## R Package Installation
 
-Never install R packages via conda. Do not modify the `base` conda env.
-
-- Prefer pre-built TSV mappings in `/project2/yangili1/bjf79/ReferenceGenomes/` to avoid dependencies.
-- `biomaRt` is available in the system module R for gene annotation lookups (ENSG → HGNC, etc.).
-- If a package truly needs installing, tell the user — they handle it via `install.packages()` or `BiocManager::install()` in a module R session.
+Never install R packages via conda; never modify the `base` conda env. Details (module R, `biomaRt`, flat TSV mappings) → brain `annotation-reference-files` note.
 
 ## Local Clipboard
 
-`pbcopy_to_local` is in PATH (`~/bin/`). Pipes stdin over the SSH reverse tunnel (port 2224) to the Mac's `pbcopy` daemon.
-
-```bash
-echo "https://auth.example.com/device?code=XXXX" | pbcopy_to_local
-```
+`pbcopy_to_local` (in PATH) pipes stdin to the Mac clipboard over the SSH tunnel. Usage + per-node `nc` quirk → brain `pbcopy-to-local-fix` note.
