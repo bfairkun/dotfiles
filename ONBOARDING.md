@@ -64,8 +64,8 @@ One recurring design throughout this repo is having a general config file that s
 **`.zshrc` → `.zshrc_local`**
 The shared `~/.zshrc` ends with `source ~/.zshrc_local`. The `local_dotfiles_RCCMidwayGeneral` package provides the `.zshrc_local` that handles HPC-specific things: loading modules (`module load node`), the `sq`/`watchjobs` aliases, starting the agent_plots server, and the X11 display fix. On your Mac, a different stow package provides a different `.zshrc_local` with Mac-specific settings. Neither machine ever sees the other's config.
 
-**`CLAUDE.md` → `CLAUDE_local.md`**
-The shared `~/.claude/CLAUDE.md` ends with `@~/.claude/CLAUDE_local.md`. The `local_dotfiles_RCCMidwayGeneral` package provides a `CLAUDE_local.md` with HPC-specific context: cluster paths, partition names, storage layout, conda env conventions for this machine. Claude reads both files at startup, getting general workflow context plus machine-specific facts, without a monolithic file that tries to cover every machine.
+**`AGENTS.md` → `AGENTS.local.md`**
+The shared `~/.agents/AGENTS.md` imports `~/.agents/AGENTS.local.md`. Each machine package supplies the local file with paths, cluster settings, and other machine-specific facts. Client-required instruction files import the shared `AGENTS.md`.
 
 The same pattern applies to `.profile` → `.profile_local` and `.bashrc` → `.bashrc_local`. When you set up a new machine, you create a new `local_dotfiles_MACHINENAME` package with just the overrides for that machine, and the general packages stay untouched.
 
@@ -145,7 +145,7 @@ What each package provides:
 | `config` | Snakemake Slurm profiles, matplotlib/uv defaults | **Personalize account and paths in snakemake profile** |
 | `other` | `.Rprofile` (httpgd graphics, session utils), `conda_minimal_yamls/py_general.yaml` | |
 | `local_dotfiles_RCCMidwayGeneral` | SSH agent, module loads, tmux auto-attach, conda init, aliases, `~/bin` scripts, Claude Code settings | **Personalize conda paths** |
-| `claude` | Claude Code `settings.json`, `mcp.json`, skills | |
+| `agents` | Shared instructions and skills plus Claude, Codex, and Gemini configuration | |
 
 **Do NOT stow on HPC:** `local_dotfiles_MEDGEN_MacbookAir` (Mac only — see Part 2), `local_dotfiles_HPStream`, `local_dotfiles_MyMacbookAir`, `local_dotfiles_RCCMidway2Specific`, `local_dotfiles_RCCMidway3Specific`.
 
@@ -153,19 +153,19 @@ After stowing, log out and back in (or `source ~/.profile`) for all changes to t
 
 #### Resolving Conflicts After Stowing
 
-If you had an existing `~/.claude/` directory before stowing (e.g., from a prior Claude Code install with your own `CLAUDE.md`), stow will refuse to overwrite it and report a conflict. Don't blindly delete your existing files — they may contain things you want to keep.
+If existing agent configuration conflicts with stow, back it up before merging.
 
 The recommended approach:
 
 ```bash
-# Before stowing the claude package, back up any existing claude config:
+# Back up existing client configuration:
 cp -r ~/.claude ~/.claude.bak
 
 # Stow the package (this may fail on conflicts — that's OK)
-stow claude
+stow agents
 
 # For any files that conflicted, diff the backed-up version against the new stowed version:
-diff ~/.claude.bak/CLAUDE.md ~/dotfiles/claude/.claude/CLAUDE.md
+diff ~/.claude.bak/CLAUDE.md ~/dotfiles/agents/.claude/CLAUDE.md
 ```
 
 Then open each conflicting file and go through it line by line — keep what you want from your old config, and adopt the conventions from the new one. Claude Code itself is a good tool for this: open the two versions side by side and ask Claude to help merge them, explaining the purpose of each section.
@@ -174,8 +174,8 @@ Once you're happy, commit your merged versions to your dotfiles fork:
 
 ```bash
 cd ~/dotfiles
-git add claude/.claude/CLAUDE.md  # (or whichever files you edited)
-git commit -m "Personalize Claude config for YOURNAME"
+git add agents
+git commit -m "Personalize agent configuration for YOURNAME"
 git push
 ```
 
@@ -241,34 +241,34 @@ watchjobs   # watch -n5 sq
 
 ---
 
-### 1.6 Claude Code Setup
+### 1.6 Agent Setup
 
-After stowing the `claude` package, Claude Code is configured with:
+After stowing the `agents` package:
 
-- `~/.claude/settings.json` — permissions, allowed tools, status line
-- `~/.claude/mcp.json` — MCP server for Jupyter kernel control
-- `~/.claude/skills/` — skills that teach Claude project conventions (HPC, Snakemake rules, notebooks, etc.)
+- `~/.agents/AGENTS.md` provides shared instructions.
+- `~/.agents/skills/` provides shared workflows.
+- Client-specific directories provide settings and discovery entry points.
 
 #### The Jupyter Kernel MCP: Persistent Interactive Sessions
 
-The Jupyter kernel MCP is what makes the interactive workflow genuinely useful. The key idea: rather than having Claude write a complete script and run it as a one-shot subprocess each time, Claude connects to a **persistent, stateful Python session** — the same way you'd use an interactive Python shell or a Jupyter notebook yourself.
+The Jupyter kernel MCP provides a persistent, stateful Python session rather than a new subprocess for every execution.
 
-This matters because exploratory analysis is inherently stateful. You load a large dataframe once, then try different filters, transformations, and plots against it without reloading. If Claude had to re-run a full script from scratch on each attempt, every iteration would re-read files, re-run slow computations, and lose intermediate results. With a persistent kernel, variables stay in memory between turns — Claude can load data once, then iterate on plots and transformations quickly.
+Variables remain in memory between turns, allowing iterative analysis without reloading data.
 
-The MCP script is included in the dotfiles at `claude/.claude/skills/jupyter-kernel/jupyter_kernel_mcp.py` and is already registered in `~/.claude/mcp.json` after stowing. It communicates with Jupyter kernels over the Jupyter wire protocol (ZMQ) — no open ports, no HTTP server.
+The MCP script lives at `agents/.agents/skills/jupyter-kernel/jupyter_kernel_mcp.py`. Register it as a user-scope stdio server in each client. It communicates over the Jupyter wire protocol (ZMQ), without an HTTP server.
 
 **Installation steps:**
 
 ```bash
 # 1. Symlink the script onto PATH (~/bin is on PATH from .profile):
-ln -sf ~/.claude/skills/jupyter-kernel/jupyter_kernel_mcp.py ~/bin/jupyter_kernel_mcp.py
+ln -sf ~/.agents/skills/jupyter-kernel/jupyter_kernel_mcp.py ~/bin/jupyter_kernel_mcp.py
 
 # 2. Register the py_general kernelspec (one-time per machine):
 conda activate py_general && python -m ipykernel install --user --name py_general
 # For R: conda activate base && R -e "IRkernel::installspec()"
 ```
 
-If the MCP tools don't appear in Claude after setup, the `jupyter-kernel` skill has a step-by-step troubleshooting guide — just ask Claude: *"help me set up the jupyter kernel MCP"* and it will invoke the skill.
+If the MCP tools do not appear, invoke the `jupyter-kernel` skill.
 
 To start Claude Code in a project:
 ```bash

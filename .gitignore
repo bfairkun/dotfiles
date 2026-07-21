@@ -5,3 +5,6 @@ config/.config/gh/hosts.yml
 # Secret credentials — never commit
 zsh/.secrets
 .secrets
+
+# Per-repository agent approvals
+.claude/settings.local.json

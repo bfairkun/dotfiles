@@ -25,7 +25,7 @@ I also picked up some tips from [this post](https://www.anishathalye.com/2014/08
 12 directories
 ```
 
-- `claude` : [Claude Code](https://claude.ai/code) config — MCP servers, skills, commands, and CLAUDE.md. See `claude/README.md` for setup instructions including the required `uv` install.
+- `agents` : shared agent instructions and skills, plus client-specific Claude, Codex, and Gemini configuration.
 - `bash` : my bash specific settings (eg: my `.bashrc` and `.bash_profile`)
 - `bin/bin` : Portable and distrutable executables that should be able to work on linux or mac without compiling. For example, a couple custom scripts which are generally useful to me. Also, the perl script [ack](https://beyondgrep.com/why-ack/) is here (Artistic License 2.0), The nested structure is so that stow will create a symlink in `$HOME` to the child `bin/bin` instead of `bin`
 - `git` : git settings
