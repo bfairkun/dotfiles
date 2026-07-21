@@ -1,0 +1,97 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd *)",
+      "Bash(ls *)",
+      "Bash(grep *)",
+      "Bash(find *)",
+      "Bash(zcat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(sort *)",
+      "Bash(uniq *)",
+      "Bash(cut *)",
+      "Bash(pwd)",
+      "Bash(which *)",
+      "Bash(date *)",
+      "Bash(echo *)",
+      "Bash(cat *)",
+      "Bash(awk *)",
+      "Bash(sed *)",
+      "Bash(diff *)",
+      "Bash(mkdir *)",
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(conda list *)",
+      "Bash(conda info *)",
+      "Read(//tmp/**)",
+      "Bash(conda env:*)",
+      "Read(//project2/yangili1/bjf79/**)",
+      "Read(//project/yangili1/bjf79/repos_not_projects/**)",
+      "Read(//project/yangili1/bjf79/**)",
+      "Bash(conda run:*)",
+      "Bash(git submodule:*)",
+      "Bash(ssh-add -l)",
+      "Read(//run/user/1352850516/**)",
+      "Bash(. ~/.ssh/agent-environment)",
+      "Bash(jupyter kernelspec:*)",
+      "Read(//run/user/$UID/jupyter/**)",
+      "Bash(jupyter --runtime-dir)",
+      "mcp__jupyter-kernel__start_kernel",
+      "mcp__jupyter-kernel__list_kernels",
+      "mcp__jupyter-kernel__connect_to_kernel",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch",
+      "mcp__jupyter-kernel__run_python",
+      "Bash(tmux new-window*)",
+      "Bash(tmux kill-window*)",
+      "Bash(tmux list-windows*)",
+      "Bash(tmux list-sessions*)",
+      "mcp__plugin_slack_slack__slack_search_public_and_private",
+      "mcp__plugin_slack_slack__slack_search_public",
+      "mcp__plugin_slack_slack__slack_search_channels",
+      "mcp__plugin_slack_slack__slack_search_users",
+      "mcp__plugin_slack_slack__slack_search_emojis",
+      "mcp__plugin_slack_slack__slack_read_channel",
+      "mcp__plugin_slack_slack__slack_read_thread",
+      "mcp__plugin_slack_slack__slack_read_file",
+      "mcp__plugin_slack_slack__slack_read_canvas",
+      "mcp__plugin_slack_slack__slack_read_user_profile",
+      "mcp__plugin_slack_slack__slack_list_channel_members",
+      "mcp__plugin_slack_slack__slack_get_reactions"
+    ],
+    "defaultMode": "default",
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  },
+  "enabledPlugins": {
+    "codex@openai-codex": false,
+    "slack@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    }
+  },
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "light",
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": false,
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "model": "opus"
+}

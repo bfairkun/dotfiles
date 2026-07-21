@@ -169,15 +169,27 @@ You should see two panes. The **first listed** is the top shell (pane 1). The **
 
 ### Step F — Launch Claude or Codex in the bottom pane
 
-**Claude — fresh session:**
+**Account selection:** Claude Code has two isolated identities on this machine, selected via `CLAUDE_CONFIG_DIR`:
+- **Personal account** (default — Remote Control-enabled, used for phone access): no env var needed.
+- **Enterprise account** (UChicago): export `CLAUDE_CONFIG_DIR=~/.claude-enterprise` before launching. Sessions under this identity will NOT show up in Remote Control on the phone — that's an Anthropic-side constraint tied to the account, not something this setup can work around.
+
+Only use the enterprise account when the user explicitly asks for it (e.g. "start this as enterprise" / "use my UChicago account"). Otherwise default to personal — do not ask every time.
+
+**Claude — fresh session, personal account (default):**
 ```bash
 tmux send-keys -t "<IDX>.<P>" "claude -n '<window-name>'" Enter
+```
+
+**Claude — fresh session, enterprise account:**
+```bash
+tmux send-keys -t "<IDX>.<P>" "CLAUDE_CONFIG_DIR=~/.claude-enterprise claude -n '<window-name>'" Enter
 ```
 
 **Claude — resuming a specific session by ID:**
 ```bash
 tmux send-keys -t "<IDX>.<P>" "claude -r <session-id>" Enter
 ```
+(Prefix with `CLAUDE_CONFIG_DIR=~/.claude-enterprise ` too if that session was started under the enterprise account — sessions/history are shared via a symlinked `projects` dir, but credentials/settings.local state are not, so resuming under the wrong config dir may prompt a fresh login.)
 
 Concrete example — IDX=5, P=2, fresh: `tmux send-keys -t "5.2" "claude -n 'my-project'" Enter`
 
@@ -263,7 +275,7 @@ tmux kill-window -t <IDX>
 
 ## The dispatcher agent
 
-`~/.claude/agents/dispatcher.md` (model: haiku) is a standalone always-on session for Remote Control use.
+`~/.claude/agents/dispatcher.md` (model: haiku) is a standalone always-on session for Remote Control use. **Always run this under the personal account (default, no `CLAUDE_CONFIG_DIR` override)** — Remote Control only works for the account that's actually logged in, and the enterprise account doesn't have it enabled.
 
 Start it:
 ```bash

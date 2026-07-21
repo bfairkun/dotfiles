@@ -249,6 +249,27 @@ After stowing the `agents` package:
 - `~/.agents/skills/` provides shared workflows.
 - Client-specific directories provide settings and discovery entry points.
 
+#### Second Claude Code identity (e.g. a work/enterprise account)
+
+The package also stows `~/.claude-enterprise/`, a second Claude Code config dir. It shares `CLAUDE.md`, `skills`, `agents`, `list-sessions.sh`, `dispatcher_watchdog.sh`, and `statusline-command.sh` with `~/.claude/` via relative symlinks — these are safe to share because Claude Code only ever reads them. Use the second identity by exporting `CLAUDE_CONFIG_DIR=~/.claude-enterprise` before running `claude` — see the `dispatch` skill for how sessions pick an identity. The status line shows which config dir is active.
+
+`settings.json` is **not** shared — each identity has its own independently tracked copy (`agents/.claude/settings.json` vs `agents/.claude-enterprise/settings.json`), seeded equal but free to diverge. See the `dotfiles` skill for why (Claude Code rewrites this file live, e.g. on `/model`, which breaks a symlink the first time it happens).
+
+One thing `stow` can't carry across machines, since it points to a real runtime dir that only exists under `~/.claude/` (never tracked in git) — redo this once per machine after stowing:
+
+```bash
+ln -sfn ../.claude/projects ~/.claude-enterprise/projects
+```
+
+This is what keeps memory/session history unified across both identities instead of forking — safe to share because it's a directory symlink (new files land inside it without touching the symlink itself).
+
+Optionally, also do a one-time copy of `settings.local.json` to start the enterprise identity with your existing personal-account permission grants instead of re-approving everything from scratch — it will not stay in sync after that:
+```bash
+cp ~/.claude/settings.local.json ~/.claude-enterprise/settings.local.json
+```
+
+Then, one-time per machine: `CLAUDE_CONFIG_DIR=~/.claude-enterprise claude` → `/login` with the second account.
+
 #### The Jupyter Kernel MCP: Persistent Interactive Sessions
 
 The Jupyter kernel MCP provides a persistent, stateful Python session rather than a new subprocess for every execution.

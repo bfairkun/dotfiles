@@ -21,6 +21,58 @@ Each top-level directory is a **stow package**. Running `stow <package>` from `~
 - Nested dirs like `bin/bin/` are intentional: stow symlinks the inner `bin/` to `~/bin/`
 - XDG-style configs live in `config/.config/<tool>/` → symlinked to `~/.config/<tool>/`
 
+### Gotcha: a symlink *inside* a package resolves from the repo, not from $HOME
+
+If a file you put inside a package is itself a symlink (not a real file), its relative
+target is resolved starting from where that file physically sits **in the repo** — not
+from where stow later places the outer symlink in `$HOME`. Following the link means
+following both hops: `$HOME` symlink → repo symlink → repo symlink's own relative target.
+
+This is fine when the symlink points at another *tracked* file inside the same package
+(e.g. `.claude/skills -> ../.agents/skills`) — both ends live in the repo, so the path
+is correct either way.
+
+It breaks when you want the symlink to reach something that only exists live in `$HOME`
+and was never copied into git — a generated file, session state, another package's
+*stowed* output. The relative path resolves against the repo location instead, lands on
+a path inside the repo that doesn't exist, and silently points nowhere useful.
+
+**Rule of thumb:** only author a relative symlink inside a package if its target is also
+real, tracked content in that same package tree. If you need to link to something that
+only exists in `$HOME` after stowing (not tracked in git), create that symlink directly
+in `$HOME` by hand — not inside the package. It can't be made portable through git,
+because there's nothing to track; document it as a manual per-machine step instead.
+
+### Gotcha: don't symlink a file the program itself rewrites
+
+Some dotfiles are pure input — the program only ever reads them (`CLAUDE.md`, skill
+files, shell rc files). Others are live state — the program reads *and writes* them
+during normal use. Claude Code's `settings.json` and `settings.local.json` are the
+second kind: `/model`, permission approvals, and other in-session actions get persisted
+back to disk.
+
+That write is usually an atomic replace (write to a temp file, then rename over the
+target) — a safe pattern for the program, but it silently deletes whatever was at that
+path and puts a plain file there instead. If the path was a symlink into this repo, the
+symlink is gone and a real, untracked file takes its place, without any error. This
+already happened once: two Claude Code identities (`~/.claude` and
+`~/.claude-enterprise`) were set up to *share* `settings.json` via a symlink chain, and
+the very first settings write from the second identity replaced it with an independent
+file — silently forking the two configs on first use, not on some later edit.
+
+**Rule of thumb:** don't symlink-share a file a program writes back to. Directories are
+usually fine to share (a new file gets created *inside* the resolved directory without
+touching the directory symlink itself — this is how the two Claude identities share
+`projects/`, i.e. memory/session history, safely). But a live-rewritten *file* should get
+its own independent copy per location, seeded once and allowed to diverge, not a symlink
+you expect to stay in sync.
+
+Real example this bit us on: `agents/.claude-enterprise/projects` was written as a
+symlink to `../.claude/projects`, intending to reach `~/.claude/projects` (real,
+untracked runtime state). It actually resolved to `agents/.claude/projects`, which
+doesn't exist. Fixed by creating a plain symlink directly at
+`~/.claude-enterprise/projects -> ../.claude/projects`, authored in `$HOME` itself.
+
 ## Package Inventory
 
 **General packages** (cross-machine):

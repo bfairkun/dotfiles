@@ -60,6 +60,7 @@ YELLOW='\033[33m'
 BLUE='\033[34m'
 GREEN='\033[32m'
 RED='\033[31m'
+MAGENTA='\033[35m'
 DIM='\033[2m'
 
 # Build status line parts
@@ -131,5 +132,24 @@ fi
 if [ -n "$output_style" ]; then
   parts="${parts}  ${DIM}style:${RESET} ${BLUE}${output_style}${RESET}"
 fi
+
+# config-dir — Claude Code identities are isolated by CLAUDE_CONFIG_DIR (see
+# the dispatch skill), so this shows which config dir is active, not a
+# verified account identity (nothing here reads the actual credentials).
+# Generic on purpose: works for any number of config dirs, and for anyone
+# else reusing this statusline, with no hardcoded names.
+config_dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+config_dir_label="$(basename "$config_dir")"
+config_dir_label="${config_dir_label#.}"        # ".claude-foo" -> "claude-foo"
+config_dir_label="${config_dir_label#claude-}"  # "claude-foo" -> "foo"
+[ "$config_dir_label" = "claude" ] && config_dir_label="default"
+
+# Deterministic color per label (hash the string) so each config dir is
+# visually distinct and stable across renders, without mapping names by hand.
+palette=("$GREEN" "$YELLOW" "$MAGENTA" "$CYAN" "$BLUE")
+hash=$(printf '%s' "$config_dir_label" | cksum | awk '{print $1}')
+config_dir_color="${palette[$((hash % ${#palette[@]}))]}"
+
+parts="${parts}  ${DIM}config-dir:${RESET} ${config_dir_color}${config_dir_label}${RESET}"
 
 printf "%b\n" "$parts"
