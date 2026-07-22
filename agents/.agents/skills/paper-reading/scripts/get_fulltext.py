@@ -152,10 +152,44 @@ def from_biorxiv(doi):
     return None
 
 
+def fetch_figures(pmcid, outdir):
+    """Download figure images from PMC's CDN (no interstitial on these URLs).
+
+    Returns list of saved paths. Figure *captions* are already in the body text;
+    these are the images themselves, for visual inspection.
+    """
+    import os
+    if not pmcid:
+        return []
+    raw = try_get(f"https://pmc.ncbi.nlm.nih.gov/articles/{pmcid}/")
+    if not raw:
+        return []
+    urls = sorted(set(re.findall(
+        r'https://cdn\.ncbi\.nlm\.nih\.gov/pmc/blobs/[^"\']+?\.(?:jpg|png|gif)', raw)))
+    os.makedirs(outdir, exist_ok=True)
+    saved = []
+    for u in urls:
+        name = u.rsplit("/", 1)[-1]
+        path = os.path.join(outdir, name)
+        try:
+            req = urllib.request.Request(u, headers={"User-Agent": UA})
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                data = r.read()
+            if len(data) > 5000:                       # skip icons/spacers
+                with open(path, "wb") as fh:
+                    fh.write(data)
+                saved.append(path)
+        except Exception:
+            continue
+    return saved
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("identifier")
     ap.add_argument("-o", "--out")
+    ap.add_argument("--figures", metavar="DIR",
+                    help="also download figure images to DIR (PMC only)")
     ap.add_argument("--quiet", action="store_true")
     a = ap.parse_args()
 
@@ -192,6 +226,11 @@ def main():
                  "Do not infer contents."]
         body = ""
         code = 3
+
+    if a.figures:
+        figs = fetch_figures(ids["pmcid"], a.figures)
+        head.append(f"figures    : {len(figs)} saved to {a.figures}"
+                    if figs else "figures    : none retrieved")
 
     block = "=== PROVENANCE ===\n" + "\n".join(head) + "\n=== END PROVENANCE ===\n"
     if a.out:

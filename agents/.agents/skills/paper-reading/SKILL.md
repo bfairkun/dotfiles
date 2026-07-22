@@ -47,6 +47,27 @@ contract:
 
 The script never fabricates; a failure is a real failure, not a prompt to guess.
 
+## Figures and supplementary material
+
+**Figure captions** come with the body text — they are part of what the script
+returns, and are often enough.
+
+**Figure images** need `--figures DIR`, which pulls them from PMC's CDN. Then
+open the saved image to actually look at it. Do this whenever the claim at
+stake lives in a panel rather than in prose (which guide/lane/condition, what
+the axes say, which comparison was significant).
+
+```bash
+python3 <skill-dir>/scripts/get_fulltext.py <id> -o paper.txt --figures ./figs
+```
+
+**Supplementary files cannot be fetched from the command line.** PMC serves
+them through a JavaScript proof-of-work interstitial, so a plain request
+returns a ~1.8 kB "Preparing to download" page instead of the file — check the
+file type before trusting a download. Get supplements through an interactive
+browser, or ask the user for them. Treat unread supplementary data the same as
+unread full text: say you did not read it.
+
 ## When the script returns 2 or 3
 
 Work down this list. Stop at the first one that yields real text.
