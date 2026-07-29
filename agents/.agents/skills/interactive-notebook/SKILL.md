@@ -400,6 +400,10 @@ Use the `Edit` tool to append a new chunk at the end of the `.qmd` file after ea
 exploration round is validated. Keep the notebook source in sync with what the kernel
 has actually run.
 
+Write the surrounding prose at the same time as the chunk, not as a later pass — the
+reasoning behind a choice is hardest to reconstruct once the exploration has moved on.
+See the `new-notebook` skill for what that prose must cover.
+
 For R chunks use `#|` chunk options (Quarto style, not `{r, echo=FALSE}` header style):
 
 ````

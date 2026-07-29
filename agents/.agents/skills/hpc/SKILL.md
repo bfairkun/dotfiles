@@ -1,6 +1,6 @@
 ---
 name: hpc
-description: "RCC Midway HPC only. Provides context about RCC (UChicago) HPC cluster setup and how to submit Slurm jobs on Midway2/Midway3. Invoke when user asks about submitting jobs, partitions, sinteractive, sbatch, or running Snakemake on the cluster."
+description: "RCC Midway HPC only. Provides context about RCC (UChicago) HPC cluster setup and how to submit Slurm jobs on Midway2/Midway3. Invoke when user asks about submitting jobs, partitions, sinteractive, sbatch, or running Snakemake on the cluster, or when launching long-running work that must report back on completion."
 argument-hint: [topic]
 ---
 
@@ -144,6 +144,41 @@ If existing outputs were incorrectly flagged as stale (e.g., due to a rule modif
 - `conda-prefix: /project2/yangili1/bjf79/snakemake_conda_envs`
 
 ---
+
+## Launching long work so completion is actually reported
+
+An agent session is notified when a *detached shell command* exits. Long work must therefore
+be launched so that the command's exit coincides with the work's completion.
+
+**`sbatch` alone breaks this.** It returns in milliseconds once the job is queued, so the
+notification means "submitted", not "finished" — the session will read a job that has not
+started yet as done. Use `-W/--wait`, which blocks until the job completes and propagates
+the job's exit code:
+
+```bash
+sbatch --wait job.sh    # launch this as a detached/background command
+```
+
+`srun` blocks by default and is equivalent for a single step. Since `--wait` holds the
+wrapper for queue time *plus* run time, set `--time` generously and expect the wrapper to
+outlive the job's own runtime when the partition is busy.
+
+If a job genuinely must be fire-and-forget, do not infer completion from the submit command
+— check state explicitly:
+
+```bash
+squeue -j <jobid>                              # empty once the job leaves the queue
+sacct -j <jobid> --format=JobID,State,ExitCode # COMPLETED / FAILED / TIMEOUT / OOM
+```
+
+**Do not put multi-minute compute inside a Jupyter kernel call.** Kernel tool calls are
+synchronous: they block the kernel, hide partial progress, and can hit a client timeout.
+Run the computation as a separate process that writes results to `code/scratch/`, then load
+that file in the kernel. This also keeps the kernel free for interactive work meanwhile.
+
+Login nodes are shared. Anything beyond a few minutes of multi-core compute belongs in a
+Slurm job, not a background login-node process; if a background login-node process is
+unavoidable, cap its threads (e.g. `OMP_NUM_THREADS`).
 
 ## Useful Commands
 
