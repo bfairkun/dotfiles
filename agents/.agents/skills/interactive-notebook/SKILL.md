@@ -417,6 +417,25 @@ For R chunks use `#|` chunk options (Quarto style, not `{r, echo=FALSE}` header 
 ```
 ````
 
+### Refresh the prose preview after every write
+
+Immediately after each `Edit` that adds prose to the `.qmd`, run:
+
+```bash
+preview_notebook analysis/YYYYMMDD_name.qmd
+```
+
+This writes `<stem>.preview.html` into the agent_plots directory: prose rendered
+as formatted markdown, code cells collapsed to one-line stubs that expand on
+click, and any plots a cell writes hyperlinked. The user reads it in the browser
+tab already open for plots, so they can check the prose matches their intent
+without opening VS Code. The page reloads itself on change — mention the URL
+once per notebook, not on every refresh.
+
+It parses the `.qmd` as text rather than running quarto, so it works on a
+half-written notebook whose cells do not execute yet. It never writes to the
+`.qmd`.
+
 ---
 
 ## Step 6 — Rendering (final step only)

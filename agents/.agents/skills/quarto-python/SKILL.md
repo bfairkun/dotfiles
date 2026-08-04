@@ -59,10 +59,9 @@ Verify: `jupyter kernelspec list`
 
 Use `render_notebook` (in `~/bin/`) in place of `quarto` — a transparent shim that passes all args through and records the render environment (host, Slurm allocation, actual peak memory) into a hidden block at the end of the `.qmd`. See the `compute-kernel` skill for details.
 
-**Activate py_general before rendering** so quarto can find jupyter and the registered kernel:
+**Render with py_general** (else `quarto render` fails with `No module named 'nbclient'`):
 ```bash
-conda activate py_general
-render_notebook render notebook.qmd
+conda activate py_general && render_notebook render notebook.qmd
 ```
 
 When running via `conda run -n base`, the base env has `ipykernel`, `nbformat`, `nbclient`, and `jupyter_client`, so it can discover the registered `py_general` kernel. No `QUARTO_PYTHON` is needed:
