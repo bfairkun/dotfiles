@@ -76,3 +76,16 @@ if [ -f ~/.claude/dispatcher_watchdog.sh ]; then
         (crontab -l 2>/dev/null; echo "*/5 * * * * $HOME/.claude/dispatcher_watchdog.sh") | crontab -
     fi
 fi
+
+# Ensure the Codex remote-control watchdog cron job is registered, so the Codex
+# iOS app always has a live session to attach to. Same self-healing rationale as
+# above: crontab lives on node-local /var, so it is lost if a node is rebuilt.
+# Registering on every login node is intended — the script keeps a sticky pin
+# (~/.codex/remote-control-pin) so only one node actually runs the daemon, and
+# the others stand by to take over if the pinned node's heartbeat goes stale.
+# Offset to minutes 2,7,12,... so it never collides with the entry above.
+if [ -f ~/.codex/codex_remote_control_watchdog.sh ]; then
+    if ! crontab -l 2>/dev/null | grep -q "codex_remote_control_watchdog.sh"; then
+        (crontab -l 2>/dev/null; echo "2-59/5 * * * * $HOME/.codex/codex_remote_control_watchdog.sh") | crontab -
+    fi
+fi

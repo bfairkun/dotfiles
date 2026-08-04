@@ -166,3 +166,7 @@ if [ -f ~/.zshrc_local ]; then
 fi
 
 
+
+# >>> Codex installer >>>
+export PATH="/home/bjf79/.local/bin:$PATH"
+# <<< Codex installer <<<
