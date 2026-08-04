@@ -310,6 +310,10 @@ Host midway*
     User YOURHPCUSERNAME
     RemoteForward 2224 127.0.0.1:2224   # tunnels remote clipboard → Mac
     LocalForward 8765 localhost:8765     # tunnels HPC plot server → browser
+    LocalForward 8766 localhost:8766     # fallback ports: Midway login nodes are
+    LocalForward 8767 localhost:8767     # shared, so another user may already hold
+    LocalForward 8768 localhost:8768     # 8765 — the plot server auto-retries up
+    LocalForward 8769 localhost:8769     # to 8769, so all are pre-tunneled
     ControlMaster auto
     ControlPath ~/.ssh/control-%r@%h:%p
     ControlPersist 24h
@@ -325,7 +329,7 @@ Host midway3
 
 What each option does:
 - **`RemoteForward 2224`** — lets the HPC push text to your Mac clipboard (via `Ctrl+C` in tmux)
-- **`LocalForward 8765`** — makes the HPC plot server available at `http://localhost:8765` in your browser
+- **`LocalForward 8765-8769`** — makes the HPC plot server available at `http://localhost:8765` (or whichever port it actually bound — check `~/.agent_plots_port` on HPC) in your browser
 - **`ControlMaster`/`ControlPersist`** — subsequent SSH connections reuse the existing connection (fast, no re-authentication)
 - **`ServerAliveInterval`** — keeps the connection alive through Mac sleep/wake
 
@@ -513,7 +517,7 @@ This submits a Slurm job, waits for it to start, and writes a connection file to
 The core co-authoring skill. Guides Claude through the full iterative loop: run exploratory code in the kernel → save plots → discuss results → write validated chunks to the `.qmd` file one at a time. Handles session state checkpointing so work can survive context compaction in long sessions.
 
 ### `agent-plots` skill
-Tells Claude where to save plots (`$SCRATCH/$USER/agent_plots/`) and how to make them viewable. Plots are served at `http://localhost:8765` via the SSH `LocalForward` in your Mac's SSH config — just open that URL in your browser. The server (`agent_plots_server.py`) starts automatically on login.
+Tells Claude where to save plots (`$SCRATCH/$USER/agent_plots/`) and how to make them viewable. Plots are served at `http://localhost:8765` via the SSH `LocalForward` in your Mac's SSH config — just open that URL in your browser. The server (`agent_plots_server.py`) starts automatically on login. On RCC Midway (shared login nodes) it may land on 8766-8769 instead if another user already holds 8765 — check `~/.agent_plots_port` on HPC; your SSH config forwards the whole range so no reconfiguration is needed.
 
 Preferred formats:
 - **PDF** for most plots — vector graphics, zoomable, small file size

@@ -17,6 +17,7 @@ Tools, partitions, and behaviors may differ between nodes — note the hostname 
 - **Conda**: always use `mamba` instead of `conda` — `conda` often hangs. `.condarc` (shared across both nodes) points envs/pkgs at `/project2/gilad/bjf79_project1/`.
 - **Default envs**: `sm_splicingmodulators` (Snakemake/shell), `py_general` (Python notebooks), `base` (R — no conda R; use HPC module R).
 - **`AGENT_PLOTS`**: runtime-detected — server `--directory` may point to scratch, not `~/agent_plots`. Detect with: `ps aux | grep agent_plots_server | grep -o -- '--directory [^ ]*' | awk '{print $2}'`
+- **Plot server port**: these are shared login nodes — another user can already hold 8765, so `agent_plots_server.py` auto-retries 8766-8769 and writes whichever port it actually bound to `~/.agent_plots_port`. Detect with: `cat ~/.agent_plots_port` (falls back to 8765 if the file doesn't exist yet). The Mac SSH config forwards the whole 8765-8769 range, so whichever port it lands on is already tunneled — no client-side change needed when this happens.
 
 ## Agent Reference
 

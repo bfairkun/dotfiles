@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """HTTP server for agent_plots directory with toggleable sort order."""
 
-import argparse, http.server, io, os, html
+import argparse, errno, http.server, io, os, html, sys
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 
@@ -84,6 +84,24 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     os.chdir(args.directory)
-    with http.server.HTTPServer(("", args.port), SortableHandler) as httpd:
-        print(f"Serving {args.directory} on port {args.port}")
+
+    # Shared login nodes: another user may already hold args.port, so try a
+    # few ports upward before giving up (SSH LocalForward covers this range).
+    httpd = None
+    port = args.port
+    for port in range(args.port, args.port + 5):
+        try:
+            httpd = http.server.HTTPServer(("", port), SortableHandler)
+            break
+        except OSError as e:
+            if e.errno != errno.EADDRINUSE:
+                raise
+    if httpd is None:
+        sys.exit(f"Ports {args.port}-{args.port + 4} are all in use, giving up")
+
+    with open(os.path.expanduser("~/.agent_plots_port"), "w") as f:
+        f.write(str(port))
+
+    with httpd:
+        print(f"Serving {args.directory} on port {port}")
         httpd.serve_forever()
