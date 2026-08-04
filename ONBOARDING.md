@@ -309,11 +309,14 @@ Add the following to `~/.ssh/config` on your Mac (or stow `local_dotfiles_MEDGEN
 Host midway*
     User YOURHPCUSERNAME
     RemoteForward 2224 127.0.0.1:2224   # tunnels remote clipboard → Mac
-    LocalForward 8765 localhost:8765     # tunnels HPC plot server → browser
-    LocalForward 8766 localhost:8766     # fallback ports: Midway login nodes are
-    LocalForward 8767 localhost:8767     # shared, so another user may already hold
-    LocalForward 8768 localhost:8768     # 8765 — the plot server auto-retries up
-    LocalForward 8769 localhost:8769     # to 8769, so all are pre-tunneled
+    LocalForward 8765 127.0.0.1:8765     # tunnels HPC plot server → browser (127.0.0.1,
+                                         # NOT localhost: remote localhost resolves to
+                                         # ::1 first and another user's IPv6-only
+                                         # listener would hijack the forward)
+    LocalForward 8766 127.0.0.1:8766     # fallback ports: Midway login nodes are
+    LocalForward 8767 127.0.0.1:8767     # shared, so another user may already hold
+    LocalForward 8768 127.0.0.1:8768     # 8765 — the plot server auto-retries up
+    LocalForward 8769 127.0.0.1:8769     # to 8769, so all are pre-tunneled
     ControlMaster auto
     ControlPath ~/.ssh/control-%r@%h:%p
     ControlPersist 24h
