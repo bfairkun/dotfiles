@@ -27,6 +27,8 @@ dependencies:
   - pandas
   - scipy
   - matplotlib
+  - scikit-image  # gel/blot densitometry (my_utils.gel_utils): rolling-ball background, regionprops, deskew
+  - onnxruntime   # runs GelGenie's published U-Net ONNX exports without pulling in PyTorch
   - seaborn
   - plotnine
   - altair

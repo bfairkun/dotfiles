@@ -70,6 +70,7 @@
       "/tmp"
     ]
   },
+  "model": "opus[1m]",
   "statusLine": {
     "type": "command",
     "command": "bash ~/.claude/statusline-command.sh"
@@ -91,7 +92,5 @@
   "theme": "light",
   "remoteControlAtStartup": true,
   "inputNeededNotifEnabled": false,
-  "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true,
-  "model": "opus"
+  "agentPushNotifEnabled": true
 }
