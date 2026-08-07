@@ -1,6 +1,8 @@
 # .shellrc_local for UMich Great Lakes HPC
 # Sourced by .bashrc_local and .zshrc_local — POSIX-compatible content only.
 
+echo "Running  ${0}..."
+
 # Switch to zsh for interactive bash sessions (zsh has syntax highlighting via oh-my-zsh)
 [[ $- == *i* && -z "$ZSH_VERSION" ]] && exec zsh
 
@@ -36,7 +38,7 @@ alias rstudio='update_display && rstudio'
 # Auto-start agent plots HTTP server on port 8765
 mkdir -p ~/agent_plots
 if ! pgrep -f "agent_plots_server.py" > /dev/null 2>&1; then
-    nohup python3 ~/bin/agent_plots_server.py --port 8765 --directory ~/agent_plots > ~/agent_plots/server.log 2>&1 &
+    nohup python3 ~/.claude/skills/agent-plots/agent_plots_server.py --port 8765 --directory ~/agent_plots > ~/agent_plots/server.log 2>&1 &
 fi
 
 # List running Jupyter kernels (newest first).

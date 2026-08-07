@@ -29,7 +29,7 @@ alias srstudio='sinteractive --mem=8g --time=2:00:00 --cpus-per-task=4 --command
 # Auto-start agent plots HTTP server on port 8765
 if ! pgrep -f "agent_plots_server.py" > /dev/null 2>&1; then
     mkdir -p $SCRATCH/$USER/agent_plots
-    nohup python3 ~/bin/agent_plots_server.py --port 8765 --directory $SCRATCH/$USER/agent_plots > $SCRATCH/$USER/agent_plots/server.log 2>&1 &
+    nohup python3 ~/.claude/skills/agent-plots/agent_plots_server.py --port 8765 --directory $SCRATCH/$USER/agent_plots > $SCRATCH/$USER/agent_plots/server.log 2>&1 &
 fi
 
 # List running Jupyter kernels (newest first)
