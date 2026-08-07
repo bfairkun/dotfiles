@@ -15,7 +15,7 @@
 echo "Running  ${0}..."
 
 # Switch to zsh for interactive login bash sessions
-[[ $- == *i* && -z "$ZSH_VERSION" ]] && exec zsh -l
+[[ $- == *i* && -z "$ZSH_VERSION" ]] && exec zsh
 
 export TZ='America/Detroit'
 
