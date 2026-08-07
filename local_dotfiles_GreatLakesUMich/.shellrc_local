@@ -3,6 +3,9 @@
 
 echo "Running  ${0}..."
 
+# Switch to zsh for interactive bash sessions (zsh has syntax highlighting via oh-my-zsh)
+[[ $- == *i* && -z "$ZSH_VERSION" ]] && exec zsh
+
 function update_display {
     # Sync the DISPLAY variable from tmux's environment.
     # Call this before launching GUI apps (R, RStudio) from inside tmux,
