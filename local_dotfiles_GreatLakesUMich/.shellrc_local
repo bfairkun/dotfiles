@@ -37,7 +37,7 @@ alias rstudio='update_display && rstudio'
 
 # Auto-start agent plots HTTP server on port 8765
 mkdir -p ~/agent_plots
-if ! pgrep -f "agent_plots_server.py" > /dev/null 2>&1; then
+if ! ss -tln 2>/dev/null | grep -q ':8765 '; then
     nohup python3 ~/.claude/skills/agent-plots/agent_plots_server.py --port 8765 --directory ~/agent_plots > ~/agent_plots/server.log 2>&1 &
 fi
 
