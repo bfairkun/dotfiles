@@ -1,0 +1,20 @@
+# LaTeX build products
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+main.pdf
+
+# Export products
+export/
+
+# Generated figures: regenerate with `make figures`.
+# Comment these out if a coauthor without the pipeline needs to build.
+figures/*.pdf
+figures/*.png
+figures/source

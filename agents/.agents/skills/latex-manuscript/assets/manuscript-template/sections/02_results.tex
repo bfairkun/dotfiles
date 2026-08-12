@@ -1,0 +1,79 @@
+\section{Results}
+
+% ---------------------------------------------------------------------------
+%  This file is a worked pattern, not filler. Replace the prose; keep the
+%  shapes. Every construct below is verified to export cleanly to Word.
+% ---------------------------------------------------------------------------
+
+\subsection{First result}
+
+\todo{prose}
+
+% BF> Claude, this is how you leave me a note and how I leave you one.
+% BF> Anything after a % is invisible to LaTeX and never reaches the PDF.
+% CL> I answer in place, under your note. Delete the pair when it's settled.
+
+% --- The canonical figure block --------------------------------------------
+% \label gives the figure a name YOU choose. \ref{fig:example} in the prose
+% prints whatever number it ends up being. Insert a figure above this one and
+% every number in the manuscript updates on the next build.
+%
+% Panel letters (A, B, ...) are drawn by make_figures.py, not by LaTeX --
+% \subref{} exports to Word as an empty "()". See AGENTS.md.
+\begin{figure}[tb]
+  \centering
+  \includegraphics[width=\linewidth]{fig1_example.pdf}
+  \caption{\textbf{Short bold title of the figure.}
+    \textbf{(A)} What panel A shows.
+    \textbf{(B)} What panel B shows. Points are means of three replicates;
+    error bars are one standard deviation.}
+  \label{fig:example}
+\end{figure}
+
+As shown in Figure~\ref{fig:example}, \todo{the finding}. Note the tilde in
+\verb|Figure~\ref{...}|: it is a non-breaking space, so "Figure" and its number
+never get split across a line break.
+
+% --- Citations --------------------------------------------------------------
+% \citep{key} -> (Author et al. 2024).  \citet{key} -> Author et al. (2024).
+% Keys come from refs.bib. Get a .bib entry from Google Scholar's "Cite"
+% link, or from a DOI at doi2bib.org.
+This is consistent with previous work \citep{example2024}.
+
+% --- Equations --------------------------------------------------------------
+% Numbered automatically in the PDF. But do NOT write \ref{eq:...} in the
+% prose: pandoc numbers figures and tables, not equations, so it exports as
+% the raw label "Equation [eq:model]". Refer to equations in words instead.
+\begin{equation}
+  y = \alpha + \beta x + \varepsilon
+  \label{eq:model}
+\end{equation}
+
+\noindent
+Parameters were estimated from the model above.
+
+% --- Tables -----------------------------------------------------------------
+% booktabs rules (\toprule/\midrule/\bottomrule) instead of vertical lines:
+% this is what published tables look like. Column spec `l r r` = one left-
+% aligned column, two right-aligned.
+\begin{table}[tb]
+  \centering
+  \begin{threeparttable}
+    \caption{Short description of the table.}
+    \label{tab:example}
+    \small
+    \begin{tabular}{l r r}
+      \toprule
+      Group & Estimate & $P$ \\
+      \midrule
+      Treated & 0.42 & 0.001 \\
+      Control & 0.08 & 0.640\tnote{a} \\
+      \bottomrule
+    \end{tabular}
+    \begin{tablenotes}[flushleft]\footnotesize
+      \item[a] Footnote markers attach to a cell and renumber themselves.
+    \end{tablenotes}
+  \end{threeparttable}
+\end{table}
+
+Table~\ref{tab:example} summarises \todo{what}.
