@@ -8,7 +8,8 @@
 # settings.local.json is intentionally gitignored (machine-specific permissions)
 !list-sessions.sh
 !statusline-command.sh
-!dispatcher_watchdog.sh
+# dispatcher_watchdog.sh / tmux_forensics.sh live in the `bin` stow package
+# (~/bin) — they are cron-run system tooling, not Claude config.
 !skills
 !agents/
 !agents/*

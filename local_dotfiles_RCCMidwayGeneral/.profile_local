@@ -69,13 +69,11 @@ if [[ -z "$TMUX" && -n "$SSH_CONNECTION" && "$-" == *i* ]]; then
     tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux
 fi
 
-# Ensure dispatcher watchdog cron job is registered.
-# Idempotent — only adds the entry if missing. Self-heals if crontab is wiped.
-if [ -f ~/.claude/dispatcher_watchdog.sh ]; then
-    if ! crontab -l 2>/dev/null | grep -q "dispatcher_watchdog.sh"; then
-        (crontab -l 2>/dev/null; echo "*/5 * * * * $HOME/.claude/dispatcher_watchdog.sh") | crontab -
-    fi
-fi
+# Claude dispatcher watchdog deliberately not registered (2026-08-12): its RC
+# health check matched a status string Claude Code no longer emits, so it never
+# fired — yet Remote Control worked fine anyway. The tmux deaths it looked like
+# it was for were unplanned node reboots, which no user-level cron can prevent.
+# Re-enable: */5 * * * * $HOME/bin/dispatcher_watchdog.sh
 
 # Ensure the Codex remote-control watchdog cron job is registered, so the Codex
 # iOS app always has a live session to attach to. Same self-healing rationale as

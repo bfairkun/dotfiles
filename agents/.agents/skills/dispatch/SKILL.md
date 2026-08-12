@@ -284,6 +284,11 @@ tmux new-window -n "dispatcher" "claude --agent dispatcher -n \"dispatcher-$(hos
 
 Then run `/loop 3m date` inside it to keep Remote Control alive.
 
+**The `-n` name must stay hostname-suffixed.** `$HOME` is shared across the login
+nodes but tmux servers are not, so each node needs its own dispatcher
+conversation. `~/bin/dispatcher_watchdog.sh` derives the same name and can
+restart a dead dispatcher, but is not registered in cron — see `.profile_local`.
+
 **Note:** Custom agents in `~/.claude/agents/` can only be launched with `claude --agent <name>` — not via Claude's internal Agent tool. Dispatching from within a conversation is always done directly via `tmux new-window`.
 
 ## IMPORTANT: Updating the skill directory cache
