@@ -5,7 +5,7 @@ description: How to share plots and tables with the user. Invoke when saving any
 
 # Agent Plots Workflow
 
-Machine-specific paths are in `CLAUDE_local.md → Agent Reference` (always in context).
+Machine-specific paths are in `AGENTS.local.md → Agent Reference` (always in context).
 - **HPC**: HTTP server on port 8765 (may auto-shift to 8766-8769 on RCC Midway if another user already holds 8765 — SSH tunnel covers the whole range) + SSH tunnel → user browses `http://localhost:<port>`
 - **Mac**: save to file, tell user path — they open in Finder/Preview
 
@@ -108,3 +108,15 @@ DT::saveWidget(
 - If not running: check `*rc_local` for the correct start command and directory; do not assume `~/agent_plots`
 - SSH tunnel: local `~/.ssh/config` forwards `LocalForward 8765 localhost:8765` (plus 8766-8769 on the RCC Midway host block, to cover the auto-retry range)
 - **Sending a file to Slack** (plot or otherwise): see the `post-to-slack` skill.
+
+## Troubleshooting: browser gets an empty reply
+
+Symptom: the browser shows nothing (curl exit 52) while `curl 127.0.0.1:<port>` on the HPC
+returns 200 — so the server is healthy and the tunnel is the problem.
+
+Cause: the server binds `0.0.0.0` (IPv4 only), and its port retry only detects IPv4 conflicts,
+so an IPv6-only listener on the same port is invisible to it. Remote `localhost` resolves to
+`::1` first, so `LocalForward PORT localhost:PORT` silently tunnels into that other process.
+
+Diagnose with `ss -ltnp | grep :PORT` — a `[::1]:PORT` line with no owning user is another
+user's process. The Mac SSH config forwards to `127.0.0.1:PORT`, never `localhost:PORT`.
