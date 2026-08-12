@@ -1,6 +1,6 @@
 ---
 name: ensembl-api
-description: Query the Ensembl REST API for HGVS conversion, variant effects (VEP), gene/transcript lookup, sequences, phenotype annotations, coordinate mapping (liftover, cDNA/CDS/protein → genomic), overlap, and cross-references. Invoke when converting HGVS notation, predicting variant consequences, looking up genes, lifting over coordinates between assemblies, or finding disease phenotype associations.
+description: Query the Ensembl REST API. Invoke for HGVS conversion, variant effects (VEP), gene/transcript lookup, sequences, coordinate liftover or cDNA/CDS/protein mapping, overlap, xrefs, or disease phenotype associations.
 argument-hint: "[task: hgvs, vep, lookup, sequence, mapping, phenotype, overlap, xrefs, homology]"
 ---
 

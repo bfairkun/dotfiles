@@ -1,6 +1,6 @@
 ---
 name: ucsc-api
-description: Query the UCSC Genome Browser REST API for DNA sequences, gene annotations, track data, schemas, and assembly metadata. Invoke when fetching reference sequence, looking up gene coordinates, pulling track data (bigWig/bigBed/genePred/wiggle), enumerating tracks/chromosomes, or searching public hubs without downloading whole files.
+description: Query the UCSC Genome Browser REST API. Invoke for reference sequence, gene coordinates, track data (bigWig/bigBed/genePred/wiggle), track/chromosome listings, assembly metadata, or public hub search.
 argument-hint: "[genome, gene/region, track name, or task]"
 ---
 

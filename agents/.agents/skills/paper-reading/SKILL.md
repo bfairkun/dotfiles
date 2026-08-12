@@ -1,6 +1,6 @@
 ---
 name: paper-reading
-description: Retrieve and read the real full text of a scientific paper before describing its contents. Invoke whenever a task depends on what a specific paper says — summarizing it, checking a claim or mechanism against it, extracting methods/reagents/coordinates, or writing a wiki/source note about it — and whenever a DOI, PMID, PMCID, bioRxiv link, or publisher URL appears in the request.
+description: Retrieve and read a scientific paper's real full text before describing it. Invoke whenever a task depends on what a specific paper says, or when a DOI, PMID, PMCID, bioRxiv link, or publisher URL appears.
 ---
 
 # Reading a paper without hallucinating it
