@@ -49,13 +49,17 @@ The script never fabricates; a failure is a real failure, not a prompt to guess.
 
 ## Figures and supplementary material
 
-**Figure captions** come with the body text — they are part of what the script
-returns, and are often enough.
+**Figure captions are not figure inspection.** Captions come with body text and
+help locate the evidence, but they do not show axes, distributions, image
+quality, lanes, annotations, or whether plotted data support the prose. When
+the user asks to look at figures, actually open the figure images or rendered
+PDF pages. State explicitly if only captions were available.
 
-**Figure images** need `--figures DIR`, which pulls them from PMC's CDN. Then
-open the saved image to actually look at it. Do this whenever the claim at
-stake lives in a panel rather than in prose (which guide/lane/condition, what
-the axes say, which comparison was significant).
+**Figure images** need `--figures DIR`. For PMC full text this pulls individual
+images from PMC's CDN. For a publisher PDF, render the pages containing figures
+to images, or use a browser's PDF screenshot facility, then open them. Do this
+whenever the claim at stake lives in a panel rather than in prose (which
+guide/lane/condition, what the axes say, which comparison was significant).
 
 ```bash
 python3 <skill-dir>/scripts/get_fulltext.py <id> -o paper.txt --figures ./figs
@@ -72,19 +76,29 @@ unread full text: say you did not read it.
 
 Work down this list. Stop at the first one that yields real text.
 
-1. **Check for a preprint.** Search the exact title plus `biorxiv OR medrxiv
+1. **Follow version links in both directions.** A PMC page may be only a
+   metadata shell when the preprint license forbids PMC archiving. Read its
+   `Updated version available` / `Preprint of` link and try the published
+   DOI. Conversely, search a published title for an accessible preprint.
+2. **Check for a preprint.** Search the exact title plus `biorxiv OR medrxiv
    OR arxiv`. Preprints are unpaywalled and usually contain the same methods.
    Note in your answer that you read the preprint, not the version of record.
-2. **Try the publisher page directly.** Some publishers serve full text to a
-   plain request; see the access notes below for which ones do not.
-3. **Use an interactive browser session** if browser-automation tools are
-   available. This is the best fallback for subscription content: it reuses
-   the user's own logged-in session, and a real browser is not treated as a
-   bot. Open the article and read the rendered page.
-4. **Ask the user for the PDF.** Cheap, reliable, and always correct. Prefer
+3. **Try the publisher page and PDF directly.** Some publishers serve full
+   text to a plain request; see the access notes below for which ones do not.
+   For a Nature accelerated/article-in-press page whose ordinary `.pdf` URL
+   returns HTML, try `<article-url>_reference.pdf`. Validate the response:
+   `Content-Type: application/pdf` and `%PDF` magic bytes.
+4. **Use an interactive browser session** if browser-automation tools are
+   available. Open the article or direct PDF and read its extracted text.
+   When figures were requested, screenshot every page containing a main
+   figure and inspect those screenshots.
+5. **Ask the user for the PDF.** Cheap, reliable, and always correct. Prefer
    this over any elaborate workaround.
 
-Do not present the paper's findings until one of these succeeds.
+Do not present the paper's findings until one of these succeeds. Do not
+synthesize a panel-by-panel narrative from search snippets, captions, or a
+related paper. If the image pixels were not opened, say `figures not visually
+inspected` rather than implying otherwise.
 
 ## Access notes (UChicago / RCC Midway)
 

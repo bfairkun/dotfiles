@@ -17,6 +17,7 @@ Tools, partitions, and behaviors may differ between nodes — note the hostname 
 - **Conda**: always use `mamba` instead of `conda` — `conda` often hangs. `.condarc` (shared across both nodes) points envs/pkgs at `/project2/gilad/bjf79_project1/`.
 - **Default envs**: `sm_splicingmodulators` (Snakemake/shell), `py_general` (Python notebooks), `base` (R — no conda R; use HPC module R).
 - **Agent plots**: server directory detection, port retry (8765-8769), and tunnel troubleshooting → `agent-plots` skill.
+- **Login-node memory**: one **8 GiB cgroup for the whole user**, shared by every concurrent session and kernel. Parallel agents OOM-kill each other's kernels *silently* — the next `run_python` gives a bare `NameError` and the cell counter is back at `In[1]`. Diagnosis + fix → `compute-kernel` skill.
 
 ## Agent Reference
 

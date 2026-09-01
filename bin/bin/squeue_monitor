@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+# squeue_monitor -- scrollable, auto-refreshing squeue viewer, sized for a tmux popup.
+#
+# Bound to prefix+j in .tmux_local.conf on the slurm machines. A tmux popup (3.2) has no
+# copy-mode and forwards every key straight to the program, so paging has to be done here
+# rather than by tmux.
+#
+#   j / k / arrows   scroll one line        Ctrl-d / Ctrl-u   half page
+#   PgDn / PgUp      one page               g / G             top / bottom
+#   h / l            pan left / right       r                 refresh now
+#   q / Esc          quit
+#
+# Any squeue arguments given are used verbatim in place of the default --me view.
+# Env: SQUEUE_MONITOR_INTERVAL (seconds, default 5), SQUEUE_MONITOR_FORMAT.
+
+set -u
+
+INTERVAL=${SQUEUE_MONITOR_INTERVAL:-5}
+FORMAT=${SQUEUE_MONITOR_FORMAT:-'%.18i %.9P %.90j %.8u %.8T %.10M %.9l %.6D %R'}
+
+if [ $# -gt 0 ]; then
+    ARGS=( "$@" )
+else
+    ARGS=( --me --format="$FORMAT" )
+fi
+
+command -v squeue >/dev/null 2>&1 || { echo "squeue not found in PATH" >&2; sleep 3; exit 1; }
+
+voff=0 hoff=0
+declare -a HEAD=() BODY=()
+
+cleanup() { printf '\033[?25h\033[2J\033[H'; }
+trap cleanup EXIT INT TERM
+printf '\033[?25l'   # hide cursor: it would otherwise sit in the middle of the table
+
+fetch() {
+    local -a all=()
+    mapfile -t all < <(squeue "${ARGS[@]}" 2>&1)
+    HEAD=( "${all[0]-(no output from squeue)}" )
+    BODY=( "${all[@]:1}" )
+}
+
+# Slice a line to the visible window, honouring the horizontal pan.
+clip() {
+    local s=${1-}
+    s=${s:$hoff}
+    printf '%.*s' "$cols" "$s"
+}
+
+render() {
+    local i line pos
+    printf '\033[H'
+    printf '\033[7m%s\033[0m\033[K\n' "$(clip "${HEAD[0]}")"
+    for (( i = 0; i < body_rows; i++ )); do
+        line=${BODY[$(( voff + i ))]-}
+        printf '%s\033[K\n' "$(clip "$line")"
+    done
+    if [ "$total" -eq 0 ]; then
+        pos='no jobs'
+    else
+        pos="$(( voff + 1 ))-$(( voff + shown )) of $total"
+    fi
+    printf '\033[7m %s | j/k scroll  ^d/^u half  g/G ends  h/l pan  r refresh  q quit | %ss \033[0m\033[K' \
+        "$pos" "$INTERVAL"
+}
+
+# One keypress, or nothing after $1 seconds. Escape sequences come back as e.g. "[A".
+readkey() {
+    local k c1 c2 c3 seq
+    IFS= read -rsn1 -t "$1" k || return 0
+    if [ "$k" != $'\033' ]; then
+        printf '%s' "$k"
+        return 0
+    fi
+    # Read exactly as many bytes as the sequence needs. Reading a fixed 3 would swallow
+    # the ESC of the *next* keypress, so held-down or rapid arrows would lose events.
+    IFS= read -rsn1 -t 0.05 c1 || { printf 'ESC'; return 0; }
+    IFS= read -rsn1 -t 0.05 c2
+    seq="$c1$c2"
+    # CSI with a numeric parameter (PgUp "[5~", PgDn "[6~") has one more byte.
+    case $seq in
+        '['[0-9]) IFS= read -rsn1 -t 0.05 c3; seq="$seq$c3" ;;
+    esac
+    printf '%s' "$seq"
+}
+
+clamp() {
+    local max=$(( total - body_rows ))
+    (( max < 0 )) && max=0
+    (( voff > max )) && voff=$max
+    (( voff < 0 )) && voff=0
+    (( hoff < 0 )) && hoff=0
+}
+
+fetch
+while :; do
+    rows=$(tput lines 2>/dev/null || echo 24)
+    cols=$(tput cols 2>/dev/null || echo 80)
+    body_rows=$(( rows - 2 ))          # one header row, one footer row
+    (( body_rows < 1 )) && body_rows=1
+    total=${#BODY[@]}
+    clamp
+    shown=$(( total - voff ))
+    (( shown > body_rows )) && shown=$body_rows
+    (( shown < 0 )) && shown=0
+
+    render
+    key=$(readkey "$INTERVAL")
+
+    case $key in
+        q|ESC)              break ;;
+        # Arrows arrive as CSI ([A) or, when the terminal is in application-cursor mode,
+        # as SS3 (OA) -- which is what tmux send-keys and most shells actually produce.
+        j|'[B'|'OB')        (( voff++ )) ;;
+        k|'[A'|'OA')        (( voff-- )) ;;
+        l|'[C'|'OC')        (( hoff += 8 )) ;;
+        h|'[D'|'OD')        (( hoff -= 8 )) ;;
+        $'\004'|'[6~')      (( voff += body_rows / 2 )) ;;   # Ctrl-d / PgDn
+        $'\025'|'[5~')      (( voff -= body_rows / 2 )) ;;   # Ctrl-u / PgUp
+        g|'[H'|'OH')        voff=0; hoff=0 ;;
+        G|'[F'|'OF')        voff=$(( total )) ;;             # clamp() pins it to the end
+        r)                  fetch ;;
+        '')                 fetch ;;                         # timed out: auto-refresh
+        *)                  ;;
+    esac
+done

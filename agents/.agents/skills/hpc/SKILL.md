@@ -118,6 +118,19 @@ snakemake --profile slurm_midway3 [targets]
 snakemake --profile slurm [targets]
 ```
 
+**Use these global profiles, never a project's own `code/snakemake_profiles/`.** Many projects
+carry one as a cookiecutter remnant. It is a trap: `snakemake_profiles/slurm/slurm-submit.py`
+hardcodes `CLUSTER_CONFIG = "cluster-config.yaml"`, so a stale per-project copy silently
+overrides partition and account, and the in-project profile also lacks `conda-prefix` and
+`shadow-prefix` — so it rebuilds conda envs per project and can point shadow rules at the wrong
+cluster's scratch. Symptom of a stale copy: a Midway2-era `partition: broadwl`, or a missing
+`account:` key, giving `sbatch: Reason: Account is not specified`. Delete stray in-project
+`cluster-config.yaml` files rather than fixing them.
+
+Note that snakemake swallows sbatch's stderr and reports only
+`Error submitting jobscript (exit code 1)`. To see the real reason, copy the `sbatch ...` command
+out of the `CalledProcessError` traceback in the log and run it by hand.
+
 ### ⚠️ Always dry-run before submitting to the cluster
 
 Before any real cluster run, do a dry-run and **check the job count breakdown carefully**:
@@ -141,7 +154,10 @@ If existing outputs were incorrectly flagged as stale (e.g., due to a rule modif
 - `restart-times: 1` — retry failed jobs once
 - `use-conda: True` — activate per-rule conda envs
 - `latency-wait: 60` — wait up to 60s for output files
-- `conda-prefix: /project2/yangili1/bjf79/snakemake_conda_envs`
+- `conda-prefix: /project/yangili1/bjf79/snakemake_conda_envs` — shared, so identical env yamls
+  are not rebuilt per project
+- `shadow-prefix: /scratch/midway3/bjf79` — must be *this* cluster's scratch; a midway2 path
+  resolves from the login node but then fails on compute nodes
 
 ---
 
@@ -179,6 +195,10 @@ that file in the kernel. This also keeps the kernel free for interactive work me
 Login nodes are shared. Anything beyond a few minutes of multi-core compute belongs in a
 Slurm job, not a background login-node process; if a background login-node process is
 unavoidable, cap its threads (e.g. `OMP_NUM_THREADS`).
+
+Memory on a login node is capped per **user**, not per process — one 8 GiB cgroup shared by
+every session and kernel you have open, so parallel agent sessions OOM-kill each other's
+kernels silently. Diagnosis and thresholds → `compute-kernel` skill.
 
 ## Useful Commands
 

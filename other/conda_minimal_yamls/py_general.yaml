@@ -85,6 +85,10 @@ dependencies:
 
   - pip:
     - my-utils==0.1.0
+    # On a machine with a local clone, prefer an editable install so edits to
+    # my_utils are picked up immediately without reinstalling — replace the
+    # pinned line above with this (path is machine-specific, RCC Midway shown):
+    # - -e /project/yangili1/bjf79/repos_not_projects/my_utils
     - alphagenome==0.5.1
     - pikachu-chem==1.1.5
 

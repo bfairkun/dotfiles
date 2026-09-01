@@ -712,3 +712,34 @@ Genome loading over the network is flaky headlessly, so retry before concluding 
 | Track name covers the signal | Default igv.js behaviour. Give names their own column — Recipe 6, the default for every browser |
 | Name box won't scroll, or names overlap | `height:auto` grows to fit its content, so it never scrolls *or* clips. Set an explicit pixel height (Recipe 6) |
 | `axisWidth` seems to have no effect | Don't reuse `.igv-axis-column` for names — it also carries the wig y-axis numbers, so they compete for one strip. Use your own column (Recipe 6) |
+| **Transcripts render uniformly thin** — no thick CDS / thin UTR | Feature-level `cdStart`/`cdEnd` is *not* enough for inline `features`. igv's BED12 decoder annotates **each exon**, and inline features bypass it. Annotate exons yourself (helper below) |
+
+#### Thick/thin CDS on inline transcript features
+
+Same root cause as the `itemRgb` gotcha: inline `features` skip igv's BED decoder, so anything
+the decoder normally derives must be supplied by hand. For BED12 the decoder walks each exon
+and marks it `utr: true` when it falls wholly outside the CDS, or stamps `cdStart`/`cdEnd`
+onto the single exon each boundary lands inside. Without that, every transcript draws thin.
+
+```python
+def exons_with_cds(exon_list, cds_start, cds_end):
+    """[(start,end),...] -> igv.js exon dicts carrying thick/thin (CDS/UTR) info."""
+    out = []
+    for a, b in exon_list:
+        ex = {"start": int(a), "end": int(b)}
+        if cds_start > b or cds_end < a:
+            ex["utr"] = True
+        else:
+            if a <= cds_start <= b: ex["cdStart"] = int(cds_start)
+            if a <= cds_end   <= b: ex["cdEnd"]   = int(cds_end)
+        out.append(ex)
+    return out
+
+feature = {"chr": "chr16", "start": tx_start, "end": tx_end, "name": tx_id, "strand": "+",
+           "color": "rgb(33,102,172)",           # per-feature colour; omit track-level `color`
+           "cdStart": cds_start, "cdEnd": cds_end,   # still set these on the feature too
+           "exons": exons_with_cds(exons, cds_start, cds_end)}
+```
+
+Verify in the rendered HTML by grepping for `utr` / `cdStart` — remembering that srcdoc
+content is escaped, so the string to search for is `utr&quot;: true`, not `"utr": true`.
