@@ -17,6 +17,24 @@ export PATH="$HOME/.npm-global/bin:$PATH"
 # Ensure TMPDIR is /tmp so ssh-agent sockets don't land in $HOME
 export TMPDIR='/tmp'
 
+# Keep regenerable caches out of $HOME.  The home quota here is small, and once
+# ~/.cache fills, every XDG-compliant tool starts failing with "Disk quota
+# exceeded" -- e.g. `import arviz` raises OSError errno 122 because it writes a
+# once-per-day stamp via platformdirs.user_cache_dir().  pip (which had grown a
+# 6.7 GiB cache), matplotlib and fontconfig all resolve their cache dir the same
+# way, so redirecting XDG_CACHE_HOME fixes all of them at once.  Scratch is the
+# right home for this: caches are disposable, so a scratch purge is harmless.
+case "$(hostname)" in
+    *midway2*) _xdg_scratch="/scratch/midway2/$USER" ;;
+    *midway3*) _xdg_scratch="/scratch/midway3/$USER" ;;
+    *)         _xdg_scratch='' ;;
+esac
+if [ -n "$_xdg_scratch" ] && [ -d "$_xdg_scratch" ]; then
+    export XDG_CACHE_HOME="$_xdg_scratch/.cache"
+    mkdir -p "$XDG_CACHE_HOME"
+fi
+unset _xdg_scratch
+
 # Source ssh settings or start ssh agent if not already running
 # Useful for ssh keys for git for example
 mkdir -p $HOME/.ssh
