@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+"""Merge tmux hooks into Codex's writable hooks.json, preserving other integrations."""
+import json
+import os
+from pathlib import Path
+import tempfile
+
+home = Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex')))
+path = home / 'hooks.json'
+data = json.loads(path.read_text()) if path.exists() else {}
+hooks = data.setdefault('hooks', {})
+command = 'python3 "$HOME/.codex/hooks/tmux-state.py"'
+for name in ('SessionStart', 'SessionEnd', 'UserPromptSubmit', 'PreToolUse',
+             'PermissionRequest', 'PostToolUse', 'Stop', 'Interrupt'):
+    groups = hooks.setdefault(name, [])
+    if not any(h.get('command') == command for group in groups for h in group.get('hooks', [])):
+        groups.append({'hooks': [{'type': 'command', 'command': command, 'timeout': 5}]})
+home.mkdir(parents=True, exist_ok=True)
+fd, temporary = tempfile.mkstemp(prefix='.hooks-', dir=home)
+with os.fdopen(fd, 'w') as stream:
+    json.dump(data, stream, indent=2)
+    stream.write('\n')
+os.replace(temporary, path)
+print('Tmux hooks installed. Open /hooks in Codex to review and trust them.')

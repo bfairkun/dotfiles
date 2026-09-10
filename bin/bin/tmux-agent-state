@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
 # tmux-agent-state -- flag the tmux window of an AI agent that wants your attention.
 #
-# Driven by Claude Code hooks (agents/.claude{,-enterprise}/settings.json) and one tmux
-# hook. State lives in tmux user options: @agent_state per pane, @agent_win_state
-# aggregated per window. tmux/.tmux.conf renders the aggregate in the window status:
-#   attn -> red  * before the name   (agent is blocked on you)
-#   done -> green v after the name   (turn finished in a window you were not watching)
-#
-# Usage:
-#   tmux-agent-state attn                 # Notification hook (hook JSON on stdin)
-#   tmux-agent-state done                 # Stop hook
-#   tmux-agent-state clear                # UserPromptSubmit / PostToolUse / SessionEnd
-#   tmux-agent-state clear-done [win-id]  # tmux session-window-changed hook
-#   tmux-agent-state jump                 # prefix+a
-#
-# Never fails loudly: a hook that errors must not disrupt a session, so every tmux call
-# is best-effort and every path exits 0.
+# Claude and Codex hooks store @agent_state per pane. The window displays separate
+# red attention and green finished counts. Selecting a pane clears only its done
+# marker; answering/resuming clears attention. prefix+a visits a flagged pane.
+# Usage: attn | done | clear | clear-done [pane-id] | aggregate [window-id] | jump
+# Hook failures are quiet and never interrupt an agent.
 
 set -u
 
@@ -30,13 +20,17 @@ AGENT_CMDS="claude codex node"
 
 # Recompute a window's aggregate state from its panes. attn beats done beats nothing.
 aggregate() {
-    local target=$1 st agg=""
+    local target=$1 st agg="" attn=0 done=0
     while IFS= read -r st; do
         case $st in
-            attn) agg=attn; break ;;
-            done) agg=done ;;
+            attn) attn=$((attn + 1)) ;;
+            done) done=$((done + 1)) ;;
         esac
     done < <(tm list-panes -t "$target" -F '#{@agent_state}')
+    [ "$done" -gt 0 ] && agg=done
+    [ "$attn" -gt 0 ] && agg=attn
+    tm set-option -w -t "$target" @agent_attn_count "$attn"
+    tm set-option -w -t "$target" @agent_done_count "$done"
     if [ -n "$agg" ]; then
         tm set-option -w -t "$target" @agent_win_state "$agg"
     else
@@ -58,11 +52,11 @@ set_state() {
     return 0
 }
 
-# True when you are already looking at this pane's window, so there is nothing to alert.
+# True when you are already looking at this selected pane, so there is nothing to alert.
 watched() {
     local r
-    r=$(tm display-message -p -t "$PANE" '#{window_active}:#{session_attached}')
-    case $r in 1:0|1:) return 1 ;; 1:*) return 0 ;; *) return 1 ;; esac
+    r=$(tm display-message -p -t "$PANE" '#{pane_active}:#{window_active}:#{session_attached}')
+    case $r in 1:1:0|1:1:) return 1 ;; 1:1:*) return 0 ;; *) return 1 ;; esac
 }
 
 # Write BEL to the pane's own tty. Going through #{pane_tty} rather than /dev/tty is what
@@ -133,50 +127,48 @@ clear)
     ;;
 
 clear-done)
-    win=${2:-}
-    [ -n "$win" ] || win=$(tm display-message -p '#{window_id}')
-    [ -n "$win" ] || exit 0
-    # Fast path: nothing flagged here, and this runs on every window switch.
-    [ -n "$(tm show-options -wqv -t "$win" @agent_win_state)" ] || exit 0
-    changed=0
+    PANE=${2:-}
+    [ -n "$PANE" ] || PANE=$(tm display-message -p '#{pane_id}')
+    [ -n "$PANE" ] || exit 0
+    if [ "$(tm show-options -pqv -t "$PANE" @agent_state)" = done ]; then
+        set_state ""
+    fi
+    # Reap flags from exited agents and reconcile killed panes without clearing
+    # unread completions in the other live panes.
     while IFS='|' read -r pid st pcmd; do
-        case $st in
-            done)
-                tm set-option -up -t "$pid" @agent_state; changed=1 ;;
-            attn)
-                # Visiting the window does not clear 'attn' (an unanswered permission
-                # prompt should keep flagging) -- but reap it if the agent is gone.
-                case " $AGENT_CMDS " in
-                    *" $pcmd "*) ;;
-                    *) tm set-option -up -t "$pid" @agent_state; changed=1 ;;
-                esac
-                ;;
+        [ -n "$st" ] || continue
+        case " $AGENT_CMDS " in
+            *" $pcmd "*) ;;
+            *) tm set-option -up -t "$pid" @agent_state ;;
         esac
-    done < <(tm list-panes -t "$win" -F '#{pane_id}|#{@agent_state}|#{pane_current_command}')
-    # Recompute unconditionally, not just when a pane changed: this is also where a
-    # window flag left behind by a killed pane gets reconciled away.
-    aggregate "$win"
-    [ "$changed" = 1 ] && refresh
+    done < <(tm list-panes -t "$PANE" -F '#{pane_id}|#{@agent_state}|#{pane_current_command}')
+    aggregate "$PANE"
+    refresh
+    ;;
+
+aggregate)
+    aggregate "${2:-${TMUX_PANE:-}}"
+    refresh
     ;;
 
 jump)
-    cur=$(tm display-message -p '#{window_index}')
+    cur=$(tm display-message -p '#{pane_id}')
     [ -n "$cur" ] || exit 0
-    # Rotate the window list so the search starts just after the current window.
-    # Carry the window id: a bare index is an ambiguous tmux target (with
-    # pane-base-index 1, '-t 1' can resolve to pane 1 of the current window).
-    ordered=$(tm list-windows -F '#{window_index}|#{@agent_win_state}|#{window_id}' |
+    # Search panes after the selected pane, then wrap. Red wins over green.
+    ordered=$(tm list-panes -s -F '#{pane_id}|#{@agent_state}|#{window_id}' |
         awk -F'|' -v cur="$cur" '
-            { if ($1+0 > cur+0) a[++n] = $0; else b[++m] = $0 }
+            { if (seen) a[++n]=$0; else b[++m]=$0; if ($1 == cur) seen=1 }
             END { for (i=1;i<=n;i++) print a[i]; for (i=1;i<=m;i++) print b[i] }')
     for want in attn done; do
-        t=$(printf '%s\n' "$ordered" | awk -F'|' -v w="$want" '$2 == w { print $3; exit }')
+        t=$(printf '%s\n' "$ordered" | awk -F'|' -v w="$want" '$2 == w { print $1; exit }')
         if [ -n "$t" ]; then
             tm select-window -t "$t"
+            tm select-pane -t "$t"
+            "$0" clear-done "$t"
             exit 0
         fi
     done
-    tm display-message "no agent window needs attention"
+    tm display-message "no agent pane needs attention"
     ;;
 
 *)
