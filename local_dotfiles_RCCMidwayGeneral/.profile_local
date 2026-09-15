@@ -82,6 +82,24 @@ if [ $? -eq 0 ]; then
 fi
 
 
+# Start the phone bridge once per Midway3 login node, before attaching to tmux.
+# A named tmux session also prevents duplicate starts from simultaneous logins.
+if [[ "$-" == *i* && -z "${TMUX:-}" ]]; then
+    case "$(hostname -s)" in
+        midway3-login*)
+            _bridge_dir=/project/yangili1/bjf79/repos_not_projects/tmux-agent-bridge
+            if [ -x "$_bridge_dir/run.sh" ] && command -v tmux >/dev/null 2>&1; then
+                if ! pgrep -u "$(id -u)" -f '/project/yangili1/bjf79/repos_not_projects/tmux-agent-bridge/bridge[.]py([[:space:]]|$)' >/dev/null 2>&1 &&
+                   ! timeout 5 tmux has-session -t '=bridge' 2>/dev/null; then
+                    timeout 5 tmux new-session -d -s bridge -c "$_bridge_dir" \
+                        'umask 077; exec ./run.sh >>bridge.log 2>&1' 2>/dev/null || :
+                fi
+            fi
+            unset _bridge_dir
+            ;;
+    esac
+fi
+
 # Attach or tmux session
 if [[ -z "$TMUX" && -n "$SSH_CONNECTION" && "$-" == *i* ]]; then
     tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux
