@@ -8,3 +8,6 @@ zsh/.secrets
 
 # Per-repository agent approvals
 .claude/settings.local.json
+
+# macOS
+.DS_Store
