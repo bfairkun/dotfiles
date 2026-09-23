@@ -1,0 +1,54 @@
+% ============================================================================
+%  Build:  make          (-> main.pdf)
+%  Share:  make docx     (-> export/<dirname>.docx, for Google Docs)
+%  Check:  make check    (fails if a non-exportable command crept in)
+%
+%  This file is the spine. The prose lives in sections/. Styling lives in
+%  preamble.tex. Edit the front matter below once, then rarely touch this file.
+% ============================================================================
+\documentclass[11pt]{article}
+\input{preamble}
+
+% ---------------------------------------------------------------- EDIT THESE
+\title{\bfseries\LARGE Manuscript title}
+
+\author[1]{Benjamin J.\ Fair}
+\author[1]{Coauthor Name}
+\author[1,*]{Yang I.\ Li}
+\affil[1]{Section of Genetic Medicine, University of Chicago}
+\affil[*]{Correspondence: \texttt{bfair.kun@gmail.com}}
+\date{\today}
+
+% The running header is set separately, in preamble.tex (\fancyhead).
+% ---------------------------------------------------------------------------
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+\noindent
+\todo{abstract}
+\end{abstract}
+
+\noindent\textbf{Keywords:} \todo{keywords}
+
+\vspace{1em}
+
+\input{sections/01_introduction}
+\input{sections/02_results}
+\input{sections/03_discussion}
+\input{sections/04_methods}
+
+\section*{Acknowledgements}
+\todo{acknowledgements}
+
+\section*{Data availability}
+\todo{accessions}
+
+\bibliography{refs}
+
+\appendix
+\input{sections/05_supplement}
+
+\end{document}

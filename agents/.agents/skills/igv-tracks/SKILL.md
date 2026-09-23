@@ -384,7 +384,7 @@ def tabix_bed_uri(tabix_path, regions, pad=0, filter_fn=None):
 bed_track = {
     'url': tabix_bed_uri('annotations.bed.gz', regions, pad=500,
                           filter_fn=lambda f: float(f[4]) > 5),
-    'name': 'Annotations', 'format': 'bed', 'type': 'bed',
+    'name': 'Annotations', 'format': 'bed', 'type': 'annotation',
     'height': 40, 'color': '#9B59B6', 'displayMode': 'EXPANDED',
 }
 
@@ -393,8 +393,77 @@ my_intervals = [('chr1', 1000, 2000, 'featureA', 100, '+'),
                 ('chr1', 3000, 4000, 'featureB', 200, '-')]
 bed_track2 = {
     'url': bed_uri(my_intervals), 'name': 'My intervals',
-    'format': 'bed', 'type': 'bed', 'height': 40, 'displayMode': 'EXPANDED',
+    'format': 'bed', 'type': 'annotation', 'height': 40, 'displayMode': 'EXPANDED',
 }
+```
+
+Use `'type': 'annotation'` — it is the documented value and `FeatureTrack.defaults.type`.
+
+---
+
+### Recipe 3b — Per-feature colour (shading by a quantitative value)
+
+**Do not shade via the BED `itemRgb` column.** A well-formed BED9 served as a gzip data URI
+was observed rendering every feature in igv.js's default blue (`rgb(0,0,150)`), i.e. the
+itemRgb never reached the feature. Pass an **inline `features` array** instead — no URL, no
+parsing step:
+
+```python
+def feats(rows):
+    """BED9-style tuples → igv.js feature objects with an explicit per-feature colour."""
+    return [{'chr': r[0], 'start': int(r[1]), 'end': int(r[2]), 'name': r[3],
+             'score': int(r[4]), 'strand': r[5], 'color': f'rgb({r[8]})'} for r in rows]
+
+track = {'name': 'Sites', 'type': 'annotation', 'features': feats(rows),
+         'height': 56, 'displayMode': 'EXPANDED'}   # NOTE: no 'color' key
+```
+
+`FeatureTrack.getColorForFeature` resolves in this order:
+
+```
+altColor (if strand '-')  →  this.color  →  this.colorBy  →  feature.color  →  defaultColor
+```
+
+So **a track-level `color` silently overrides every per-feature colour** — omit it entirely
+on shaded tracks. `TrackBase` leaves `this.color` undefined unless config supplies it, and
+`StaticFeatureSource` preserves extra properties on the objects, so `feature.color` is reached.
+
+Put the number in `score` as well as in `name`; igv.js shows both in the click popup, so one
+click gives the reader the value behind the shade.
+
+**Colour ramps.** Blending toward white washes out mid-range features. Use a real sequential
+colormap with the light end floored away from white, and floor the *data* too when values
+below some point are not being considered:
+
+```python
+import matplotlib.cm as cm
+
+def cmap_rgb(cmap, frac, lo=0.18, hi=0.95):
+    """Sequential colour, floored away from white so low values stay visible."""
+    frac = 0.0 if (frac is None or np.isnan(frac)) else max(0.0, min(1.0, frac))
+    r, g, b, _ = cmap(lo + (hi - lo) * frac)
+    return f'{int(r*255)},{int(g*255)},{int(b*255)}'
+
+# Floor the scale where the data stops mattering: everything <= FLOOR gets the lightest tint
+FLOOR = 50
+frac = 0.0 if score <= FLOOR else (score - FLOOR) / (100 - FLOOR)
+rgb = cmap_rgb(cm.Purples, frac, lo=0.05)   # lo=0.05 => near-white floor
+```
+
+Reserve a distinct flat colour (e.g. `170,170,170`) for *missing* data, so "measured zero"
+and "not measured" never read the same. A colour ramp is meaningless without a key — emit a
+CSS-gradient legend above the browser:
+
+```python
+def gradbar(cmap, label, ticks, lo=0.18, w=190):
+    stops = ', '.join(f'rgb({cmap_rgb(cmap, i/10, lo=lo)}) {i*10}%' for i in range(11))
+    tk = ''.join(f'<span>{t}</span>' for t in ticks)
+    return (f'<div style="display:inline-block;margin-right:26px;vertical-align:top">'
+            f'<div style="font-size:10px;color:#444;margin-bottom:2px">{label}</div>'
+            f'<div style="width:{w}px;height:11px;border:1px solid #bbb;'
+            f'background:linear-gradient(to right, {stops})"></div>'
+            f'<div style="width:{w}px;display:flex;justify-content:space-between;'
+            f'font-size:9px;color:#777">{tk}</div></div>')
 ```
 
 ---
@@ -519,6 +588,115 @@ flat-list vs. named-set shapes.
 
 ---
 
+### Recipe 6 — Track names beside the tracks, not on top of them (DEFAULT)
+
+igv.js draws each track's name **inside the track viewport**, covering the signal. Put the
+names in a column of your own to the left instead. Do this for every browser.
+
+**The one thing to know first: igv.js 3.x renders the whole browser inside
+`attachShadow({mode:"open"})`.** A `<style>` block in the document head **cannot cross that
+boundary**, so *any* CSS aimed at igv's DOM — or at your own elements placed inside it — is
+silently ignored. No error, no warning; the rules are present in `document.styleSheets` and
+simply never match. Inline styles set from JS still work, which makes the failure confusing:
+part of your styling applies and part doesn't. Inject a `<style>` into the shadow root via
+`getRootNode()`.
+
+For the same reason, don't try to reuse igv's `.igv-axis-column` for names — it also carries
+the wig y-axis numbers, so the two compete for one strip. An element you create has no igv
+rule pointing at it and nothing else drawn in it.
+
+```python
+NAME_W = 300   # width of the name column; yours to choose, nothing else lives there
+
+cfg = {"genome": "hg38", "locus": locus, "tracks": track_cfgs,
+       "showTrackLabels": False}     # turn off igv's overlaid label
+```
+
+```js
+igv.createBrowser(el, cfg).then(function (b) {
+  var cc = b.columnContainer;
+
+  // 1. Styles must go INTO the shadow root. getRootNode() returns the ShadowRoot
+  //    (or the document, if a future igv version stops using shadow DOM).
+  var root = cc.getRootNode();
+  if (!root.querySelector("style[data-trk-names]")) {
+    var st = document.createElement("style");
+    st.setAttribute("data-trk-names", "1");
+    st.textContent = `
+      .trk-name-col { position:relative; box-sizing:border-box;
+          flex:0 0 300px; width:300px; min-width:300px;
+          border-right:1px solid #d8d8d8; background:#fff; }
+      .trk-name { position:absolute; left:6px; width:282px; box-sizing:border-box;
+          font-family:-apple-system,Helvetica,Arial,sans-serif;
+          font-weight:500; line-height:1.2; color:#1a1a1a;
+          display:flex; align-items:center;
+          overflow-y:auto; overflow-x:hidden;            /* scrollable box */
+          scrollbar-width:thin; scrollbar-color:#c4c4c4 transparent; }
+      .trk-name > span { white-space:normal; overflow-wrap:break-word;
+          word-break:normal; hyphens:none; }             /* wrap at spaces/hyphens */
+      .trk-name::-webkit-scrollbar { width:6px; }
+      .trk-name::-webkit-scrollbar-thumb { background:#c4c4c4; border-radius:3px; }`;
+    root.appendChild(st);
+  }
+
+  // 2. Our own column, first child of the flex row.
+  var col = cc.querySelector(".trk-name-col");
+  if (!col) {
+    col = document.createElement("div");
+    col.className = "trk-name-col";
+    cc.insertBefore(col, cc.firstChild);
+  }
+  var ccTop = cc.getBoundingClientRect().top;
+
+  // 3. One label per track, at the y-offset measured from that track's own
+  //    element. Adding a column on the left changes x but not y.
+  var FONT_MAX = 12, FONT_MIN = 9, FONT_STEP = 0.5;
+  b.trackViews.forEach(function (tv) {
+    var anchor = tv.axis || (tv.viewports[0] && tv.viewports[0].viewportElement);
+    if (!anchor || !tv.track || !tv.track.name) return;
+    var r = anchor.getBoundingClientRect();
+    if (!r.height) return;
+
+    var lab = document.createElement("div");
+    lab.className = "trk-name";
+    var span = document.createElement("span");
+    span.textContent = tv.track.name;
+    lab.appendChild(span);
+    lab.title = tv.track.name;              // full name on hover when scrolled
+    // An explicit pixel height is required: with height:auto the box grows to fit
+    // its content, so it never scrolls and never clips — long names spill over the
+    // tracks below. Fixed height + overflow-y:auto is what makes it a scroll box.
+    lab.style.top    = (r.top - ccTop) + "px";
+    lab.style.height = r.height + "px";
+    col.appendChild(lab);
+
+    // Shrink a little to avoid a scrollbar on near-misses; never to unreadable.
+    var size = FONT_MAX;
+    lab.style.fontSize = size + "px";
+    while (size > FONT_MIN && span.offsetHeight > r.height) {
+      size -= FONT_STEP;
+      lab.style.fontSize = size + "px";
+    }
+  });
+});
+```
+
+Three layers handle length, in order of preference: **wrap** (does most of the work) →
+**shrink**, 12px down to a 9px floor → **scroll**. Keep names short
+(`"Brain (adult) · F5-CAGE"`, not `"Brain (adult)  [FANTOM5 CAGE]"`), give wig tracks
+`height ≥ 38`, and raise the iframe height to `n_tracks × height + ~150`.
+
+**Verifying.** Styling bugs here are invisible from the source — the CSS looks right and does
+nothing. Render headlessly and inspect the live DOM rather than reasoning about it: the
+`playwright` CLI (conda-forge, CLI only — no Python bindings) can screenshot a `file://` URL,
+and a `<style>`/`<script>` probe appended to the page can dump `getComputedStyle` results into
+a visible `<div>` that shows up in the screenshot. Remember to query **through the shadow
+root** (`host.shadowRoot.querySelector(...)`); `document.querySelector` returns `null` for
+everything inside it, which is itself the quickest confirmation that shadow DOM is in play.
+Genome loading over the network is flaky headlessly, so retry before concluding anything.
+
+---
+
 ### Gotchas and API notes
 
 | Issue | Fix |
@@ -529,3 +707,39 @@ flat-list vs. named-set shapes.
 | `&` or `"` in srcdoc breaks HTML | Escape in order: `html.replace('&','&amp;').replace('"','&quot;')` |
 | Group vs individual y-axis | Use Recipe 4 toggle button; `autoscaleGroup: "shared"` at init also works |
 | ROI band not visible, no error | `roi` must be named sets with a `features` list (Recipe 5) — a flat list of region objects is silently ignored |
+| **CSS aimed at igv's DOM does nothing** — no error, and the rule *is* in `document.styleSheets` | igv 3.x renders inside `attachShadow({mode:"open"})`; a document-level `<style>` cannot cross it. Inject into `element.getRootNode()` (Recipe 6). Tell-tale: `document.querySelector('.igv-…')` returns `null` |
+| Only *some* of your styling applies | Inline styles set from JS cross the shadow boundary; stylesheet rules do not. A half-styled element is the signature of the shadow-DOM trap above |
+| Track name covers the signal | Default igv.js behaviour. Give names their own column — Recipe 6, the default for every browser |
+| Name box won't scroll, or names overlap | `height:auto` grows to fit its content, so it never scrolls *or* clips. Set an explicit pixel height (Recipe 6) |
+| `axisWidth` seems to have no effect | Don't reuse `.igv-axis-column` for names — it also carries the wig y-axis numbers, so they compete for one strip. Use your own column (Recipe 6) |
+| **Transcripts render uniformly thin** — no thick CDS / thin UTR | Feature-level `cdStart`/`cdEnd` is *not* enough for inline `features`. igv's BED12 decoder annotates **each exon**, and inline features bypass it. Annotate exons yourself (helper below) |
+
+#### Thick/thin CDS on inline transcript features
+
+Same root cause as the `itemRgb` gotcha: inline `features` skip igv's BED decoder, so anything
+the decoder normally derives must be supplied by hand. For BED12 the decoder walks each exon
+and marks it `utr: true` when it falls wholly outside the CDS, or stamps `cdStart`/`cdEnd`
+onto the single exon each boundary lands inside. Without that, every transcript draws thin.
+
+```python
+def exons_with_cds(exon_list, cds_start, cds_end):
+    """[(start,end),...] -> igv.js exon dicts carrying thick/thin (CDS/UTR) info."""
+    out = []
+    for a, b in exon_list:
+        ex = {"start": int(a), "end": int(b)}
+        if cds_start > b or cds_end < a:
+            ex["utr"] = True
+        else:
+            if a <= cds_start <= b: ex["cdStart"] = int(cds_start)
+            if a <= cds_end   <= b: ex["cdEnd"]   = int(cds_end)
+        out.append(ex)
+    return out
+
+feature = {"chr": "chr16", "start": tx_start, "end": tx_end, "name": tx_id, "strand": "+",
+           "color": "rgb(33,102,172)",           # per-feature colour; omit track-level `color`
+           "cdStart": cds_start, "cdEnd": cds_end,   # still set these on the feature too
+           "exons": exons_with_cds(exons, cds_start, cds_end)}
+```
+
+Verify in the rendered HTML by grepping for `utr` / `cdStart` — remembering that srcdoc
+content is escaped, so the string to search for is `utr&quot;: true`, not `"utr": true`.

@@ -5,7 +5,39 @@ description: "RCC Midway or UMich Great Lakes HPC. Connect to a Jupyter kernel r
 
 # Compute Node Kernel Workflow
 
-Machine-specific paths and account are in `CLAUDE_local.md → Agent Reference`.
+Machine-specific paths and account are in `AGENTS.local.md → Agent Reference`.
+
+## The login-node memory ceiling is shared across ALL your sessions
+
+On RCC Midway the login node caps the **whole user** — not each process — with a cgroup:
+
+```bash
+B=/sys/fs/cgroup/memory/user.slice/user-$(id -u).slice
+cat $B/memory.limit_in_bytes      # 8 GiB (verified midway3-login4, 2026-08-12)
+cat $B/memory.usage_in_bytes      # what you are using right now
+cat $B/memory.max_usage_in_bytes  # high-water mark; == limit means you have hit it
+cat $B/memory.failcnt             # times the limit was hit
+ps -u $USER -o rss= | awk '{s+=$1} END {printf "%.1f GB / %d procs\n", s/1048576, NR}'
+```
+
+Every concurrent agent session shares that 8 GiB: each one runs its own
+`jupyter_kernel_mcp.py` server plus any kernels it starts. Several sessions at once can sit at
+6–7 GB with no single process looking large, and the next allocation triggers the OOM killer,
+which picks a victim *inside the slice* — typically a pandas kernel.
+
+**Symptom is silent.** `run_python` does not report the death. The MCP server transparently
+starts a fresh kernel, so the next call fails with a bare `NameError` on a variable that was
+defined minutes ago, and the cell counter has reset to `In[1]`. Confirm with:
+
+```bash
+ls -la /tmp/tmp*.json          # your old connection file will be GONE
+ps -eo pid,lstart,cmd | grep ipykernel_launcher | grep -v grep
+```
+
+If `memory.max_usage_in_bytes` is at the limit, the fix is a compute kernel (next section), not
+a retry — a retry just re-races the same ceiling. Rebuilding a lost session is cheap only if the
+notebook's expensive steps cache to `code/scratch/`, which is another reason to write
+intermediates out rather than holding them in the kernel.
 
 ## Starting a kernel
 
@@ -148,18 +180,21 @@ render_notebook render notebook.qmd
 render_notebook render notebook.qmd --to pdf --output-dir out/
 ```
 
-All args pass through to quarto untouched. After a successful render it records the render environment into a hidden `::: {.content-hidden}` block at the end of the `.qmd` (never appears in rendered output, persists in the source). Captured fields include `node_type` (compute/login/local), Slurm `partition`/`mem_allocated`/`cpus_allocated`, and **`peak_rss`** — the *actual* measured peak memory of the render.
+All args pass through to quarto untouched. After a successful HTML render it records the render environment into a `<!-- render-env:start -->` comment block **in the rendered `.html`**, and strips any stale copy from the `.qmd`. Captured fields include `node_type` (compute/login/local), Slurm `partition`/`mem_allocated`/`cpus_allocated`, and **`peak_rss`** — the *actual* measured peak memory of the render.
 
 Caveats:
 - Only renders that go *through* `render_notebook` are tagged — `quarto preview` and IDE render buttons are not.
+- HTML output only. A `--to pdf` render prints a notice and writes no block.
 - `peak_rss` is actual usage; `mem_allocated` is what Slurm granted. Use `peak_rss` to judge the minimum needed.
 
 ### Sizing resources when reopening an existing notebook
 
-Before starting a kernel or re-rendering an existing `.qmd`, read its render-env block to pick a sensible allocation:
+Before starting a kernel or re-rendering an existing `.qmd`, read the render-env block from its **last rendered HTML** to pick a sensible allocation:
 
 ```bash
-grep -A20 "render-env (auto-generated" notebook.qmd
+grep -A14 "render-env:start" docs/<notebook>.html
 ```
 
 Use `peak_rss` (plus headroom) to choose `start_agent_kernel --mem ...`, and `node_type` to know whether it previously needed a compute node at all. If there's no block, the notebook was never rendered through `render_notebook` — fall back to defaults and ask the user.
+
+Note that `peak_rss` for a typical analysis notebook is a few hundred MB, i.e. far under the 8 GiB login-node cap on its own. The cap is hit by *accumulation* across concurrent sessions, so a small `peak_rss` is not evidence that login-node rendering is safe when other agents are running.

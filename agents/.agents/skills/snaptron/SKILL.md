@@ -1,6 +1,6 @@
 ---
 name: snaptron
-description: Use this skill when the user asks to query Snaptron, search RNA-seq sample metadata, quantify gene expression from junction counts, fetch or save BigWig coverage files, visualize RNA-seq data in IGV, create IGV session files, analyze splice junctions, or work with the snaptron-mcp server. Triggers on keywords like "snaptron", "junction coverage", "RNA-seq expression", "srav2", "srav3h", "gtexv2", "bigwig", "rail_id", "MYT1L GAPDH ratio", "IGV session", "duffel.rail.bio".
+description: Query Snaptron for splice junction counts, RNA-seq sample metadata, and BigWig coverage; build IGV session files. Invoke for snaptron, junction coverage, srav2/srav3h/gtexv2, rail_id, or the snaptron-mcp server.
 ---
 
 # Snaptron Skill

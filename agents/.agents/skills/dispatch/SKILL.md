@@ -97,6 +97,13 @@ Always use the **integer window index**: `tmux send-keys -t "4.1"` ✓
 In this environment `pane-base-index` is 1. Panes are numbered 1, 2, … never 0.
 Always run `tmux list-panes` to confirm before sending keys.
 
+Because of this, a **bare integer is an ambiguous target** for the commands that take a
+pane target — `display-message`, `show-options -p`, `capture-pane`. tmux tries pane index
+in the *current* window first, so `tmux display-message -t 1 -p '#{window_name}'` reports
+the current window's pane 1, **not** window 1. It only falls through to a window index
+when that pane does not exist, which makes the bug intermittent. Use `session:index`
+(`-t ssh_tmux:1`) or an unambiguous `%pane_id` / `@window_id`.
+
 **RULE 3: Never chain new-window + split-window in one `&&` call.**
 Run each tmux command as a separate Bash tool call and verify success before the next step.
 
@@ -112,6 +119,20 @@ Every managed window has **two panes**:
 - **Bottom pane (pane 2):** Claude session — added with `split-window -v`
 
 Claude always runs in the **bottom** pane. The top pane is a plain shell.
+
+### Attention markers
+
+Managed windows flag themselves in the tmux status bar via `~/bin/tmux-agent-state`,
+driven by Claude Code hooks: a red `●` before the window name means that session is
+blocked on the user (permission prompt or waiting for input), a green `✔` after it means
+its turn finished while the user was looking at a different window. `prefix+a` jumps to
+the next window needing attention.
+
+So when asked which sessions are waiting, read the markers instead of scraping panes:
+
+```bash
+tmux list-windows -F "#{window_index}: #{window_name} [#{@agent_win_state}]"
+```
 
 ---
 
@@ -283,6 +304,11 @@ tmux new-window -n "dispatcher" "claude --agent dispatcher -n \"dispatcher-$(hos
 ```
 
 Then run `/loop 3m date` inside it to keep Remote Control alive.
+
+**The `-n` name must stay hostname-suffixed.** `$HOME` is shared across the login
+nodes but tmux servers are not, so each node needs its own dispatcher
+conversation. `~/bin/dispatcher_watchdog.sh` derives the same name and can
+restart a dead dispatcher, but is not registered in cron — see `.profile_local`.
 
 **Note:** Custom agents in `~/.claude/agents/` can only be launched with `claude --agent <name>` — not via Claude's internal Agent tool. Dispatching from within a conversation is always done directly via `tmux new-window`.
 

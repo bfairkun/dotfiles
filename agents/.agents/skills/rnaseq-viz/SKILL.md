@@ -21,6 +21,11 @@ pca        <- prcomp(scaled_mat, center = FALSE, scale. = FALSE)
 
 - `scale()` applied to a samples×genes matrix scales each column (gene) across samples
 - Set `center = FALSE, scale. = FALSE` in `prcomp` since scaling is already done
+- **Subset before scaling.** For a PCA of one experiment or series, subset the samples first, then `scale()` — otherwise gene scales reflect variance you are not plotting (e.g. with mixed cell types, PC1 becomes cell type):
+
+```r
+sub_scaled <- scale(expr_t[sel_samples, , drop = FALSE])
+```
 
 ### Axis labels — always show % variance explained
 
