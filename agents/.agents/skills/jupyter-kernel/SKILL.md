@@ -88,6 +88,24 @@ ln -sf ~/.agents/skills/jupyter-kernel/jupyter_kernel_mcp.py ~/bin/jupyter_kerne
 - **Reconnect:** call `connect_to_kernel` without a path, then verify with `run_python`. Automatic discovery searches standard Jupyter runtime directories, not `/tmp`.
 - **List:** call `list_kernels` and report each connection path, kernel name, and modification time.
 
+## Recovering after sleep / dropped connection
+
+On a laptop, closing the lid (sleep) tears down the MCP's connection to the kernel. The next
+`run_python` then fails trying to auto-start a kernel (`NoSuchKernel: python3`). **The kernel
+*process* usually survives the sleep — only the connection broke.** So:
+
+1. **Reconnect before relaunching.** Call `connect_to_kernel` with the explicit connection file
+   (e.g. `/tmp/agent_kernel_login.json`) and verify with a quick `run_python`. If it attaches, all
+   in-memory state is preserved — do **not** start a new kernel. (Auto-discovery searches Jupyter
+   runtime dirs, not `/tmp`, so always pass the explicit path for a persistent `/tmp` kernel.)
+2. **Only relaunch if reconnect fails** (kernel truly died): re-run the `nohup … jupyter kernel
+   --KernelManager.connection_file=/tmp/agent_kernel_login.json &` launch, then reconnect.
+   Do not switch the launch to `caffeinate` — it cannot override lid-close (clamshell) sleep on
+   battery, so it adds nothing here.
+3. **Cheap insurance against a hard kill:** pickle the key objects to `code/scratch/` and reload
+   them (`globals().update(pickle.load(open(path,'rb')))`) instead of recomputing. Best safety net
+   of all is a deterministic notebook that rebuilds state from source files in seconds.
+
 ## Connecting to an existing kernel
 
 To attach to a kernel VS Code or JupyterLab is already running:

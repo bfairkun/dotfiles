@@ -37,11 +37,16 @@ and was never copied into git — a generated file, session state, another packa
 *stowed* output. The relative path resolves against the repo location instead, lands on
 a path inside the repo that doesn't exist, and silently points nowhere useful.
 
-**Rule of thumb:** only author a relative symlink inside a package if its target is also
-real, tracked content in that same package tree. If you need to link to something that
-only exists in `$HOME` after stowing (not tracked in git), create that symlink directly
-in `$HOME` by hand — not inside the package. It can't be made portable through git,
-because there's nothing to track; document it as a manual per-machine step instead.
+**Rule of thumb:** only author a relative symlink inside a package if either (a) its
+target is real, tracked content in the same package tree, or (b) you compute the path
+relative to the file's *repo location*, adding enough `../` levels to escape the repo
+and reach `$HOME`.
+
+For case (b): count the path components between `$HOME` and the symlink file in the
+repo, then prefix with that many `../`. Example — `agents/.claude-enterprise/projects`
+sits 3 levels deep (`dotfiles/agents/.claude-enterprise/`), so
+`../../../.claude/projects` correctly escapes to `~/.claude/projects`. The symlink is
+tracked in git and stow deploys it correctly on every machine without any manual step.
 
 ### Gotcha: don't symlink a file the program itself rewrites
 
@@ -67,11 +72,12 @@ touching the directory symlink itself — this is how the two Claude identities 
 its own independent copy per location, seeded once and allowed to diverge, not a symlink
 you expect to stay in sync.
 
-Real example this bit us on: `agents/.claude-enterprise/projects` was written as a
-symlink to `../.claude/projects`, intending to reach `~/.claude/projects` (real,
-untracked runtime state). It actually resolved to `agents/.claude/projects`, which
-doesn't exist. Fixed by creating a plain symlink directly at
-`~/.claude-enterprise/projects -> ../.claude/projects`, authored in `$HOME` itself.
+Real example: `agents/.claude-enterprise/projects` was initially a symlink to
+`../.claude/projects`, intending to reach `~/.claude/projects`. It actually resolved to
+`agents/.claude/projects` (inside the repo), which doesn't exist. Fixed by using
+`../../../.claude/projects` — 3 levels up to escape `dotfiles/agents/.claude-enterprise/`
+back to `$HOME`, then down to `.claude/projects`. That symlink now lives in git and
+stow handles it correctly everywhere.
 
 ## Package Inventory
 
