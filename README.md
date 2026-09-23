@@ -105,6 +105,19 @@ The script contains a dry-run (`-n`) parameter so you can preview what will happ
 
 Once you have gotten rid of your stow conflicts, you can consider revisiting the stow commands to create symlinks for all the dotfiles
 
+**Use `--no-folding` for the `Library` package** (and any package whose target directory a
+program writes into). If the target directory doesn't exist yet when you stow, stow links the
+whole directory instead of the files inside it — and the program then writes its runtime state
+into this repo. That is how 1.1 GB of VSCode cache once ended up inside `~/dotfiles`:
+
+```bash
+stow -n --no-folding Library   # dry run: should list only leaf .json files
+stow --no-folding Library
+```
+
+See the "tree folding" gotcha in `agents/.agents/skills/dotfiles/SKILL.md` for the full
+explanation and how to unfold a package that is already folded.
+
 #### Step3: Add local_dotfiles to override my general settings as needed.
 
 When I need computer specific settings, just create an additional local dotfile that gets sourced in main dotfile. For example, a snippet at the end of my `.bashrc`:
