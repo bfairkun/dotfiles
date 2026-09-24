@@ -37,11 +37,16 @@ and was never copied into git — a generated file, session state, another packa
 *stowed* output. The relative path resolves against the repo location instead, lands on
 a path inside the repo that doesn't exist, and silently points nowhere useful.
 
-**Rule of thumb:** only author a relative symlink inside a package if its target is also
-real, tracked content in that same package tree. If you need to link to something that
-only exists in `$HOME` after stowing (not tracked in git), create that symlink directly
-in `$HOME` by hand — not inside the package. It can't be made portable through git,
-because there's nothing to track; document it as a manual per-machine step instead.
+**Rule of thumb:** only author a relative symlink inside a package if either (a) its
+target is real, tracked content in the same package tree, or (b) you compute the path
+relative to the file's *repo location*, adding enough `../` levels to escape the repo
+and reach `$HOME`.
+
+For case (b): count the path components between `$HOME` and the symlink file in the
+repo, then prefix with that many `../`. Example — `agents/.claude-enterprise/projects`
+sits 3 levels deep (`dotfiles/agents/.claude-enterprise/`), so
+`../../../.claude/projects` correctly escapes to `~/.claude/projects`. The symlink is
+tracked in git and stow deploys it correctly on every machine without any manual step.
 
 ### Gotcha: don't symlink a file the program itself rewrites
 
@@ -67,11 +72,12 @@ touching the directory symlink itself — this is how the two Claude identities 
 its own independent copy per location, seeded once and allowed to diverge, not a symlink
 you expect to stay in sync.
 
-Real example this bit us on: `agents/.claude-enterprise/projects` was written as a
-symlink to `../.claude/projects`, intending to reach `~/.claude/projects` (real,
-untracked runtime state). It actually resolved to `agents/.claude/projects`, which
-doesn't exist. Fixed by creating a plain symlink directly at
-`~/.claude-enterprise/projects -> ../.claude/projects`, authored in `$HOME` itself.
+Real example: `agents/.claude-enterprise/projects` was initially a symlink to
+`../.claude/projects`, intending to reach `~/.claude/projects`. It actually resolved to
+`agents/.claude/projects` (inside the repo), which doesn't exist. Fixed by using
+`../../../.claude/projects` — 3 levels up to escape `dotfiles/agents/.claude-enterprise/`
+back to `$HOME`, then down to `.claude/projects`. That symlink now lives in git and
+stow handles it correctly everywhere.
 
 ## Package Inventory
 
@@ -149,6 +155,38 @@ When adding new files near submodules, be careful not to accidentally edit the s
 2. If adding a new file, place it in the right package following the path-mirroring rule
 3. If adding a new package, run `stow -v <package>` to create symlinks
 4. Commit changes with `git add` + `git commit` from `~/dotfiles`
+
+### Gotcha: tree folding lets a program write its state into this repo
+
+When stow links a package and the target directory **doesn't exist yet**, it creates one
+symlink to the whole package directory instead of a real directory with symlinked files
+inside. That's "tree folding". It's invisible and harmless until a program writes runtime
+state into that directory — which then lands inside `~/dotfiles`.
+
+This bit the `Library` package: VSCode wasn't installed when it was first stowed, so
+`~/Library/Application Support/Code` became a symlink into the repo, and VSCode wrote
+**1.1 GB** of caches, logs, sockets and workspace state into `~/dotfiles`. Only an
+untracked nested `.gitignore` kept it out of history. The two entries in the top-level
+`.gitignore` for `config/.config/nnn/sessions/` and `config/.config/gh/hosts.yml` are
+earlier, reactive patches of this same bug.
+
+**Rule of thumb:** for any package whose target directory a program writes into
+(editors, CLIs with caches or session state), stow with `--no-folding`:
+
+```bash
+stow -n --no-folding Library   # dry run: expect only leaf-file LINK lines, no dir links
+stow --no-folding Library
+```
+
+`--no-folding` makes real directories all the way down and symlinks only leaf files, so
+the program's own writes stay in `$HOME`. Read-only packages (skills, oh-my-zsh, vim,
+tmux configs) are fine folded.
+
+To unfold an already-folded package: quit the program, `stow -D <pkg>` to drop the
+symlink, `mv` the real directory from the repo into `$HOME` (same filesystem = instant
+rename), restore the tracked config files into the repo with `git checkout --`, delete
+the duplicates from the live dir, then `stow --no-folding <pkg>`. Check for untracked
+files in the repo dir first — `git checkout` won't bring those back.
 
 ## Stow Conflict Resolution
 

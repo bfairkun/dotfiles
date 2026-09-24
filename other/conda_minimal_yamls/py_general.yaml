@@ -53,6 +53,7 @@ dependencies:
 
   # Bioinformatics
   - biopython
+  - dna_features_viewer  # GenBank/feature vector maps (built on biopython)
   - bedtools
   - pybedtools
   - pysam

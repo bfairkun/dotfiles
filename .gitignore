@@ -14,3 +14,6 @@ agents/.agents/skills/synced/
 
 # Editor/manual backup copies
 *.bak
+
+# macOS
+.DS_Store

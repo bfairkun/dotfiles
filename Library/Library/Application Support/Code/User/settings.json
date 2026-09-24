@@ -61,5 +61,6 @@
     },
     "jupyter.interactiveWindow.creationMode": "perFile",
     "security.workspace.trust.untrustedFiles": "open",
-    "claudeCode.preferredLocation": "panel"
+    "claudeCode.preferredLocation": "panel",
+    "editor.accessibilitySupport": "off"
 }

@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "workshop-slides",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "5500", "other/workshop_slides"],
+      "port": 5500
+    },
+    {
+      "name": "workshop-html",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "5501", "/Users/bjf79/Downloads/hpc_claude_workshop"],
+      "port": 5501
+    }
+  ]
+}
