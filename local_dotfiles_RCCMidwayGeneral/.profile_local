@@ -40,6 +40,13 @@ unset _xdg_scratch
 mkdir -p $HOME/.ssh
 SSH_ENV="$HOME/.ssh/agent-environment"
 
+# A long-lived tmux session pins the SSH_AUTH_SOCK it was created with. Each new login used
+# to start an agent at a fresh random socket path, so an old pane kept pointing at a dead or
+# EMPTY agent and git push failed with "Permission denied (publickey)" even though a loaded
+# agent was running -- the key looks unloaded when it is merely the wrong agent. Fix: keep a
+# stable symlink and export that, so every pane resolves to whichever agent is current.
+SSH_SOCK_LINK="$HOME/.ssh/agent.sock"
+
 function start_agent {
     echo "Initialising new SSH agent..."
     /usr/bin/ssh-agent | sed 's/^echo/#echo/' > "${SSH_ENV}"
@@ -49,7 +56,18 @@ function start_agent {
     /usr/bin/ssh-add;
 }
 
-# Source SSH settings, if applicable
+# Adopt any already-running agent that holds identities before starting another one, so
+# repeated logins stop accumulating agents (there were 5, three loaded and two empty).
+function adopt_live_agent {
+    for _s in /tmp/ssh-*/agent.* "${SSH_SOCK_LINK}"; do
+        [ -S "$_s" ] || continue
+        if SSH_AUTH_SOCK="$_s" ssh-add -l >/dev/null 2>&1; then
+            export SSH_AUTH_SOCK="$_s"
+            return 0
+        fi
+    done
+    return 1
+}
 
 if [ -f "${SSH_ENV}" ]; then . "${SSH_ENV}" > /dev/null
     #ps ${SSH_AGENT_PID} doesn't work under cywgin
@@ -58,6 +76,17 @@ if [ -f "${SSH_ENV}" ]; then . "${SSH_ENV}" > /dev/null
     }
 else
     start_agent;
+fi
+
+# If the agent we just sourced has no identities, prefer a live one that does; only then is a
+# passphrase prompt actually warranted.
+ssh-add -l >/dev/null 2>&1 || adopt_live_agent || true
+
+# Republish under the stable path. Panes should use this, not the raw /tmp path.
+if [ -n "${SSH_AUTH_SOCK:-}" ] && [ -S "${SSH_AUTH_SOCK}" ] \
+   && [ "${SSH_AUTH_SOCK}" != "${SSH_SOCK_LINK}" ]; then
+    ln -sfn "${SSH_AUTH_SOCK}" "${SSH_SOCK_LINK}"
+    export SSH_AUTH_SOCK="${SSH_SOCK_LINK}"
 fi
 
 

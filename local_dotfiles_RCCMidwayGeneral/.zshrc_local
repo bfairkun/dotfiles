@@ -62,6 +62,18 @@ hostname | grep -q 'midway3' && module load R/4.3.1
 # alias jupyterlab = 'jupyter lab --no-browser --ip $(/sbin/ip route get 8.8.8.8 | awk '{print $NF;exit}')'
 # Useful alias to fix when tmux display doesn't match display according to shell environment
 alias claude_dispatcher='tmux new-window -n "dispatcher" "claude --agent dispatcher -n dispatcher"'
+
+# Claude Code enterprise account wrapper. CLAUDE_CONFIG_DIR selects which
+# identity (credentials/settings) claude uses; ~/.claude-enterprise/projects
+# is symlinked to ~/.claude/projects so transcripts/skills are shared either
+# way. Forwards all args, so e.g. `claude-ent --resume <id>` or `claude-ent -c`
+# work exactly like plain `claude`, just billed/logged-in to the UChicago
+# enterprise account instead of personal. No Remote Control under enterprise
+# (org policy) — use plain `claude` (personal) for anything you want to pick
+# up from your phone.
+claude-ent() {
+    CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" command claude "$@"
+}
 alias R='update_display && R'
 alias rstudio='update_display && rstudio'
 alias srstudio='sinteractive --mem=8g --time=2:00:00 --cpus-per-task=4 --command "update_display && rstudio"'
