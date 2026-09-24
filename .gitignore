@@ -8,3 +8,9 @@ zsh/.secrets
 
 # Per-repository agent approvals
 .claude/settings.local.json
+
+# Claude app skills synced from the cloud (runtime state)
+agents/.agents/skills/synced/
+
+# Editor/manual backup copies
+*.bak

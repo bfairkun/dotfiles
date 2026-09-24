@@ -1,12 +1,58 @@
 ---
 name: latex-manuscript
-description: Write, edit, build, or share a LaTeX scientific manuscript. Invoke for starting a paper, editing prose or figures, exporting drafts to Google Docs for coauthor comments, or applying those comments back.
+description: Write, edit, build, or share a LaTeX scientific manuscript or a Markdown-authored LaTeX document. Invoke for starting a paper, grant, or other scientific document, editing prose or figures, rendering Markdown to LaTeX/PDF, exporting drafts to Google Docs, or applying those comments back.
 ---
 
 # LaTeX manuscripts
 
-The `.tex` source is the single source of truth. Word and Google Docs versions
-are regenerated artifacts, never edited back into the repo.
+## Choose the source mode
+
+Use LaTeX-first mode for manuscripts that require extensive equations, custom
+macros, or journal-specific TeX structure. In that mode, the `.tex` source is
+the single source of truth.
+
+Use Markdown-source mode for grant drafts and prose-forward documents when the
+user wants a document that is easy to edit and review. In this mode, the
+tracked Markdown file is the single source of truth and generated LaTeX/PDF
+files are artifacts. Do not edit generated `.tex` files by hand.
+
+For new Markdown-source documents, use a stable `works_in_progress/<slug>/`
+directory in the project repository. Preserve an existing source location when
+the user has already established one, unless they ask to relocate it.
+
+Markdown-source mode has these conventions:
+
+- Keep one clearly named tracked source, normally `proposal.md` or
+  `manuscript.md`, in the document directory.
+- Put a descriptive HTML comment at the top identifying the source of truth,
+  generated outputs, and structural markers such as page breaks.
+- Keep the source organized with explicit section markers. If multiple forms or
+  attachments share one review packet, keep them in that one Markdown source.
+- Use same-stem figure assets when Markdown and LaTeX need different formats:
+  `figure.svg` is the editable vector source, `figure.png` is the Markdown
+  preview, and `figure.pdf` is the LaTeX asset. Reference `figure.png` in
+  Markdown. The renderer must automatically replace that suffix with `.pdf`
+  when the same-stem PDF exists, otherwise fall back to the referenced PNG.
+  Implement this once in the image-rendering helper; never maintain separate
+  Markdown and LaTeX figure paths by hand.
+- Generate LaTeX fragments, PDFs, logs, and auxiliary files into a repository
+  `raw/sources/<slug>-preview/` directory or the project's equivalent. Add the
+  generated-output path to `.gitignore`; do not commit compilation logs or
+  auxiliary files.
+- Provide a deterministic `Makefile` or build script next to the Markdown
+  source. It should regenerate all outputs from the Markdown source and run
+  structural checks such as page counts, character limits, and missing-glyph or
+  overfull-box checks where relevant.
+- After an agent edits the Markdown source, run the build and validation before
+  handing the file back. Report the output path and any material layout or
+  validation change. A manual user edit can be rebuilt with the same `make`
+  command.
+- If a generated artifact is needed for review, link it from a README or the
+  handoff, but keep it out of Git unless the user explicitly requests a tracked
+  rendered artifact.
+
+The `.tex` source remains the editable source in LaTeX-first mode. Word and
+Google Docs versions are regenerated artifacts, never edited back into the repo.
 
 ## Starting a new manuscript
 

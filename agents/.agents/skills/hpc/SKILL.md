@@ -200,6 +200,18 @@ Memory on a login node is capped per **user**, not per process — one 8 GiB cgr
 every session and kernel you have open, so parallel agent sessions OOM-kill each other's
 kernels silently. Diagnosis and thresholds → `compute-kernel` skill.
 
+## Long-running Snakemake: show progress in the user's spare pane
+
+When a Snakemake run will outlive the current exchange, start it by default — do not wait to
+be asked:
+
+```bash
+watch_snakemake --send    # starts in the caller's sibling shell pane; ~/bin, --help for more
+```
+
+It tracks the newest `logs/controller/*.out` (or `code/logs/controller/*.out`), not a process,
+so pass an explicit log if two runs are active. Works for local `--cores` runs too.
+
 ## Useful Commands
 
 ```bash

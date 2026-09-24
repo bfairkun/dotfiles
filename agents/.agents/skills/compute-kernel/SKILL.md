@@ -51,23 +51,48 @@ This starts a child process of the MCP server. It is killed when the server rest
 prefer compute kernels for long sessions or memory-heavy notebooks.
 
 For **compute-node** work (large data, long runs, or anything that was OOM-killed on login):
-submit via Bash, then connect:
+prefer `start_agent_kernel` (in `~/bin/`, wrapping `agent_kernel.sbatch`), which already handles
+the two things a hand-rolled `--wrap` gets wrong — the IP bind below and partition detection.
+Submit it via Bash yourself; the user does not need to run it.
+
+Write your own `--wrap` only when you need a connection file other than the hardcoded
+`agent_kernel.json` (see below), and then copy the bind:
+
+**The kernel must bind the node's routable IP, not loopback.** `ipykernel` defaults to
+`127.0.0.1`, and the MCP server runs on the login node, so a loopback-bound kernel is
+unreachable even though the job is running normally.
+
 ```bash
-# Submit the SLURM job directly
+CF=$SCRATCH/$USER/agent_kernel_<task>.json
+rm -f $CF
 sbatch --partition=caslake --account=pi-yangili1 --mem=48G --time=4:00:00 --cpus-per-task=4 \
-  --job-name=agent_kernel --output=$SCRATCH/$USER/agent_kernel.log \
-  --wrap="conda run -n py_general jupyter kernel --KernelManager.connection_file=$SCRATCH/$USER/agent_kernel.json"
+  --job-name=agent_kernel_<task> --output=$SCRATCH/$USER/agent_kernel_<task>.log \
+  --wrap="source ~/miniconda3/etc/profile.d/conda.sh && conda activate py_general && \
+          HOST_IP=\$(ip route get 8.8.8.8 | awk '{print \$7;exit}') && \
+          python -m ipykernel_launcher --ip=\$HOST_IP -f $CF"
 ```
-Then poll until the connection file exists and connect:
+
+The `\$` escapes matter: `HOST_IP` must be expanded by the job, not by the submitting shell.
+Use `conda activate`, not `conda run` — `conda run` buffers the job's output, so a startup
+failure leaves an empty log.
+
+Poll for a *routable* IP, not just the file — `jupyter_client` writes the connection file
+before the kernel binds — and give up if the job leaves the queue:
 ```bash
-until [ -f $SCRATCH/$USER/agent_kernel.json ]; do sleep 5; done && echo "ready"
+JOBID=<jobid>
+until [ -f $CF ] && ! grep -q '"ip": "127\.' $CF; do
+    squeue -h -j $JOBID -o %T | grep -q . || { echo "job gone"; cat $SCRATCH/$USER/agent_kernel_<task>.log; break; }
+    sleep 5
+done
 ```
 ```python
-# connect_to_kernel(connection_file="/scratch/midway3/bjf79/agent_kernel.json")
+# connect_to_kernel(connection_file="/scratch/midway3/bjf79/agent_kernel_<task>.json")
 ```
-Alternatively, `start_agent_kernel` (in `~/bin/`) does all of the above with a nicer interface
-and auto-detects the partition. The user can run it in a terminal if they prefer, but the agent
-can submit the sbatch directly.
+
+**Use a task-specific connection filename whenever another session may have a kernel live.**
+`start_agent_kernel` and `agent_kernel.sbatch` both hardcode `agent_kernel.json`, so reusing it
+takes over or clobbers the other session's kernel. Check first:
+`ls -lht $SCRATCH/$USER/agent_kernel*.json` and `squeue -u $USER | grep kernel`.
 
 ## Killing old kernels
 
@@ -135,7 +160,14 @@ SESSION_FILE = walltime_autosave.start(notebook="<notebook_name>")
 
 ## Kernel died recovery
 
-When a `run_python` call fails with a kernel error (e.g. "Kernel died", "RuntimeError: Kernel died before replying"), the compute job has likely ended. Follow these steps:
+When a `run_python` call fails with a kernel error (e.g. "Kernel died", "RuntimeError: Kernel
+died before replying"), the compute job has likely ended. Follow these steps:
+
+If the failure is `Kernel died before replying to kernel_info` on the *first*
+`connect_to_kernel` of a brand-new job, it is not a dead job — check `squeue` and the `"ip"`
+field of the connection file. A running job with `"ip": "127.0.0.1"` means the kernel bound
+loopback and is simply unreachable from the login node; resubmit with the `--ip` bind above
+rather than restoring an autosave.
 
 ### Step 1 — Find available autosaves
 

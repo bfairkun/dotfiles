@@ -2,7 +2,7 @@
 name: interactive-notebook
 description: >
   Interactively co-author a Quarto notebook with the user: create the .qmd skeleton,
-  open the right kernel (Python or R), explore and iterate code via the kernel,
+  explore and iterate code via a Jupyter kernel (Python or R),
   save plots to agent_plots for the user to see, and write finalized cells back
   into the notebook file bit by bit.
 argument-hint: "[brief description of notebook idea, and Python or R]"
@@ -11,6 +11,11 @@ argument-hint: "[brief description of notebook idea, and Python or R]"
 # Interactive Notebook Co-authoring Workflow
 
 This is the end-to-end workflow for iteratively building a Quarto notebook together with the user.
+
+`<AGENT_PLOTS>` and `<AGENT_PLOTS_URL>` below are **placeholders, not paths**. Resolve both
+before writing any code that uses them — see the `agent-plots` skill. Do not write to
+`~/agent_plots`: that is not the directory the server serves, and plots put there are invisible
+to the user.
 
 ---
 
@@ -41,7 +46,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-AGENT_PLOTS = os.path.expanduser("~/agent_plots")  # AGENT_PLOTS from CLAUDE_local.md
+AGENT_PLOTS = "<AGENT_PLOTS>"  # resolve first -- see `agent-plots` skill
 ```
 
 ### R skeleton
@@ -68,7 +73,7 @@ library(data.table)
 
 theme_set(theme_bw(base_size = 12))
 
-agent_plots <- path.expand("~/agent_plots")  # AGENT_PLOTS from CLAUDE_local.md
+agent_plots <- "<AGENT_PLOTS>"  # resolve first -- see `agent-plots` skill
 ```
 ````
 
@@ -76,48 +81,23 @@ agent_plots <- path.expand("~/agent_plots")  # AGENT_PLOTS from CLAUDE_local.md
 
 ## Step 2 — Open the kernel
 
-### Python kernel
+**Use a compute-node kernel unless the user says otherwise.** Start it yourself; do not ask
+the user to run anything.
 
-The MCP server auto-attaches to the newest running kernel (VSCode or standalone).
+See the `compute-kernel` skill for how — submitting the job, the IP bind, polling for
+readiness, connecting, wall-time autosave, and recovery when a kernel dies. Python and R
+differ only in the flag (`start_agent_kernel --lang r`) and the connection file.
 
-- If the user has VSCode open with a Python cell already run → just start — it will auto-attach.
-- Otherwise, start a **persistent login-node kernel** using `nohup` (survives compaction and client restarts):
-
-```bash
-nohup conda run -n py_general jupyter kernel \
-  --KernelManager.connection_file=/tmp/agent_kernel_login.json \
-  &> /tmp/agent_kernel_login.log &
-```
-
-Then connect:
-```python
-# connect_to_kernel(connection_file="/tmp/agent_kernel_login.json")
-```
-
-**Do not use `start_kernel`** for persistent login-node kernels: its child process dies when the MCP server restarts. The `nohup` kernel is independent.
-
-- Verify: `import socket; print(socket.gethostname())`
-
-For compute-heavy work: ask the user to run `start_agent_kernel` first, then connect with `KERNEL_CF` from `CLAUDE_local.md`.
-
-### R kernel
-
-Ask the user to run:
-```bash
-start_agent_kernel --lang r          # submits an R kernel to a compute node
-```
-
-Then call `connect_to_kernel` using the R `KERNEL_CF` from `AGENTS.local.md`.
+Exception: if the user already has a VSCode kernel running with a cell executed, the MCP
+server auto-attaches to it, so just start working.
 
 Send plain R code via `run_python` — the kernel is R, so no `%%R` magic is needed.
-
-Verify: `cat(R.version.string, "\n"); cat("Host:", system("hostname", intern=TRUE), "\n")`
 
 ### After connecting — session state files
 
 State files go to `STATE_MD` / `STATE_JSON` from `CLAUDE_local.md` (NFS-shared, readable from login node immediately). Browsable at:
-- `http://localhost:8765/state.md`
-- `http://localhost:8765/state.json`
+- `<AGENT_PLOTS_URL>/state.md`
+- `<AGENT_PLOTS_URL>/state.json`
 
 ### After connecting — install session checkpoint helpers immediately
 
@@ -132,9 +112,9 @@ import json
 import os
 from pathlib import Path
 
-STATE_MD   = Path(os.path.expanduser("~/agent_plots/state.md"))   # STATE_MD from CLAUDE_local.md
-STATE_JSON = Path(os.path.expanduser("~/agent_plots/state.json")) # STATE_JSON from CLAUDE_local.md
-AGENT_PLOTS = Path(os.path.expanduser("~/agent_plots"))            # AGENT_PLOTS from CLAUDE_local.md
+AGENT_PLOTS = Path("<AGENT_PLOTS>")   # resolve first -- see `agent-plots` skill
+STATE_MD    = AGENT_PLOTS / "state.md"
+STATE_JSON  = AGENT_PLOTS / "state.json"
 
 def _summarize_py_value(name, value):
     summary = {"name": name, "type": type(value).__name__}
@@ -240,8 +220,9 @@ Run this in the kernel after connect, then keep using `save_session_state(...)`:
 ```r
 library(jsonlite)
 
-state_md   <- path.expand("~/agent_plots/state.md")   # STATE_MD from CLAUDE_local.md
-state_json <- path.expand("~/agent_plots/state.json") # STATE_JSON from CLAUDE_local.md
+agent_plots <- "<AGENT_PLOTS>"   # resolve first -- see `agent-plots` skill
+state_md   <- file.path(agent_plots, "state.md")
+state_json <- file.path(agent_plots, "state.json")
 
 summarize_r_value <- function(name, env = .GlobalEnv) {
   if (!exists(name, envir = env, inherits = FALSE)) {
@@ -347,7 +328,7 @@ save_session_state <- function(
 The core workflow is: **run → show → discuss → refine → write to notebook**.
 
 1. **Run exploration code** in the kernel (load data, summarize, quick plots).
-2. **Save plots** to `AGENT_PLOTS` (from `CLAUDE_local.md`) so the user can see them at http://localhost:8765.
+2. **Save plots** to `<AGENT_PLOTS>` so the user can see them at `<AGENT_PLOTS_URL>`.
 3. **Discuss** what the plot shows or what to refine.
 4. **Checkpoint session state** with `save_session_state(...)` after every validated milestone.
 5. **Write finalized code** back into the `.qmd` file (Edit tool) as a new chunk.
@@ -367,30 +348,30 @@ PDF preserves vector graphics and is the preferred format for inspection and pub
 
 ```python
 import os
-outdir = os.path.expanduser("~/agent_plots")  # AGENT_PLOTS from CLAUDE_local.md
+outdir = "<AGENT_PLOTS>"  # resolve first -- see `agent-plots` skill
 fig.savefig(os.path.join(outdir, "myplot.pdf"), bbox_inches="tight")
 plt.close(fig)
-print(f"Saved → check http://localhost:8765/myplot.pdf")
+print(f"Saved → check <AGENT_PLOTS_URL>/myplot.pdf")
 ```
 
 ### R (ggplot2)
 
 ```r
-outdir <- path.expand("~/agent_plots")  # AGENT_PLOTS from CLAUDE_local.md
+outdir <- "<AGENT_PLOTS>"  # resolve first -- see `agent-plots` skill
 ggsave(file.path(outdir, "myplot.pdf"), plot = p, width = 7, height = 5)
-cat("Saved → check http://localhost:8765/myplot.pdf\n")
+cat("Saved → check <AGENT_PLOTS_URL>/myplot.pdf\n")
 ```
 
 ### R (base graphics)
 
 ```r
-outdir <- path.expand("~/agent_plots")  # AGENT_PLOTS from CLAUDE_local.md
+outdir <- "<AGENT_PLOTS>"  # resolve first -- see `agent-plots` skill
 pdf(file.path(outdir, "myplot.pdf"), width = 8, height = 6)
 # ... plot code ...
 dev.off()
 ```
 
-Always tell the user: **"Check http://localhost:8765/myplot.pdf"**
+Always give the user the resolved URL, e.g. **"Check http://localhost:8765/myplot.pdf"**.
 
 ---
 
@@ -466,8 +447,8 @@ Session state is not optional. Write checkpoint files:
 
 **Paths**: `STATE_MD` and `STATE_JSON` from `CLAUDE_local.md`. Browsable at:
 
-- `http://localhost:8765/state.md`
-- `http://localhost:8765/state.json`
+- `<AGENT_PLOTS_URL>/state.md`
+- `<AGENT_PLOTS_URL>/state.json`
 
 The markdown file is for human browsing. The JSON file is for machine recovery.
 
@@ -525,6 +506,6 @@ rebuild only the missing objects from notebook code, saved files, or compact rep
 - **Plot early and often** — every interesting intermediate should be saved to agent_plots.
 - **One chunk at a time** — write cells to the .qmd incrementally, not all at once.
 - **Ask before moving on** — after each plot/result, confirm with the user before proceeding.
-- **Login node by default** — only escalate to a compute kernel if memory is a problem.
+- **Compute node by default** — see the `compute-kernel` skill; use a login-node kernel only when the user asks for one.
 - **Checkpoint state routinely** — treat `state.md` and `state.json` as part of the notebook workflow, not an emergency fallback.
 - **Preserve only resumable facts** — save compact metadata, not raw command history.

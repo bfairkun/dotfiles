@@ -223,12 +223,40 @@ def bed_uri(rows):
     text = '\n'.join(f'{c}\t{s}\t{e}\t{n}\t{sc}\t{st}' for c,s,e,n,sc,st in rows)
     return f'data:application/gzip;base64,{b64encode(compress((text+"\n").encode())).decode()}'
 
-def embed_igv(html, height=400):
-    """Embed an igv.js HTML page in a notebook iframe via srcdoc."""
-    srcdoc = html.replace('&', '&amp;').replace('"', '&quot;')
-    display(HTML(f'<iframe srcdoc="{srcdoc}" '
-                 f'style="width:100%;height:{height}px;border:1px solid #ccc;border-radius:4px;"></iframe>'))
+def embed_igv(html, height=400, div_id='igv-embed-host'):
+    """Embed an igv.js HTML page in a notebook iframe, built via JS at display time.
+
+    Do NOT set srcdoc as a literal HTML attribute (e.g. `f'<iframe srcdoc="{escaped}">'`) —
+    when this cell output is rendered through Quarto/pandoc (ipynb -> html), pandoc re-parses
+    the raw HTML and mis-handles the embedded page's own `<script>`/`<style>` tags inside the
+    attribute value: any `>` inside the quoted attribute prematurely ends pandoc's naive
+    tag-parse, so everything after it gets HTML-entity-re-escaped (`<`/`>` -> `&lt;`/`&gt;`)
+    even though the Python-side `&`/`"` escaping was correct. Net effect: the iframe renders
+    with **zero tracks and no error** — igv.js never even parses, since its own `<script>`
+    tags are now inert text. Building the iframe via JS (srcdoc set as a JS string, inside a
+    `<script>` block) sidesteps this entirely, since `<script>` content is never HTML-tag-
+    parsed by pandoc.
+    """
+    import json
+    # Escape every closing tag a post-processor might search for: `</script` (pandoc /
+    # the HTML parser) and `</body`/`</html` (render_notebook injects before the last
+    # one it finds -- see the gotcha table).
+    payload = (json.dumps(html).replace('</script', '<\\/script')
+                               .replace('</body', '<\\/body')
+                               .replace('</html', '<\\/html'))
+    snippet = (f'<div id="{div_id}"></div>\n<script>\n(function(){{\n'
+               f"  var f = document.createElement('iframe');\n"
+               f"  f.style.cssText = 'width:100%;height:{height}px;border:1px solid #ccc;"
+               f"border-radius:4px;';\n"
+               f'  f.srcdoc = {payload};\n'
+               f"  document.getElementById('{div_id}').appendChild(f);\n"
+               f'}})();\n</script>')
+    display(HTML(snippet))
 ```
+
+**If you have multiple `embed_igv()` calls in one notebook**, pass a distinct `div_id` to
+each (e.g. `div_id=f'igv-embed-{i}'`) — the default is a fixed string, and duplicate DOM ids
+mean `getElementById` finds the wrong host on the second call.
 
 ---
 
@@ -687,15 +715,143 @@ Three layers handle length, in order of preference: **wrap** (does most of the w
 `height ≥ 38`, and raise the iframe height to `n_tracks × height + ~150`.
 
 **Verifying.** Styling bugs here are invisible from the source — the CSS looks right and does
-nothing. Render headlessly and inspect the live DOM rather than reasoning about it: the
+nothing. Expose the browser as `window.__b = b` inside the `createBrowser` `.then()` — a probe can then read
+`referenceFrameList[0]` for the true locus and call `goto` directly, which separates "navigation is
+broken" from "the click handler is broken". **Poll for it** (`waitForFunction(() => window.__b)`)
+rather than waiting a fixed number of seconds: tracks load sequentially, and an igv.js browser
+embedded in a rendered notebook took ~21 s to reach full track count, so a fixed wait reports a
+half-loaded browser as a failure.
+
+Render headlessly and inspect the live DOM rather than reasoning about it: the
 `playwright` CLI (conda-forge, CLI only — no Python bindings) can screenshot a `file://` URL,
 and a `<style>`/`<script>` probe appended to the page can dump `getComputedStyle` results into
 a visible `<div>` that shows up in the screenshot. Remember to query **through the shadow
-root** (`host.shadowRoot.querySelector(...)`); `document.querySelector` returns `null` for
-everything inside it, which is itself the quickest confirmation that shadow DOM is in play.
-Genome loading over the network is flaky headlessly, so retry before concluding anything.
+root**; `document.querySelector` returns `null` for everything inside it, which is itself the
+quickest confirmation that shadow DOM is in play. The shadow root is attached to **the container
+div you passed to `createBrowser`**, so the probe target is `document.getElementById('igv').shadowRoot` —
+and note that that div's `.children.length` and `.innerHTML.length` are **0 even when the browser
+is rendering perfectly**, because shadow content is not in `children`. Counting
+`shadowRoot.querySelectorAll('.igv-viewport')` is a reliable liveness check.
+
+Genome loading over the network is flaky headlessly: several pages loaded back-to-back were
+observed reporting a silent never-settling `createBrowser` promise, and the same configs all
+resolved when re-run one at a time. **Retry before concluding a config is broken**, and
+expect views zoomed in below roughly 300 bp to paint blank headlessly while the same view is
+fine in a real browser — verify at >=1 kb.
 
 ---
+
+### Recipe 7 — Load tracks defensively, and make failures visible
+
+A browser that renders **zero tracks with no error** is the most common way an embedded
+igv.js page fails, and the least diagnosable: one rejected track load aborts
+`createBrowser`, and the page is then indistinguishable from a network problem. Create the
+browser bare, add tracks one at a time, and print any failure into the page.
+
+```js
+function report(m){ var e=document.getElementById("err"); e.style.display="block";
+                    e.textContent += m + "\n"; }
+window.onerror = function(m){ report("JS error: " + m); };
+if (typeof igv === "undefined") { report("igv.js did not load from the CDN"); }
+else igv.createBrowser(document.getElementById("igv"),
+                       {genome:"hg38", locus:LOCUS, showTrackLabels:false}).then(function(b){
+  var chain = Promise.resolve();
+  TRACKS.forEach(function(t){
+    chain = chain.then(function(){
+      return b.loadTrack(t).catch(function(e){
+        report('track "' + t.name + '" failed: ' + (e && (e.message || e)));  // others still load
+      });
+    });
+  });
+  return chain.then(function(){
+    try { if (typeof b.loadROI === "function") b.loadROI(ROI); }
+    catch(e){ report("ROI failed: " + e.message); }
+  });
+}).catch(function(e){ report("createBrowser failed: " + (e && e.message) +
+                             (e && e.stack ? "\n" + e.stack : "")); });
+```
+
+Pair it with a `<div id="err">` above the browser. Keep the error box in production pages,
+not just while debugging — it is what turns "the browser is empty" into an actionable report.
+
+### Recipe 8 — Step through a list of features (prev/next + keyboard + readout)
+
+Scrolling to find one of ~100 variants is unusable. Give the page a stepper: prev/next
+buttons, keyboard shortcuts, a dropdown of every feature, an annotation readout, and a
+selector for which subset to walk. Build the feature array in Python — one dict per feature
+with `pos` and a pre-rendered `label` string, plus whatever booleans the subset filters need
+— and hand it to the template as `__FEATURES__`.
+
+```python
+for r in feats:                      # label carries what you need to triage without clicking
+    r["label"] = " \u00b7 ".join([f'{r["pos"]:,} {r["ref"]}>{r["alt"]}', r["gt"],
+                                  r["zyg"], r["loc"], f'MAF {r["maf"]}'])
+```
+
+```js
+var FEATURES = __FEATURES__;   // [{pos, label, usable, zyg, ...}, ...]
+igv.createBrowser(el, {genome:"hg38", locus:LOCUS, showCenterGuide:true,
+                       showTrackLabels:false}).then(function (b) {
+  var fsel = document.getElementById("fsel"),   // dropdown of all features
+      fset = document.getElementById("fset"),   // which subset to walk
+      fwin = document.getElementById("fwin"),   // view width: 100 / 600 / 2000 bp
+      finfo = document.getElementById("finfo"); // readout
+  var subset = [], idx = -1;
+
+  function rebuild(navigate) {
+    var mode = fset.value;
+    subset = FEATURES.filter(function (v) { return mode === "all" ? true : v[mode]; });
+    fsel.innerHTML = "";
+    subset.forEach(function (v, i) {
+      var o = document.createElement("option");
+      o.value = i; o.textContent = (i + 1) + "/" + subset.length + "  " + v.label;
+      fsel.appendChild(o);
+    });
+    idx = subset.length ? 0 : -1;
+    show(navigate);
+  }
+
+  // navigate === false updates the readout only. Building the list on load MUST NOT
+  // navigate, or the browser opens zoomed into feature 1 instead of the overview locus.
+  function show(navigate) {
+    if (idx < 0) { finfo.textContent = "no features in this set"; return; }
+    var v = subset[idx], w = parseInt(fwin.value);
+    fsel.value = idx;
+    finfo.textContent = (idx + 1) + " of " + subset.length + " \u2014 " + v.label;
+    if (navigate === false) return;
+    b.goto(CHROM, Math.max(0, v.pos - Math.round(w / 2)), v.pos + Math.round(w / 2));
+    // name labels are absolutely positioned, so re-lay them out after every move
+    setTimeout(function () { try { addNames(b); } catch (e) {} }, 400);
+  }
+
+  function stepBy(d) {
+    if (!subset.length) return;
+    idx = (idx + d + subset.length) % subset.length;      // wraps at both ends
+    show(true);
+  }
+  document.getElementById("next").addEventListener("click", function(){ stepBy(1); });
+  document.getElementById("prev").addEventListener("click", function(){ stepBy(-1); });
+  fsel.addEventListener("change", function(){ idx = parseInt(this.value); show(true); });
+  fset.addEventListener("change", function(){ rebuild(true); });
+  fwin.addEventListener("change", function(){ show(true); });
+  document.addEventListener("keydown", function (e) {
+    // ignore keys while a select/input has focus, or they fight the dropdowns
+    if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if (e.key === "n" || e.key === "ArrowRight") { stepBy(1); e.preventDefault(); }
+    if (e.key === "p" || e.key === "ArrowLeft")  { stepBy(-1); e.preventDefault(); }
+  });
+  rebuild(false);                                          // populate, do not navigate
+});
+```
+
+Notes that make it usable rather than merely working:
+
+- Default the subset selector to the **filtered** list (e.g. sites that pass QC), not to
+  everything — that is the list someone actually wants to walk.
+- `showCenterGuide: true` marks the stepped-to position without accumulating ROI sets.
+- Offer a window-width selector; a single fixed zoom is always wrong for some feature.
+- Put the annotation string in the readout *and* in the dropdown option text, so the list is
+  searchable by eye.
 
 ### Gotchas and API notes
 
@@ -704,7 +860,10 @@ Genome loading over the network is flaky headlessly, so retry before concluding 
 | Blank tracks after dropdown navigation | Bedgraph data must be coordinate-sorted; use `_CHROM_KEY` sort |
 | Dropdown `browser.search(str)` doesn't navigate | Use `browser.goto(chr, start, end)` instead — `search()` is unreliable with embedded data URIs in 3.5.2 |
 | `type: "junction"` invisible | Use `type: "bed"` — junction arc rendering fails silently with data URI sources in 3.5.2 |
-| `&` or `"` in srcdoc breaks HTML | Escape in order: `html.replace('&','&amp;').replace('"','&quot;')` |
+| **Whole browser shows zero tracks, no error, in the rendered .html** (works if you eval the cell interactively though) | Don't set `srcdoc` as a literal HTML attribute — Quarto/pandoc's ipynb→html conversion mis-parses `>` inside the quoted attribute and HTML-entity-escapes everything after it, so igv.js's own `<script>` tags become inert text. Use the current `embed_igv()` (builds the iframe via JS, `srcdoc` as a JS string) — see above |
+| **Browser opens zoomed into the first item of a stepper list instead of the configured locus** | The function that populates the list called the one that navigates. Give it a `navigate === false` path used only on initial build (Recipe 8) |
+| **Track names go stale / overlap after any programmatic navigation** | The labels in your own name column are absolutely positioned; `goto` re-lays out the viewports but not your column. Re-run the name builder ~400 ms after every `goto` |
+| **Rendered .html: iframe never appears, console says `Invalid or unexpected token`** (the standalone page works) | A post-processor injected content into the `srcdoc` string. `render_notebook` adds its render-env block before the **last** `</body></html>` in the file — which is the copy inside your escaped payload — and that injection carries real newlines, so the JS string literal is unterminated. Escape `</body` and `</html` in the payload the same way as `</script`: `json.dumps(html).replace("</script","<\\/script").replace("</body","<\\/body").replace("</html","<\\/html")` |
 | Group vs individual y-axis | Use Recipe 4 toggle button; `autoscaleGroup: "shared"` at init also works |
 | ROI band not visible, no error | `roi` must be named sets with a `features` list (Recipe 5) — a flat list of region objects is silently ignored |
 | **CSS aimed at igv's DOM does nothing** — no error, and the rule *is* in `document.styleSheets` | igv 3.x renders inside `attachShadow({mode:"open"})`; a document-level `<style>` cannot cross it. Inject into `element.getRootNode()` (Recipe 6). Tell-tale: `document.querySelector('.igv-…')` returns `null` |

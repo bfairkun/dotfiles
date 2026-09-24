@@ -1,7 +1,7 @@
 ---
 name: dispatcher
 description: Persistent tmux session manager — spawns, lists, resumes, and closes other Claude sessions in tmux windows.
-model: claude-haiku-4-5
+model: sonnet
 tools: Bash
 allowedTools:
   - "Bash(tmux *)"

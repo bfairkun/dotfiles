@@ -6,7 +6,7 @@ argument-hint: [project path or name]
 
 # Project Directory Listing
 
-These are cached snapshots (last updated 2026-05-26). If the user references a project not listed here, run `ls /project2/yangili1/bjf79/` and `ls /project/yangili1/bjf79/` to get the current list.
+These are cached snapshots (last updated 2026-09-02). If the user references a project not listed here, run `ls /project2/yangili1/bjf79/` and `ls /project/yangili1/bjf79/` to get the current list.
 
 ## `/project/yangili1/bjf79/` (repos, tools, reference genomes)
 ```
@@ -23,6 +23,7 @@ These are cached snapshots (last updated 2026-05-26). If the user references a p
 20260310_diversesm_dr
 20260324_xon_mpra
 20260430_xon_titration
+20260902_randomanalyses
 ChromatinSplicingQTLs
 conda_envs
 conda_pkgs
@@ -191,28 +192,41 @@ You should see two panes. The **first listed** is the top shell (pane 1). The **
 ### Step F — Launch Claude or Codex in the bottom pane
 
 **Account selection:** Claude Code has two isolated identities on this machine, selected via `CLAUDE_CONFIG_DIR`:
-- **Personal account** (default — Remote Control-enabled, used for phone access): no env var needed.
-- **Enterprise account** (UChicago): export `CLAUDE_CONFIG_DIR=~/.claude-enterprise` before launching. Sessions under this identity will NOT show up in Remote Control on the phone — that's an Anthropic-side constraint tied to the account, not something this setup can work around.
+- **Personal account**: no env var needed. Remote Control-enabled (phone access).
+- **Enterprise account** (UChicago): `CLAUDE_CONFIG_DIR=~/.claude-enterprise`. No Remote Control (disabled by org policy).
 
-Only use the enterprise account when the user explicitly asks for it (e.g. "start this as enterprise" / "use my UChicago account"). Otherwise default to personal — do not ask every time.
+Default account: check `~/.claude/dispatch_default_account` — if it contains `enterprise`, default new sessions to enterprise; otherwise (file absent or `personal`) default to personal. The user toggles this by telling you "I'm at work" / "switch to work mode" (write `enterprise` to the file) or "back to personal" / "leaving work" (write `personal`, or just delete the file). An explicit account request in the user's message always overrides the default for that one session. See "Account tracking" below for why this file is the *default*, not a substitute for tagging each window.
 
-**Claude — fresh session, personal account (default):**
+**Always generate the session ID yourself and tag the window** — this makes the session unambiguous later (for resuming, and for `switch-account.sh`), instead of having to guess it from `list-sessions.sh` by directory+timestamp, which is ambiguous whenever two windows share a project directory (confirmed to go wrong in practice — see "Account tracking" below).
+
 ```bash
-tmux send-keys -t "<IDX>.<P>" "claude -n '<window-name>'" Enter
+SID=$(python3 -c "import uuid; print(uuid.uuid4())")
+```
+
+**Claude — fresh session, personal account:**
+```bash
+tmux send-keys -t "<IDX>.<P>" "claude --session-id $SID -n '<window-name>'" Enter
+tmux set-option -t <IDX> -w @claude_session_id "$SID"
+tmux set-option -t <IDX> -w @claude_account "personal"
 ```
 
 **Claude — fresh session, enterprise account:**
 ```bash
-tmux send-keys -t "<IDX>.<P>" "CLAUDE_CONFIG_DIR=~/.claude-enterprise claude -n '<window-name>'" Enter
+tmux send-keys -t "<IDX>.<P>" "CLAUDE_CONFIG_DIR=~/.claude-enterprise claude --session-id $SID -n '<window-name>'" Enter
+tmux set-option -t <IDX> -w @claude_session_id "$SID"
+tmux set-option -t <IDX> -w @claude_account "enterprise"
 ```
+(For interactive typing at a shell prompt instead of dispatching, `claude-ent` is a shell function — defined in `local_dotfiles_RCCMidwayGeneral/.zshrc_local` — that wraps `CLAUDE_CONFIG_DIR=~/.claude-enterprise claude` and forwards all args, e.g. `claude-ent --resume <id>`.)
 
 **Claude — resuming a specific session by ID:**
 ```bash
 tmux send-keys -t "<IDX>.<P>" "claude -r <session-id>" Enter
+tmux set-option -t <IDX> -w @claude_session_id "<session-id>"
+tmux set-option -t <IDX> -w @claude_account "personal"
 ```
-(Prefix with `CLAUDE_CONFIG_DIR=~/.claude-enterprise ` too if that session was started under the enterprise account — sessions/history are shared via a symlinked `projects` dir, but credentials/settings.local state are not, so resuming under the wrong config dir may prompt a fresh login.)
+(Prefix with `CLAUDE_CONFIG_DIR=~/.claude-enterprise ` — and tag `@claude_account enterprise` — if that session should run under the enterprise account. Sessions/history are shared via a symlinked `projects` dir, but credentials/settings.local state are not, so resuming under the wrong config dir may prompt a fresh login.)
 
-Concrete example — IDX=5, P=2, fresh: `tmux send-keys -t "5.2" "claude -n 'my-project'" Enter`
+Concrete example — IDX=5, P=2, fresh, personal: `tmux send-keys -t "5.2" "claude --session-id $SID -n 'my-project'" Enter`
 
 **Codex — fresh session** (stateless; no session resume):
 ```bash
@@ -263,16 +277,97 @@ Session is already active. Tell the user and ask what they want to do.
 **Sub-case 2b — Two panes, bottom pane is a shell (exited):**
 ```bash
 tmux send-keys -t "<IDX>.2" "claude -r <session-id>" Enter
+tmux set-option -t <IDX> -w @claude_session_id "<session-id>"
+tmux set-option -t <IDX> -w @claude_account "personal"   # or "enterprise" — match whichever config dir you used
 ```
-(Use `codex` instead if that was the original tool.) Then do Step G.
+(Use `codex` instead if that was the original tool — codex has no account tagging.) Then do Step G.
 
 **Sub-case 2c — Only one pane (no bottom pane yet):**
 ```bash
 tmux split-window -v -t <IDX> -c "/path/to/project"
 tmux list-panes -t <IDX> -F "#{pane_index}: #{pane_current_command}"
 tmux send-keys -t "<IDX>.2" "claude -r <session-id>" Enter
+tmux set-option -t <IDX> -w @claude_session_id "<session-id>"
+tmux set-option -t <IDX> -w @claude_account "personal"   # or "enterprise"
 ```
 Then do Step G.
+
+---
+
+## Account tracking, work-mode default, and switching accounts
+
+### Why every window is tagged
+
+Every dispatcher-managed window carries two tmux window options, set at launch (Step F)
+or resume:
+- `@claude_session_id` — the exact session UUID running in that window
+- `@claude_account` — `"personal"` or `"enterprise"`
+
+These are the **source of truth** for which account a window is on and what its session
+ID is. Don't try to reverse-engineer either one from `~/.claude/projects/<dir>/*.jsonl`
+by directory + newest-mtime — **two windows can share a project directory**, and picking
+"the newest file in that directory" can silently resolve to a *different* window's live
+session. This happened once during testing: resuming what was assumed to be a freshly
+spawned, still-blank session actually pulled in another window's active transcript,
+because that other window's session file had a later mtime. No data was lost (it was
+caught before any message was sent into the wrongly-resumed pane), but it could have
+caused two concurrent `claude` processes to write the same transcript file. Always tag
+at creation time instead of inferring later.
+
+Check tags (use `show-window-options`, NOT `show-options -t <idx> -wv` — the latter
+silently falls back to the *current/active* window's value when the target window has
+no per-window value set, which looked like every window shared one value until caught):
+```bash
+tmux show-window-options -t <IDX> -v @claude_session_id
+tmux show-window-options -t <IDX> -v @claude_account
+```
+
+### Work-mode default (manual, no auto-detection)
+
+`~/.claude/dispatch_default_account` holds the default account for *new* sessions when
+the user doesn't specify one:
+- Missing or contains `personal` → default to personal (the normal case)
+- Contains `enterprise` → default to enterprise
+
+Toggle it when the user says so ("I'm at work" / "switch to work mode" → write
+`enterprise`; "I'm home" / "back to personal" → write `personal` or `rm` the file). There
+is no automatic detection of "at work" (IP-based detection was tried and rejected — the
+user is on VPN both at home and at work, so client IP doesn't distinguish them). An
+explicit account request in the user's message always wins over this default for that
+one request.
+
+### Switching a window's account (enterprise ↔ personal)
+
+```bash
+~/.claude/switch-account.sh <personal|enterprise> [window-name ...]
+```
+
+- No window names: switches every tagged, dispatcher-managed window currently on the
+  *opposite* account.
+- Window names given: switches exactly those windows (must already be tagged).
+- Untagged windows are skipped with a warning, never guessed at.
+
+Mechanics: kills the `claude` process in the pane (SIGTERM, graceful), relaunches
+`claude --resume <session-id>` in the same pane under the target `CLAUDE_CONFIG_DIR`
+(none for personal, `~/.claude-enterprise` for enterprise), and updates the
+`@claude_account` tag. **No `--fork-session`** — this is an in-place switch of the same
+conversation, not a copy, because `~/.claude-enterprise/projects` is symlinked to
+`~/.claude/projects` (both identities already read/write one shared transcript tree;
+`CLAUDE_CONFIG_DIR` only selects credentials, not history). Verified live: switching
+loses no history, and the header correctly flips between "Claude Pro"/`config-dir:
+default` and "Claude Enterprise"/`config-dir: enterprise`.
+
+Scope: only touches windows *you* (the dispatcher) manage — the two-pane convention with
+`claude` running in the bottom pane and both tags set. It won't find or touch `claude`
+processes running outside tmux windows you created, or in windows missing the tags.
+
+### `claude-ent` shell wrapper
+
+For the user typing directly at a shell prompt (not via dispatch), `claude-ent` in
+`local_dotfiles_RCCMidwayGeneral/.zshrc_local` wraps
+`CLAUDE_CONFIG_DIR=~/.claude-enterprise command claude "$@"` — forwards all flags
+untouched, so `claude-ent --resume <id>`, `claude-ent -c`, etc. all work without having
+to remember the env var.
 
 ---
 
@@ -296,7 +391,7 @@ tmux kill-window -t <IDX>
 
 ## The dispatcher agent
 
-`~/.claude/agents/dispatcher.md` (model: haiku) is a standalone always-on session for Remote Control use. **Always run this under the personal account (default, no `CLAUDE_CONFIG_DIR` override)** — Remote Control only works for the account that's actually logged in, and the enterprise account doesn't have it enabled.
+`~/.claude/agents/dispatcher.md` (model: sonnet) is a standalone always-on session for Remote Control use. **Always run this under the personal account (default, no `CLAUDE_CONFIG_DIR` override)** — Remote Control only works for the account that's actually logged in, and the enterprise account doesn't have it enabled.
 
 Start it:
 ```bash
