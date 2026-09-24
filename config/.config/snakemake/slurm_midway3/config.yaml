@@ -9,7 +9,7 @@ local-cores: 5 #I think the RCC logs you off if you do more than like 6 concurre
 latency-wait: 60
 use-conda: True
 rerun-incomplete: True #If you cancel a snakemake mid-run, you probably want snakemake to rerun the jobs it did not finish last run.
-jobs: 900 #caslake per-user QOS: MaxJobsPU=1000, node=100, cpu=4800. Deliberately 100 below the 1000 job ceiling so a big workflow always leaves room to run something else: at 900 x 16GB over 100 nodes that is ~144GB of each 184GB node, so ~40GB stays free per node for an interactive job. How many jobs actually run is set by how many fit per node, so keep rule mem requests tight (measure with sacct MaxRSS).
+jobs: 450 #caslake per-user QOS: node=100, cpu=4800, MaxJobsPU=1000. NODES bind first: at the ~6.8 jobs/node this packs to, 100 nodes is only ~680 running jobs, so the 1000-job limit is effectively unreachable and cpu is never close. 450 holds ~66 nodes, leaving ~34 free for other work (or a second workflow). Density shifts with how busy other users are, so re-measure with: squeue -u $USER -ht RUNNING -o '%N' | sort -u | wc -l
 scheduler: greedy #I forgot why this is important or what it does exactly, but for some large workflows, things just work better with this I think
 shadow-prefix: /scratch/midway3/bjf79 #running shadow rules is sometimes useful, and scratch space is a sensible place for the shadow (temp) files. Must be this cluster's own scratch: pointing it at /scratch/midway2 works from the login node but every shadow rule then fails on the compute nodes once that quota is exceeded
 cluster-cancel: scancel #when you cancel a snakemake, this allows snakemake to scancel the jobs already submitted to slurm
