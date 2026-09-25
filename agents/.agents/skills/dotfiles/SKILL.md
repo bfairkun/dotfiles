@@ -203,6 +203,11 @@ When `stow -v <package>` fails with `CONFLICT: ... vs. ...`:
 2. Run `stow -v <package>` — it will now create the symlink cleanly
 3. Decide: restore the real file over the symlink (`mv bar.bak bar` — keeps it as an unmanaged real file), or update the dotfiles copy to match and keep it managed
 
+**Absolute symlinks conflict too.** Stow only claims *relative* links. A link like
+`~/bin/foo -> /home/<user>/dotfiles/bin/bin/foo` points at the right file but still blocks
+`stow bin` (seen with `install-codex-tmux-hooks`, 2026-09-25). Fix: `ln -sfn ../dotfiles/bin/bin/foo ~/bin/foo`.
+Find them with `find ~ -maxdepth 2 -lname "$HOME/dotfiles/*"`.
+
 Utility: `bin/bin/MoveStowConflicts.cli.py` automates moving all conflicting files to a backup dir in bulk.
 
 ## Git Lock Quirks on This Mac
