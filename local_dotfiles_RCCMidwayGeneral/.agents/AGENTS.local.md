@@ -9,7 +9,7 @@ This package stows on **both** RCC Midway login nodes. Confirm which node with `
 | `midway2-login*` | Midway2 |
 | `midway3-login*` | Midway3 |
 
-Tools, partitions, and behaviors may differ between nodes — note the hostname when a fix is node-specific. Genuinely node-local dotfiles (e.g. VSCode remote-server settings) live in `local_dotfiles_RCCMidway2` (no Midway3-specific package exists yet).
+Tools, partitions, and behaviors may differ between nodes — note the hostname when a fix is node-specific. Genuinely node-local dotfiles (e.g. VSCode remote-server settings) live in `local_dotfiles_RCCMidway2` / `local_dotfiles_RCCMidway3`.
 
 ## Key Facts
 

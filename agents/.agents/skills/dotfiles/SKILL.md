@@ -103,12 +103,13 @@ stow handles it correctly everywhere.
 |---------|---------|
 | `local_dotfiles_RCCMidwayGeneral/` | RCC Midway HPC (**both** login nodes) — shell/config overrides, extra `bin/`, and `.agents/AGENTS.local.md` |
 | `local_dotfiles_RCCMidway2/` | Midway2 node only — VSCode remote-server settings |
+| `local_dotfiles_RCCMidway3/` | Midway3 node only — per-machine feature markers (e.g. `.brain-notes-reminder`) |
 | `local_dotfiles_GreatLakesUMich/` | UMich Great Lakes HPC — shell locals, `.condarc`, extra `bin/`, and `.agents/AGENTS.local.md` |
 | `local_dotfiles_MyMacbookAir/` | Personal MacBook Air — shell locals, SSH config, LaunchAgents, and `.agents/AGENTS.local.md` |
 | `local_dotfiles_MEDGEN_MacbookAir/` | MEDGEN (work) MacBook Air — same shape as MyMacbookAir |
 | `local_dotfiles_HPStream/` | HP Stream laptop (Linux, i3wm) |
 
-One package per physical machine. There is intentionally no `RCCMidway3`-specific package. Create one only for genuinely Midway3-only files. Per-machine agent facts go in each package's `.agents/AGENTS.local.md`; the RCC Midway file in `RCCMidwayGeneral` serves both login nodes.
+One package per physical machine. `RCCMidway3` holds only genuinely Midway3-only files; everything shared by both nodes stays in `RCCMidwayGeneral`. Per-machine agent facts go in each package's `.agents/AGENTS.local.md`; the RCC Midway file in `RCCMidwayGeneral` serves both login nodes.
 
 ## Local Override Pattern
 
@@ -136,11 +137,12 @@ When adding new files near submodules, be careful not to accidentally edit the s
 | New portable script | `bin/bin/` |
 | RCC Midway shell/env settings (both nodes) | `local_dotfiles_RCCMidwayGeneral/` |
 | Midway2-only settings | `local_dotfiles_RCCMidway2/` |
-| Midway3-only settings | create `local_dotfiles_RCCMidway3/` (none exist yet) |
+| Midway3-only settings | `local_dotfiles_RCCMidway3/` |
 | Per-machine agent facts (paths, hostname verify) | that machine's `.agents/AGENTS.local.md` |
 | macOS settings | `local_dotfiles_MyMacbookAir/` or `local_dotfiles_MEDGEN_MacbookAir/` |
 | Shared agent instructions/skills and client config | `agents/` |
 | Misc dotfiles with no better home | `other/` |
+| Turn a general script on for one machine | stow a top-level marker file from that machine's package (not under `.config/` — `~/.config` is a folded symlink to the `config` package) |
 | Snakemake cluster profiles | `config/.config/snakemake/<profile-name>/` |
 
 ## Key Utilities

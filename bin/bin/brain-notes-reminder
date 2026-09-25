@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# SessionStart hook: at most once a week, remind the user to file brain's
+# raw/inbox/Notes.md when it has content. Silent otherwise.
+# Brain path comes from the BRAIN_PATH row of ~/.agents/AGENTS.local.md.
+# Enabled only on machines whose local_dotfiles_* package stows the marker
+# ~/.brain-notes-reminder (currently RCCMidway3, MEDGEN_MacbookAir).
+# Usage: brain-notes-reminder [--force]   (--force skips the weekly throttle)
+
+cat >/dev/null 2>&1 || true   # drain hook JSON on stdin
+[ -e ~/.brain-notes-reminder ] || exit 0
+
+brain=$(grep -m1 'BRAIN_PATH' ~/.agents/AGENTS.local.md 2>/dev/null \
+  | sed -E 's/.*\| *`([^`]+)`.*/\1/')
+brain=${brain/#\~/$HOME}
+notes="$brain/raw/inbox/Notes.md"
+stamp="${XDG_CACHE_HOME:-$HOME/.cache}/brain-notes-reminder.stamp"
+
+# Only non-blank content counts.
+grep -q '[^[:space:]]' "$notes" 2>/dev/null || exit 0
+
+if [ "$1" != "--force" ] && [ -n "$(find "$stamp" -mtime -7 2>/dev/null)" ]; then
+  exit 0
+fi
+mkdir -p "$(dirname "$stamp")" && touch "$stamp"
+
+n=$(grep -c '[^[:space:]]' "$notes")
+msg="brain Notes.md has $n unfiled line(s) ($notes). Say 'file my notes' to sort them into the right places."
+printf '{"systemMessage": "%s", "hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": "%s Mention this to the user once, briefly, at your first reply."}}\n' "$msg" "$msg"

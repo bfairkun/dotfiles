@@ -144,6 +144,15 @@
             "async": true
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -x ~/bin/brain-notes-reminder ] && ~/bin/brain-notes-reminder || true",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "SessionEnd": [
