@@ -1,18 +1,16 @@
 ---
 name: new-notebook
-description: Create a new analysis notebook in the analysis/ directory. Invoke when starting a new analysis, exploration, or visualization task that needs a notebook.
+description: Create a new analysis notebook in the analysis/ directory, and the writing standard every notebook must meet. Invoke when starting a new analysis, exploration, or visualization task that needs a notebook, or when writing prose or captions into one.
 argument-hint: "[brief description of analysis]"
 ---
 
 # New Notebook Conventions
 
-## Naming
-Always date-prefix: `analysis/YYYYMMDD_descriptive_name.qmd`
-- Use today's date
-- Descriptive name uses underscores, lowercase
-- Example: `analysis/20260303_splice_site_conservation.qmd`
+## Naming and header
 
-## Python kernel (Quarto + Jupyter)
+`analysis/YYYYMMDD_descriptive_name.qmd` — today's date, lowercase, underscores.
+
+Python:
 
 ```yaml
 ---
@@ -21,130 +19,89 @@ jupyter: py_general
 format:
   html:
     code-fold: true
----
-```
-
-Then standard Python cells:
-```python
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-```
-
-- `my_utils` is pre-installed in `py_general` — no sys.path hacks needed
-- Use `from IPython.display import display` for inline plots
-
-## R kernel (Quarto + knitr)
-
-```yaml
----
-title: "Descriptive Title"
-output: html_document
----
-```
-
-For Quarto with R engine:
-```yaml
----
-title: "Descriptive Title"
-format: html
+    toc: true
 execute:
   echo: true
   warning: false
 ---
 ```
 
-Standard R setup chunk:
-````
-```{r setup, include=FALSE}
-library(tidyverse)
-library(data.table)
-```
-````
+R (knitr engine): same header without `jupyter:`, plus `message: false` under `execute`, and an
+`{r setup}` chunk with `#| include: false` loading `tidyverse`.
 
-## Prose — a notebook is a document, not a script
+`my_utils` is installed in `py_general`; no `sys.path` hacks. Paths are relative to `analysis/`
+(`../data/`, `../output/`, `../code/scratch/`). Small committed outputs → `output/`; large files →
+`code/scratch/`.
 
-A reader who was not present for the analysis must be able to follow it. Code alone
-never achieves this. Write enough prose that the notebook stands on its own.
+## Writing standard
 
-**Open with the question.** The first block states what is being asked and why it
-matters, names the external source (paper, dataset, prior notebook) with a link or
-identifier, and lists what the notebook covers. Give the reader the background needed
-to interpret the result — including any premise that is easy to get backwards, stated
-explicitly.
+The notebook is written for a reader who was not in the session. The user is the author; the
+agent is a scribe. Write in the user's plain, lab-notebook voice: short declarative sentences,
+standard field terminology, no rhetoric.
 
-**Introduce every plot and table before it appears.** Say what is being plotted, how
-the quantity was computed, why it was computed that way, and what to look for. A
-figure caption is not a substitute for this.
+### Structure of each section
 
-**Justify the methodological choices a reader would otherwise have to reverse-engineer
-from the code**, since these are exactly what makes a result trustworthy or not:
+1. **Context** (above the analysis): the question, why it is asked, and what motivated it
+   (prior notebook, paper, observation) with a link or identifier.
+2. **Methods** (above the figure): enough detail to write a paper's methods section — data
+   source and filters, sample/feature counts, the model or statistic with its definition,
+   parameter values and why they were chosen, controls, and anything deliberately excluded.
+3. **Figure**. Nearly every finding is shown in a figure, not described in text. If a
+   conclusion has no figure behind it, make the figure or drop the conclusion.
+4. **Caption** (directly below the figure, as `fig-cap` or a caption paragraph — never text
+   drawn inside the figure): what each panel, axis, point, line, and color encodes, and n.
+   A reader skimming only figures and captions should know what is plotted. The caption
+   describes; it does not interpret.
+5. **Result** (optional, one to three sentences): what the figure shows, stated as an
+   observation with the supporting numbers. Only interpretations the user has confirmed go
+   here unsigned (see below).
 
-- why a parameter has the value it does (window size, thresholds, region bounds)
-- where coordinates came from, and any sanity check confirming them
-- what serves as the positive control and what serves as the negative control
-- what was deliberately excluded or not done, and why
-- how a summary statistic is defined, and why that definition over the alternatives
+End with a short **Summary** listing the confirmed findings, and open questions or caveats.
 
-**Close with conclusions.** State the answer to the opening question in plain language,
-with the numbers that support it, followed by caveats and limits on interpretation.
-Report negative results as findings, not omissions.
+### Interpretation and attribution
 
-Prefer prose between chunks over comments inside them. Assertions on coordinates and
-key assumptions are worth more than a sentence claiming the same thing.
+Unsigned prose is read as the user's own view. Therefore:
 
-## Data paths
+- Unsigned interpretation must come from the user — something they said in the session or
+  confirmed in the pre-render check (`interactive-notebook` skill).
+- Agent interpretation is included only when a later section depends on it. Put it in a
+  labelled callout, kept to a few sentences:
 
-Always use paths relative to the `analysis/` directory OR construct absolute paths robustly:
-```python
-# Python: go up one level from analysis/
-import os
-data_path = "../data/myfile.csv"
-output_path = "../output/results.csv"
-scratch_path = "../code/scratch/intermediates.parquet"
-```
+  ```
+  ::: {.callout-note title="Agent interpretation (not verified by author)"}
+  ...
+  :::
+  ```
 
-```r
-# R
-data_path <- "../data/myfile.csv"
-output_path <- "../output/results.csv"
-```
+- No biological speculation, mechanism, or "this suggests…" chains beyond what the user said.
 
-## Large outputs
-- Small tables/figures → `output/` (committed)
-- Large files → `code/scratch/` (not committed), reference from notebook
+### Style — avoid
+
+- Narrating the session ("we then noticed", "a question forced itself on us", "partway through").
+- Coined labels, metaphors, or private shorthand from the chat; use standard terms, and define
+  any variable or column name before using it.
+- Bold for emphasis in running prose, rhetorical questions, "crucially"/"notably"/"importantly".
+- Restating the same point in intro, result, and summary.
+- Explaining code line by line; code is folded and speaks for itself.
 
 ## Reader comment boxes
 
-Projects scaffolded from `cookiecutter-quarto-smk` ship `analysis/_comment_widget.html`,
-wired in through `include-after-body` in `analysis/_quarto.yml`. Every rendered page then
-carries a comment panel at the bottom with no per-notebook markup — check whether the
-project has that file before assuming the feature exists.
-
-To invite comment at a specific point as well — after a figure, at the end of a section a
-collaborator should weigh in on — drop a marker anywhere in the `.qmd`:
+Projects from `cookiecutter-quarto-smk` ship `analysis/_comment_widget.html` (wired via
+`include-after-body` in `analysis/_quarto.yml`), which adds a comment panel to every page. Check
+the file exists before relying on it. To add a box at a specific point:
 
 ```
 ::: {.comment-box}
 :::
 ```
 
-`data-anchor` overrides the box's label, which otherwise defaults to the nearest preceding
-heading. `data-prompt` puts a question above the box — **leave it off unless the user has
-told you what to ask.**
+`data-anchor` overrides the label (default: nearest heading). `data-prompt` adds a question above
+the box — only when the user has said what to ask. Readers save comments with **Download
+annotated copy** (not the browser's Save Page As).
 
-Readers type into the boxes and press **Download annotated copy**, which serializes the live
-DOM into a new self-contained HTML with the comments inside it. (The browser's own Save Page
-As re-saves the original source and loses them.) All boxes share one comment store, so a
-single download captures every comment on the page.
+## Rendering
 
-## After creating the notebook
-Remind the user to render it with `render_notebook` (a quarto shim in `~/bin/` that records the render env into a hidden block in the `.qmd`; see `compute-kernel` skill):
-```bash
-# From project root or analysis/ dir
-render_notebook render analysis/YYYYMMDD_name.qmd
-```
-Or for Python notebooks, register the kernel first if needed:
-```bash
-conda run -n py_general python -m ipykernel install --user --name py_general
-```
+`render_notebook render analysis/YYYYMMDD_name.qmd` (a quarto shim in `~/bin/` that records the
+render env; see `compute-kernel`). Python: prefix with `conda run -n py_general`. Before
+rendering a notebook the agent wrote prose for, run the pre-render check in the
+`interactive-notebook` skill.
