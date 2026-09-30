@@ -118,14 +118,13 @@ snakemake --profile slurm_midway3 [targets]
 snakemake --profile slurm [targets]
 ```
 
-**Use these global profiles, never a project's own `code/snakemake_profiles/`.** Many projects
-carry one as a cookiecutter remnant. It is a trap: `snakemake_profiles/slurm/slurm-submit.py`
-hardcodes `CLUSTER_CONFIG = "cluster-config.yaml"`, so a stale per-project copy silently
-overrides partition and account, and the in-project profile also lacks `conda-prefix` and
-`shadow-prefix` — so it rebuilds conda envs per project and can point shadow rules at the wrong
-cluster's scratch. Symptom of a stale copy: a Midway2-era `partition: broadwl`, or a missing
-`account:` key, giving `sbatch: Reason: Account is not specified`. Delete stray in-project
-`cluster-config.yaml` files rather than fixing them.
+**Always use these global profiles.** Projects no longer carry their own
+`code/snakemake_profiles/` (removed from the cookiecutter template and all projects, 2026-09-27).
+If one reappears (e.g. from an old clone or a submodule), delete it rather than fixing it: its
+stale `cluster-config.yaml` silently overrides partition/account (symptom: `partition: broadwl`,
+or `sbatch: Reason: Account is not specified`), and it lacks `shadow-prefix` and `conda-prefix`.
+`SNAKEMAKE_CONDA_PREFIX` (exported host-aware in `.zshenv`) keeps conda envs shared regardless —
+per-project `.snakemake/conda` copies once cost the lab ~800k files of its file quota.
 
 Note that snakemake swallows sbatch's stderr and reports only
 `Error submitting jobscript (exit code 1)`. To see the real reason, copy the `sbatch ...` command
@@ -155,7 +154,8 @@ If existing outputs were incorrectly flagged as stale (e.g., due to a rule modif
 - `use-conda: True` — activate per-rule conda envs
 - `latency-wait: 60` — wait up to 60s for output files
 - `conda-prefix: /project/yangili1/bjf79/snakemake_conda_envs` — shared, so identical env yamls
-  are not rebuilt per project
+  are not rebuilt per project. yangili1 is **file-count** limited (~18M/fileset), and each env is
+  10–50k files, so never let envs build inside a project
 - `shadow-prefix: /scratch/midway3/bjf79` — must be *this* cluster's scratch; a midway2 path
   resolves from the login node but then fails on compute nodes
 
