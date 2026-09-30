@@ -111,6 +111,29 @@ if [ $? -eq 0 ]; then
 fi
 
 
+# Start the userspace tailscaled daemon once per Midway3 login node, before
+# the phone bridge and before attaching to tmux. Unlike bridge.py, tailscaled
+# has no auto-restart if it dies (e.g. login-node reboot) -- confirmed
+# 2026-09-24: it silently stopped and the phone bridge became unreachable via
+# its tailnet URL even though bridge.py itself was still running fine on
+# loopback. A named tmux session also prevents duplicate starts from
+# simultaneous logins.
+if [[ "$-" == *i* && -z "${TMUX:-}" ]]; then
+    case "$(hostname -s)" in
+        midway3-login*)
+            _ts_dir=/project/yangili1/bjf79/tools/tailscale
+            if [ -x "$_ts_dir/run_tailscaled.sh" ] && command -v tmux >/dev/null 2>&1; then
+                if ! pgrep -u "$(id -u)" -f "$_ts_dir/tailscaled([[:space:]]|\$)" >/dev/null 2>&1 &&
+                   ! timeout 5 tmux has-session -t '=tailscaled' 2>/dev/null; then
+                    timeout 5 tmux new-session -d -s tailscaled -c "$_ts_dir" \
+                        'umask 077; exec ./run_tailscaled.sh >>tailscaled_runner.log 2>&1' 2>/dev/null || :
+                fi
+            fi
+            unset _ts_dir
+            ;;
+    esac
+fi
+
 # Start the phone bridge once per Midway3 login node, before attaching to tmux.
 # A named tmux session also prevents duplicate starts from simultaneous logins.
 if [[ "$-" == *i* && -z "${TMUX:-}" ]]; then
