@@ -9,6 +9,8 @@ This package stows on **both** RCC Midway login nodes. Confirm which node with `
 | `midway2-login*` | Midway2 |
 | `midway3-login*` | Midway3 |
 
+**Beagle3** (`beagle3-login[1-4]`) shares Midway3's `/home`, `/project`, `/scratch`, module tree, and Slurm, so the RCC stow packages already apply there. Dotfile host checks must match `beagle3` alongside `midway3` (otherwise `/usr/bin/tmux` 2.7 loads and breaks `.tmux.conf`). Login cgroup: 10 GiB RAM, 4 CPUs per user. The `beagle3` GPU partition (A100) is **not** open to `pi-yangili1`/`pi-gilad`, so no GPU gain from logging in there.
+
 Tools, partitions, and behaviors may differ between nodes — note the hostname when a fix is node-specific. Genuinely node-local dotfiles (e.g. VSCode remote-server settings) live in `local_dotfiles_RCCMidway2` / `local_dotfiles_RCCMidway3`. The two nodes have **separate home directories**, so each node is stowed on its own.
 
 ## Key Facts

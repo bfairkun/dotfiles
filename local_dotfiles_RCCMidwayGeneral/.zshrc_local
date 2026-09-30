@@ -55,8 +55,8 @@ module load node
 # Midway2 specific
 hostname | grep -q 'midway2' && module load R/4.2.0
 
-# Midway3 specific
-hostname | grep -q 'midway3' && module load R/4.3.1
+# Midway3 specific (also beagle3, which shares Midway3's module tree)
+hostname | grep -Eq 'midway3|beagle3' && module load R/4.3.1
 
 ## ALIASES
 # alias jupyterlab = 'jupyter lab --no-browser --ip $(/sbin/ip route get 8.8.8.8 | awk '{print $NF;exit}')'

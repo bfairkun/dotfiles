@@ -9,7 +9,7 @@ export PATH=/software/slurm-current-el8-x86_64/bin:$PATH
 # code/snakemake_profiles/ (no conda-prefix there), which otherwise build
 # duplicate envs in .snakemake/conda and blow the yangili1 file quota.
 case "$HOST" in
-    midway3*) export SNAKEMAKE_CONDA_PREFIX=/project/yangili1/bjf79/snakemake_conda_envs ;;
+    midway3*|beagle3*) export SNAKEMAKE_CONDA_PREFIX=/project/yangili1/bjf79/snakemake_conda_envs ;;
     midway2*) export SNAKEMAKE_CONDA_PREFIX=/project2/yangili1/bjf79/snakemake_conda_envs ;;
 esac
 

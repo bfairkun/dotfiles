@@ -26,7 +26,9 @@ export TMPDIR='/tmp'
 # right home for this: caches are disposable, so a scratch purge is harmless.
 case "$(hostname)" in
     *midway2*) _xdg_scratch="/scratch/midway2/$USER" ;;
-    *midway3*) _xdg_scratch="/scratch/midway3/$USER" ;;
+    # beagle3 shares Midway3's /home, /project, /scratch and module tree, so it
+    # reuses Midway3's scratch cache (there is no /scratch/beagle3/$USER).
+    *midway3*|*beagle3*) _xdg_scratch="/scratch/midway3/$USER" ;;
     *)         _xdg_scratch='' ;;
 esac
 if [ -n "$_xdg_scratch" ] && [ -d "$_xdg_scratch" ]; then
@@ -102,8 +104,10 @@ if [ $? -eq 0 ]; then
     module load tmux/3.1c
 fi
 
-# Midway3 specific stuff
-hostname | grep -q 'midway3'
+# Midway3 specific stuff (also beagle3: same /home + /software stack). Without
+# this, beagle3 fell back to /usr/bin/tmux 2.7, which can't parse .tmux.conf
+# (broken window labels, raw mouse escape codes leaking into panes).
+hostname | grep -Eq 'midway3|beagle3'
 if [ $? -eq 0 ]; then
     module load mosh
     # module load rstudio
