@@ -105,6 +105,11 @@ wrong before that file is in context:
   per line so diffs are sentence-level. Never hand-wrap to a column width.
 - **Comments**: `% BF>` is a note from the user, `% CL>` is the agent's reply.
   Answer in place below the note; delete the pair once resolved.
+- **Tracked deletions**: preserve existing Markdown `~~crossouts~~` and LaTeX
+  strikeouts until the author explicitly asks to accept or remove them. Keep
+  them visible in generated review copies; resolving a nearby comment does not
+  authorize deleting crossed-out text. Fix delimiter spacing if needed for
+  rendering, without changing the crossed-out wording.
 
 **Rebuild after editing and report the real result.** A broken `.tex` produces
 no PDF at all, so "it compiles" is the minimum bar, not a success.
