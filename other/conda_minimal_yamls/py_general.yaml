@@ -45,11 +45,21 @@ dependencies:
   # Stats / ML
   - scikit-learn
   - statsmodels
-  - arviz
-  - pymc>=5
+  - arviz=0.23       # keep <1: dose-response SQLite blobs and dr_helper_functions use the
+                     # InferenceData API; arviz 1.x returns xarray DataTree instead
+  - h5netcdf         # backend az.from_netcdf needs to open those blobs (HDF5/netCDF4)
+  - pymc>=5.23,<6    # pymc 6 requires arviz>=1; blobs were written by pymc 5.23 (module pymc.yaml)
   - pip
   - pytensor
   - tensorflow
+  - lightning          # OligoAI/RiNALMo: train_aso imports the unified `lightning`
+                       # namespace; pytorch-lightning alone does NOT provide it
+  - ml-collections     # rinalmo.config (conda-forge name is hyphenated)
+  - einops             # rinalmo attention
+  - pytorch        # Angler (needs torch>=2.6,<3) and OligoAI; conda-forge picks a cpu_mkl
+                   # build here, sharing MKL with tensorflow — no CUDA stack is pulled in.
+                   # OligoAI's checkpoint needs torch.serialization.add_safe_globals(
+                   # [rinalmo.utils.scaler.StandardScaler, set]) under torch>=2.6.
 
   # Bioinformatics
   - biopython
@@ -70,6 +80,10 @@ dependencies:
   - bioconda::hgvs
   - bioconda::logomaker
   - bioconda::gseapy  # GO/pathway enrichment (ORA + GSEA); gp.enrich() supports custom background
+  - bioconda::viennarna   # RNA secondary structure; RNAplfold accessibility for ASO target sites
+  - bioconda::primer3-py  # hairpin/homodimer/heterodimer Tm — aso_tm only does the ASO:target duplex
+  - pyranges              # pandas-native genomic intervals
+  - intervaltree          # pure-python interval overlap (only dep: sortedcontainers)
 
   # Utilities
   - jinja2
@@ -83,13 +97,19 @@ dependencies:
   - pyopenssl>=24  # avoid drift vs cryptography (X509_V_FLAG_NOTIFY_POLICY removed in cryptography>=42)
   - natsort
   - anndata
+  - itables       # interactive sortable/filterable DataFrames in notebooks
+  - adjusttext    # non-overlapping point labels in matplotlib
+  - upsetplot     # set-intersection plots
+  - watermark     # %watermark -iv to stamp package versions into a notebook
 
   - pip:
-    - my-utils==0.1.0
-    # On a machine with a local clone, prefer an editable install so edits to
-    # my_utils are picked up immediately without reinstalling — replace the
-    # pinned line above with this (path is machine-specific, RCC Midway shown):
-    # - -e /project/yangili1/bjf79/repos_not_projects/my_utils
+    # Editable install against the local clone, so edits to my_utils are picked up
+    # without reinstalling. Path is machine-specific (RCC Midway shown); on a machine
+    # with no clone, replace this line with the pinned `my-utils==0.1.0`.
+    - -e /project/yangili1/bjf79/repos_not_projects/my_utils
+    # Angler splice-site/branchpoint diGRU (private repo Rua76/angler_public, cloned
+    # with `gh repo clone`). Editable against the local clone; torch comes from conda.
+    - -e /project/yangili1/bjf79/repos_not_projects/angler_public
     - alphagenome==0.5.1
     - pikachu-chem==1.1.5
 
