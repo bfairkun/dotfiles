@@ -115,45 +115,18 @@ if [ $? -eq 0 ]; then
 fi
 
 
-# Start the userspace tailscaled daemon once per Midway3 login node, before
-# the phone bridge and before attaching to tmux. Unlike bridge.py, tailscaled
-# has no auto-restart if it dies (e.g. login-node reboot) -- confirmed
-# 2026-09-24: it silently stopped and the phone bridge became unreachable via
-# its tailnet URL even though bridge.py itself was still running fine on
-# loopback. A named tmux session also prevents duplicate starts from
-# simultaneous logins.
+# Start only explicitly configured per-node bridge services. Each node has its
+# own Tailscale identity and runtime sockets; never use the old shared runner.
 if [[ "$-" == *i* && -z "${TMUX:-}" ]]; then
-    case "$(hostname -s)" in
-        midway3-login*)
-            _ts_dir=/project/yangili1/bjf79/tools/tailscale
-            if [ -x "$_ts_dir/run_tailscaled.sh" ] && command -v tmux >/dev/null 2>&1; then
-                if ! pgrep -u "$(id -u)" -f "$_ts_dir/tailscaled([[:space:]]|\$)" >/dev/null 2>&1 &&
-                   ! timeout 5 tmux has-session -t '=tailscaled' 2>/dev/null; then
-                    timeout 5 tmux new-session -d -s tailscaled -c "$_ts_dir" \
-                        'umask 077; exec ./run_tailscaled.sh >>tailscaled_runner.log 2>&1' 2>/dev/null || :
-                fi
-            fi
-            unset _ts_dir
-            ;;
-    esac
-fi
-
-# Start the phone bridge once per Midway3 login node, before attaching to tmux.
-# A named tmux session also prevents duplicate starts from simultaneous logins.
-if [[ "$-" == *i* && -z "${TMUX:-}" ]]; then
-    case "$(hostname -s)" in
-        midway3-login*)
-            _bridge_dir=/project/yangili1/bjf79/repos_not_projects/tmux-agent-bridge
-            if [ -x "$_bridge_dir/run.sh" ] && command -v tmux >/dev/null 2>&1; then
-                if ! pgrep -u "$(id -u)" -f '/project/yangili1/bjf79/repos_not_projects/tmux-agent-bridge/bridge[.]py([[:space:]]|$)' >/dev/null 2>&1 &&
-                   ! timeout 5 tmux has-session -t '=bridge' 2>/dev/null; then
-                    timeout 5 tmux new-session -d -s bridge -c "$_bridge_dir" \
-                        'umask 077; exec ./run.sh >>bridge.log 2>&1' 2>/dev/null || :
-                fi
-            fi
-            unset _bridge_dir
-            ;;
-    esac
+    _bridge_dir=/project/yangili1/bjf79/repos_not_projects/tmux-agent-bridge
+    _bridge_host="$(hostname -s)"
+    if [ -x "$_bridge_dir/start-hpc.sh" ] &&
+       [ -f "$_bridge_dir/.bridge-state/deployment/$_bridge_host/service.env" ] &&
+       command -v tmux >/dev/null 2>&1; then
+        timeout 60 "$_bridge_dir/start-hpc.sh" >/dev/null 2>&1 ||
+            printf '%s\n' 'Bridge startup incomplete; inspect the node-specific deployment logs.' >&2
+    fi
+    unset _bridge_dir _bridge_host
 fi
 
 # Attach or tmux session
