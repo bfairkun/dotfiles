@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+"""Apply portable preferences to Codex's writable config, preserving local settings.
+
+Run after stowing bin. Keep config.toml separate: Codex also stores project trust
+and other machine/session settings there.
+"""
+import os
+from pathlib import Path
+import re
+import subprocess
+import tempfile
+
+# Reject unsupported preferences before changing the live configuration.
+subprocess.run(
+    ['codex', 'app-server', '--strict-config', '--print-startup-config',
+     '-c', 'tui.copy_on_select="always"'],
+    check=True, stdout=subprocess.DEVNULL, timeout=20,
+)
+config_dir = Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex')))
+path = config_dir / 'config.toml'
+original = path.read_text() if path.exists() else ''
+lines = original.splitlines(keepends=True)
+start = next((i for i, line in enumerate(lines)
+              if re.fullmatch(r'\s*\[tui\]\s*(?:#.*)?', line.strip())), None)
+setting = 'copy_on_select = "always"\n'
+if start is None:
+    updated = original.rstrip('\n') + '\n\n[tui]\n' + setting
+else:
+    end = next((i for i in range(start + 1, len(lines))
+                if lines[i].lstrip().startswith('[')), len(lines))
+    key = next((i for i in range(start + 1, end)
+                if re.match(r'\s*copy_on_select\s*=', lines[i])), None)
+    if key is None:
+        lines[start] = lines[start].rstrip('\n') + '\n'
+        lines.insert(start + 1, setting)
+    else:
+        lines[key] = setting
+    updated = ''.join(lines)
+if updated != original:
+    config_dir.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix='.config-', dir=config_dir)
+    with os.fdopen(fd, 'w') as stream:
+        stream.write(updated)
+    os.replace(temporary, path)
+print('Codex copy-on-select enabled. Restart Codex to apply.')
