@@ -120,10 +120,10 @@ fi
 if [[ "$-" == *i* && -z "${TMUX:-}" ]]; then
     _bridge_dir=/project/yangili1/bjf79/repos_not_projects/tmux-agent-bridge
     _bridge_host="$(hostname -s)"
-    if [ -x "$_bridge_dir/start-hpc.sh" ] &&
+    if [ -x "$_bridge_dir/scripts/start-bridge.sh" ] &&
        [ -f "$_bridge_dir/.bridge-state/deployment/$_bridge_host/service.env" ] &&
        command -v tmux >/dev/null 2>&1; then
-        timeout 60 "$_bridge_dir/start-hpc.sh" >/dev/null 2>&1 ||
+        timeout 60 "$_bridge_dir/scripts/start-bridge.sh" >/dev/null 2>&1 ||
             printf '%s\n' 'Bridge startup incomplete; inspect the node-specific deployment logs.' >&2
     fi
     unset _bridge_dir _bridge_host
