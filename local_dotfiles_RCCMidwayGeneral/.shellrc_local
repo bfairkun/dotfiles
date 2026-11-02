@@ -38,11 +38,15 @@ alias srstudio='sinteractive --mem=8g --time=2:00:00 --cpus-per-task=4 --command
 # Load secret API keys (not tracked in dotfiles)
 [ -f ~/.secrets ] && source ~/.secrets
 
-# Auto-start agent plots HTTP server on port 8765
-if ! ss -tln 2>/dev/null | grep -q ':8765 '; then
-    mkdir -p $SCRATCH/$USER/agent_plots
-    nohup python3 ~/.claude/skills/agent-plots/agent_plots_server.py --port 8765 --directory $SCRATCH/$USER/agent_plots > $SCRATCH/$USER/agent_plots/server.log 2>&1 &
+# Auto-start agent plots HTTP server. Login nodes are shared: other users may
+# hold 8765, so the server falls back up to 8769 and records the port it bound in
+# ~/.agent_plots_port. Only skip startup if *our* uid owns that port on this node.
+mkdir -p $SCRATCH/$USER/agent_plots
+_ap_port=$(cat ~/.agent_plots_port 2>/dev/null)
+if [ -z "$_ap_port" ] || ! ss -tlne 2>/dev/null | grep -Eq ":$_ap_port[[:space:]].*uid:$(id -u)[[:space:]]"; then
+    nohup python3 ~/.agents/skills/agent-plots/agent_plots_server.py --port 8765 --directory $SCRATCH/$USER/agent_plots > $SCRATCH/$USER/agent_plots/server.log 2>&1 &
 fi
+unset _ap_port
 
 # List running Jupyter kernels (newest first)
 function jk() {

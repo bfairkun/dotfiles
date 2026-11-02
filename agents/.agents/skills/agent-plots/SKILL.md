@@ -6,7 +6,7 @@ description: How to share plots and tables with the user. Invoke when saving any
 # Agent Plots Workflow
 
 Machine-specific paths are in `AGENTS.local.md → Agent Reference` (always in context).
-- **HPC**: HTTP server on port 8765 (may auto-shift to 8766-8769 on RCC Midway if another user already holds 8765 — SSH tunnel covers the whole range) + SSH tunnel → user browses `http://localhost:<port>`
+- **HPC**: HTTP server on port 8765 (auto-shifts up to 8769 on shared login nodes — RCC Midway and Great Lakes — when another user holds 8765; SSH tunnel covers the range) + SSH tunnel → user browses `http://localhost:<port>`
 - **Mac**: save to file, tell user path — they open in Finder/Preview
 
 ## Workflow
@@ -28,7 +28,7 @@ r = subprocess.run(['ps', 'aux'], capture_output=True, text=True)
 m = re.search(r'agent_plots_server.*?--directory\s+(\S+)', r.stdout)
 print(m.group(1) if m else os.path.expanduser('~/agent_plots'))
 "
-# Port the server actually bound (RCC Midway only; GreatLakes/Mac are always 8765)
+# Port the server actually bound (HPC login nodes; Mac is always 8765)
 cat ~/.agent_plots_port 2>/dev/null || echo 8765
 ```
 
@@ -104,9 +104,9 @@ DT::saveWidget(
 
 ## Infrastructure
 
-- Server auto-started at login via `*rc_local`, port 8765 (RCC Midway: auto-retries 8766-8769 if another user already holds 8765 — see `~/.agent_plots_port`); its `--directory` may point to scratch, not `~/agent_plots` — always detect before saving (see above)
+- Server auto-started at login via `*rc_local`, port 8765, auto-retrying 8766-8769 if another user holds it (see `~/.agent_plots_port`; startup is skipped only if our uid owns that port); its `--directory` may point to scratch, not `~/agent_plots` — always detect before saving (see above)
 - If not running: check `*rc_local` for the correct start command and directory; do not assume `~/agent_plots`
-- SSH tunnel: local `~/.ssh/config` forwards `LocalForward 8765 localhost:8765` (plus 8766-8769 on the RCC Midway host block, to cover the auto-retry range)
+- SSH tunnel: local `~/.ssh/config` forwards `LocalForward 8765 localhost:8765` (plus 8766-8768/9 on the HPC host blocks, to cover the auto-retry range)
 - **Sending a file to Slack** (plot or otherwise): see the `post-to-slack` skill.
 
 ## Troubleshooting: browser gets an empty reply

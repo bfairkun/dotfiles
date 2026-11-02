@@ -35,11 +35,15 @@ alias rstudio='update_display && rstudio'
 # Add your keys to ~/.secrets: export ANTHROPIC_API_KEY="sk-ant-..."
 [ -f ~/.secrets ] && source ~/.secrets
 
-# Auto-start agent plots HTTP server on port 8765
+# Auto-start agent plots HTTP server. Login nodes are shared: other users may
+# hold 8765, so the server falls back up to 8769 and records the port it bound in
+# ~/.agent_plots_port. Only skip startup if *our* uid owns that port on this node.
 mkdir -p ~/agent_plots
-if ! ss -tln 2>/dev/null | grep -q ':8765 '; then
-    nohup python3 ~/.claude/skills/agent-plots/agent_plots_server.py --port 8765 --directory ~/agent_plots > ~/agent_plots/server.log 2>&1 &
+_ap_port=$(cat ~/.agent_plots_port 2>/dev/null)
+if [ -z "$_ap_port" ] || ! ss -tlne 2>/dev/null | grep -Eq ":$_ap_port[[:space:]].*uid:$(id -u)[[:space:]]"; then
+    nohup python3 ~/.agents/skills/agent-plots/agent_plots_server.py --port 8765 --directory ~/agent_plots > ~/agent_plots/server.log 2>&1 &
 fi
+unset _ap_port
 
 # List running Jupyter kernels (newest first).
 # Useful to see what compute kernels are active for Claude Code agent connections.
