@@ -313,6 +313,8 @@
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "theme": "light",
+  "idleCompaction": false,
+  "switchModelsOnFlag": true,
   "remoteControlAtStartup": true,
   "inputNeededNotifEnabled": false,
   "agentPushNotifEnabled": true
