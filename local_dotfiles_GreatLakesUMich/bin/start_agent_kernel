@@ -40,8 +40,8 @@ if [ -n "$ACCOUNT" ]; then
     ACCOUNT_FLAG="--account=$ACCOUNT"
 fi
 
-# $SCRATCH is set by the cluster to /scratch/$USER
-[ -z "$SCRATCH" ] && SCRATCH="/scratch/$USER"
+# $SCRATCH is set in .profile_local (Great Lakes doesn't set it); $SCRATCH/$USER is ours
+[ -z "$SCRATCH" ] && SCRATCH="/scratch/hastingm_root/hastingm0"
 mkdir -p "$SCRATCH/$USER" 2>/dev/null && KERNEL_DIR="$SCRATCH/$USER" || KERNEL_DIR="$HOME"
 
 LOG="$KERNEL_DIR/agent_kernel.log"

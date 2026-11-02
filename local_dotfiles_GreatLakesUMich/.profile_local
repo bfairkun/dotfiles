@@ -7,7 +7,7 @@
 #   - zsh is system-installed at /usr/bin/zsh (no module load needed)
 #   - vim is system-installed (no module load needed)
 #   - netcat is NOT available as a module
-#   - Scratch space: /scratch/$USER (SCRATCH env var typically set by cluster)
+#   - Scratch: per Slurm account, /scratch/<acct>_root/<acct>/$USER (cluster does NOT set $SCRATCH)
 #   - Project/lab storage: /nfs/turbo/LABNAME/
 #   - Login nodes: gl-login*.arc-ts.umich.edu
 #   - Timezone: America/Detroit
@@ -20,9 +20,9 @@ export PATH="$HOME/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/miniconda3/bin:$PATH"
 
-# $SCRATCH is set by the cluster to /scratch/$USER.
-# If for some reason it's not set, define it manually:
-[ -z "$SCRATCH" ] && export SCRATCH="/scratch/$USER"
+# Great Lakes doesn't set $SCRATCH. Point it at the account root so that
+# $SCRATCH/$USER is our scratch dir, matching Midway's convention.
+export SCRATCH="/scratch/hastingm_root/hastingm0"
 
 # Ensure TMPDIR is /tmp so ssh-agent sockets don't land in $HOME
 export TMPDIR='/tmp'
