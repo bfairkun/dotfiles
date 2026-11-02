@@ -91,7 +91,7 @@ if __name__ == "__main__":
     port = args.port
     for port in range(args.port, args.port + 5):
         try:
-            httpd = http.server.HTTPServer(("", port), SortableHandler)
+            httpd = http.server.ThreadingHTTPServer(("", port), SortableHandler)
             break
         except OSError as e:
             if e.errno != errno.EADDRINUSE:
