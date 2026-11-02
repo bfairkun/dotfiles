@@ -17,3 +17,6 @@ agents/.agents/skills/synced/
 
 # macOS
 .DS_Store
+
+# Skill-sync trash (moved-out cloud skills)
+agents/.agents/skills/.trash/
