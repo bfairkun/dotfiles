@@ -207,7 +207,9 @@ def patch_html(html_path, block):
     if HTML_BLOCK_RE.search(text):
         new_text = HTML_BLOCK_RE.sub(block, text)
     elif "</body>" in text:
-        new_text = text.replace("</body>", block + "</body>", 1)
+        # Last </body>, not first: embedded pages (e.g. iframe srcdoc) carry their own.
+        head, _, tail = text.rpartition("</body>")
+        new_text = head + block + "</body>" + tail
     else:
         new_text = text + "\n" + block
 
