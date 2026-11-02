@@ -3,7 +3,7 @@
 #
 # GREAT LAKES QUIRKS vs. MIDWAY:
 #   - mosh is NOT available (no module, not installed)
-#   - tmux is system-installed at /usr/bin/tmux (no module load needed)
+#   - system tmux (/usr/bin/tmux) is 2.7, too old for .tmux.conf -> module load tmux/3.3a
 #   - zsh is system-installed at /usr/bin/zsh (no module load needed)
 #   - vim is system-installed (no module load needed)
 #   - netcat is NOT available as a module
@@ -13,9 +13,6 @@
 #   - Timezone: America/Detroit
 
 echo "Running  ${0}..."
-
-# Switch to zsh for interactive login bash sessions
-[[ $- == *i* && -z "$ZSH_VERSION" ]] && exec zsh
 
 export TZ='America/Detroit'
 
@@ -63,3 +60,7 @@ if [[ -z "$TMUX" && -n "$SSH_CONNECTION" && "$-" == *i* ]]; then
     tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux
 fi
 
+# Switch to zsh for interactive login bash sessions. Must stay LAST: exec
+# replaces this shell, so anything below it (module load tmux, tmux autostart,
+# exports) would never run. Non-login zsh avoids /etc/zprofile's TMOUT error.
+[[ $- == *i* && -z "$ZSH_VERSION" ]] && exec zsh

@@ -20,7 +20,7 @@ function update_display {
 module load R/4.4.3
 
 # Note: mosh is NOT available on Great Lakes (unlike Midway2/3).
-# Note: no module load needed for tmux or vim — all system-installed.
+# Note: tmux comes from `module load tmux/3.3a` in .profile_local (system tmux 2.7 is too old).
 # Note: node.js available if needed: check with `module spider node`
 
 # Compact squeue output showing your jobs
