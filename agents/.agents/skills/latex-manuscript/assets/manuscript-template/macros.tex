@@ -1,0 +1,21 @@
+% ============================================================================
+%  Project macros. Define an abbreviation once, use it everywhere; change how
+%  it renders in a single edit.
+%
+%  Verified safe for export: pandoc expands \newcommand definitions when
+%  converting to Word, so these survive the trip to Google Docs.
+% ============================================================================
+
+% Gene names in italics, per convention.
+\newcommand{\gene}[1]{\textit{#1}}
+
+% Splice site shorthands.
+\newcommand{\fivess}{5\ensuremath{'}\xspace}
+\newcommand{\threess}{3\ensuremath{'}\xspace}
+
+% Compound / dataset names you retype constantly. Add your own here.
+% \newcommand{\bran}{branaplam\xspace}
+
+% Open items, rendered in red so they are impossible to miss in the PDF.
+% `make check` warns if any survive to export time.
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}

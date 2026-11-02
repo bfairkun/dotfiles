@@ -1,0 +1,3 @@
+#!/bin/sh
+# On the local Mac, just pipe to native pbcopy.
+pbcopy

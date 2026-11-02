@@ -17,10 +17,37 @@ export PATH="$HOME/.npm-global/bin:$PATH"
 # Ensure TMPDIR is /tmp so ssh-agent sockets don't land in $HOME
 export TMPDIR='/tmp'
 
+# Keep regenerable caches out of $HOME.  The home quota here is small, and once
+# ~/.cache fills, every XDG-compliant tool starts failing with "Disk quota
+# exceeded" -- e.g. `import arviz` raises OSError errno 122 because it writes a
+# once-per-day stamp via platformdirs.user_cache_dir().  pip (which had grown a
+# 6.7 GiB cache), matplotlib and fontconfig all resolve their cache dir the same
+# way, so redirecting XDG_CACHE_HOME fixes all of them at once.  Scratch is the
+# right home for this: caches are disposable, so a scratch purge is harmless.
+case "$(hostname)" in
+    *midway2*) _xdg_scratch="/scratch/midway2/$USER" ;;
+    # beagle3 shares Midway3's /home, /project, /scratch and module tree, so it
+    # reuses Midway3's scratch cache (there is no /scratch/beagle3/$USER).
+    *midway3*|*beagle3*) _xdg_scratch="/scratch/midway3/$USER" ;;
+    *)         _xdg_scratch='' ;;
+esac
+if [ -n "$_xdg_scratch" ] && [ -d "$_xdg_scratch" ]; then
+    export XDG_CACHE_HOME="$_xdg_scratch/.cache"
+    mkdir -p "$XDG_CACHE_HOME"
+fi
+unset _xdg_scratch
+
 # Source ssh settings or start ssh agent if not already running
 # Useful for ssh keys for git for example
 mkdir -p $HOME/.ssh
 SSH_ENV="$HOME/.ssh/agent-environment"
+
+# A long-lived tmux session pins the SSH_AUTH_SOCK it was created with. Each new login used
+# to start an agent at a fresh random socket path, so an old pane kept pointing at a dead or
+# EMPTY agent and git push failed with "Permission denied (publickey)" even though a loaded
+# agent was running -- the key looks unloaded when it is merely the wrong agent. Fix: keep a
+# stable symlink and export that, so every pane resolves to whichever agent is current.
+SSH_SOCK_LINK="$HOME/.ssh/agent.sock"
 
 function start_agent {
     echo "Initialising new SSH agent..."
@@ -31,7 +58,18 @@ function start_agent {
     /usr/bin/ssh-add;
 }
 
-# Source SSH settings, if applicable
+# Adopt any already-running agent that holds identities before starting another one, so
+# repeated logins stop accumulating agents (there were 5, three loaded and two empty).
+function adopt_live_agent {
+    for _s in /tmp/ssh-*/agent.* "${SSH_SOCK_LINK}"; do
+        [ -S "$_s" ] || continue
+        if SSH_AUTH_SOCK="$_s" ssh-add -l >/dev/null 2>&1; then
+            export SSH_AUTH_SOCK="$_s"
+            return 0
+        fi
+    done
+    return 1
+}
 
 if [ -f "${SSH_ENV}" ]; then . "${SSH_ENV}" > /dev/null
     #ps ${SSH_AGENT_PID} doesn't work under cywgin
@@ -40,6 +78,17 @@ if [ -f "${SSH_ENV}" ]; then . "${SSH_ENV}" > /dev/null
     }
 else
     start_agent;
+fi
+
+# If the agent we just sourced has no identities, prefer a live one that does; only then is a
+# passphrase prompt actually warranted.
+ssh-add -l >/dev/null 2>&1 || adopt_live_agent || true
+
+# Republish under the stable path. Panes should use this, not the raw /tmp path.
+if [ -n "${SSH_AUTH_SOCK:-}" ] && [ -S "${SSH_AUTH_SOCK}" ] \
+   && [ "${SSH_AUTH_SOCK}" != "${SSH_SOCK_LINK}" ]; then
+    ln -sfn "${SSH_AUTH_SOCK}" "${SSH_SOCK_LINK}"
+    export SSH_AUTH_SOCK="${SSH_SOCK_LINK}"
 fi
 
 
@@ -55,8 +104,10 @@ if [ $? -eq 0 ]; then
     module load tmux/3.1c
 fi
 
-# Midway3 specific stuff
-hostname | grep -q 'midway3'
+# Midway3 specific stuff (also beagle3: same /home + /software stack). Without
+# this, beagle3 fell back to /usr/bin/tmux 2.7, which can't parse .tmux.conf
+# (broken window labels, raw mouse escape codes leaking into panes).
+hostname | grep -Eq 'midway3|beagle3'
 if [ $? -eq 0 ]; then
     module load mosh
     # module load rstudio
@@ -64,15 +115,27 @@ if [ $? -eq 0 ]; then
 fi
 
 
+# Start only explicitly configured per-node bridge services. Each node has its
+# own Tailscale identity and runtime sockets; never use the old shared runner.
+if [[ "$-" == *i* && -z "${TMUX:-}" ]]; then
+    _bridge_dir=/project/yangili1/bjf79/repos_not_projects/tmux-agent-bridge
+    _bridge_host="$(hostname -s)"
+    if [ -x "$_bridge_dir/start-hpc.sh" ] &&
+       [ -f "$_bridge_dir/.bridge-state/deployment/$_bridge_host/service.env" ] &&
+       command -v tmux >/dev/null 2>&1; then
+        timeout 60 "$_bridge_dir/start-hpc.sh" >/dev/null 2>&1 ||
+            printf '%s\n' 'Bridge startup incomplete; inspect the node-specific deployment logs.' >&2
+    fi
+    unset _bridge_dir _bridge_host
+fi
+
 # Attach or tmux session
 if [[ -z "$TMUX" && -n "$SSH_CONNECTION" && "$-" == *i* ]]; then
     tmux attach-session -t ssh_tmux || tmux new-session -s ssh_tmux
 fi
 
-# Ensure dispatcher watchdog cron job is registered.
-# Idempotent — only adds the entry if missing. Self-heals if crontab is wiped.
-if [ -f ~/.claude/dispatcher_watchdog.sh ]; then
-    if ! crontab -l 2>/dev/null | grep -q "dispatcher_watchdog.sh"; then
-        (crontab -l 2>/dev/null; echo "*/5 * * * * $HOME/.claude/dispatcher_watchdog.sh") | crontab -
-    fi
-fi
+# Claude dispatcher watchdog deliberately not registered (2026-08-12): its RC
+# health check matched a status string Claude Code no longer emits, so it never
+# fired — yet Remote Control worked fine anyway. The tmux deaths it looked like
+# it was for were unplanned node reboots, which no user-level cron can prevent.
+# Re-enable: */5 * * * * $HOME/bin/dispatcher_watchdog.sh

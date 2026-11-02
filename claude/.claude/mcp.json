@@ -1,7 +1,0 @@
-{
-  "mcpServers": {
-    "jupyter-kernel": {
-      "command": "jupyter_kernel_mcp.py"
-    }
-  }
-}

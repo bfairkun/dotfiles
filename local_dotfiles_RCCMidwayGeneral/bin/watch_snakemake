@@ -1,0 +1,376 @@
+#!/bin/bash
+# Live Snakemake progress for a spare tmux pane.
+#
+# Layout: the log tails in the pane you ran this from, so it scrolls naturally and tmux
+# scrollback shows real log history -- not a wall of stale progress bars. A 5-line status
+# pane is pinned below it and redraws in place.
+#
+# Do not `pkill -f watch_snakemake` to stop it: the pattern also matches the command line of
+# whatever shell is running the pkill, so it kills the caller. List PIDs and kill explicitly:
+#   pgrep -u "$USER" -a bash | awk '$2=="'"$HOME"'/bin/watch_snakemake"{print $1}'
+#
+# Usage: watch_snakemake [log_or_glob] [interval_s]
+#        watch_snakemake --raw ...     keep the sbatch: verification banners
+# In the status pane: any key = refresh now, q = quit.
+set -u
+
+usage() { cat <<'EOF'
+watch_snakemake -- live progress for a Snakemake run, for a spare tmux pane.
+
+USAGE
+  watch_snakemake [MODE] [--slurm-filter RE] [log_or_glob] [interval_s]
+
+MODES
+  (default)   border mode in tmux, inline mode outside it
+  --border    status pinned in the pane's bottom BORDER; the pane is a plain `tail -F`, so
+              scrollback is pure log and no status line can ever enter it. Costs one row per
+              pane in the window (tmux 3.2a cannot scope pane-border-status to one pane).
+              Refresh follows tmux's global status-interval; force one with
+              `tmux refresh-client -S`.
+  --inline    one status line rewritten in place at the bottom of the pane. Costs no rows and
+              works with no tmux at all, and any keypress refreshes it (q quits). Trade-off:
+              snakemake's long `reason:` lines wrap, and \r\033[K can only clear the cursor's
+              own row, so roughly 3% of the time a status line is left behind in scrollback.
+  --raw       keep the `sbatch:` verification banners (filtered out by default)
+  --send      resolve the caller's own sibling shell pane and start there, then exit. This is
+              what an agent should use: it avoids targeting the wrong pane, since tmux
+              display-message/list-panes without -t resolve against the client's CURRENTLY
+              VIEWED window, which is often a different project's session.
+
+OPTIONS
+  --slurm-filter RE   restrict the queue counts to jobs whose name matches RE. Without it the
+                      counts are for your WHOLE Slurm queue, not this workflow -- if another
+                      pipeline is queued, its jobs are included. E.g. --slurm-filter '^dose'
+  log_or_glob         default: newest of logs/controller/*.out or code/logs/controller/*.out
+  interval_s          inline mode's auto-refresh; default 30
+
+WHICH RUN IT TRACKS
+  It does not inspect processes: it picks the most recently MODIFIED matching log file and
+  parses snakemake's own "N of M steps (X%) done" line out of it. With two concurrent runs in
+  one project, the newest-modified log wins -- pass an explicit log to be certain. The same
+  parsing works for a local `--cores` run, which prints the identical progress line.
+
+EOF
+}
+
+RAW=0; MODE=""; SLURM_RE=""
+while [ $# -gt 0 ]; do
+    case "${1:-}" in
+        -h|--help) usage; exit 0 ;;
+        --raw)     RAW=1; shift ;;
+        --border)  MODE=main;   shift ;;
+        --inline)  MODE=inline; shift ;;
+        --send)    MODE=send;   shift ;;
+        --status)  MODE=status; shift ;;   # internal: the old split-pane helper
+        --line)    MODE=line;   shift ;;   # internal: emits one line for pane-border-format
+        --slurm-filter) SLURM_RE="${2:-}"; shift 2 ;;
+        --) shift; break ;;
+        -*) echo "watch_snakemake: unknown option $1" >&2; usage >&2; exit 2 ;;
+        *) break ;;
+    esac
+done
+LOGSPEC="${1:-}"; INTERVAL="${2:-30}"
+
+# Default mode: the border is strictly better inside tmux (no scrollback pollution), but it
+# needs tmux, so fall back to the inline line when there is none.
+if [ -z "$MODE" ]; then
+    if [ -n "${TMUX:-}" ]; then MODE=main; else MODE=inline; fi
+fi
+
+# The tail runs as a backgrounded subshell pipeline, so killing this script does NOT kill it:
+# an orphaned `tail -F` keeps writing to the same pane, and each leftover instance duplicates
+# every log line. Always reap through here.
+TP=""
+kill_tail() {
+    [ -n "${TP:-}" ] || return 0
+    pkill -P "$TP" 2>/dev/null
+    kill "$TP" 2>/dev/null
+    wait "$TP" 2>/dev/null
+    TP=""
+}
+
+# Cookiecutter projects run snakemake from code/, so look there too -- the pane is often
+# sitting at the project root.
+pick_log() {
+    if [ -n "$LOGSPEC" ]; then ls -t $LOGSPEC 2>/dev/null | head -1
+    else ls -t logs/controller/*.out code/logs/controller/*.out 2>/dev/null | head -1; fi
+}
+
+# ---------------------------------------------------------------- send mode
+# Start ourselves in the caller's sibling shell pane. Resolve the window from $TMUX_PANE, not
+# from the active pane: `tmux display-message`/`list-panes` without -t resolve against the
+# client's currently VIEWED window, which is frequently another project's session -- sending
+# there types into someone else's shell.
+if [ "$MODE" = send ]; then
+    [ -z "${TMUX:-}" ] && { echo "watch_snakemake --send: not in tmux" >&2; exit 1; }
+    MYWIN=$(tmux list-panes -a -F '#{session_name}:#{window_index} #{pane_id}' \
+            | awk -v q="$TMUX_PANE" '$2==q {print $1}')
+    [ -z "$MYWIN" ] && { echo "watch_snakemake --send: cannot resolve own window" >&2; exit 1; }
+    TARGET=$(tmux list-panes -t "$MYWIN" -F '#{pane_id} #{pane_current_command}' \
+             | awk -v me="$TMUX_PANE" '$1!=me && ($2=="bash"||$2=="zsh"||$2=="sh"){print $1; exit}')
+    [ -z "$TARGET" ] && { echo "watch_snakemake --send: no sibling shell pane in $MYWIN" >&2; exit 1; }
+    ARGS=""
+    [ "$RAW" = 1 ] && ARGS="$ARGS --raw"
+    [ -n "$SLURM_RE" ] && ARGS="$ARGS --slurm-filter $SLURM_RE"
+    [ -n "$LOGSPEC" ] && ARGS="$ARGS $(printf %q "$LOGSPEC")"
+    # C-u first: send-keys appends to whatever the user has already typed on that line.
+    tmux send-keys -t "$TARGET" C-u
+    tmux send-keys -t "$TARGET" "cd $(printf %q "$PWD") && clear && watch_snakemake$ARGS" Enter
+    echo "watch_snakemake: started in $MYWIN pane $TARGET"
+    exit 0
+fi
+
+# ---------------------------------------------------------------- one-line mode
+# Emitted into pane-border-format via #(), so it must be fast and print exactly one line.
+# tmux runs it with tmux's own cwd, not the pane's, hence the absolute LOGSPEC.
+if [ "$MODE" = line ]; then
+    L=$(pick_log)
+    [ -z "$L" ] && { echo "#[fg=yellow]no snakemake controller log#[default]"; exit 0; }
+    out=""
+    P=$(grep -oE '[0-9]+ of [0-9]+ steps \([0-9.]+%\) done' "$L" | tail -1)
+    if [ -n "$P" ]; then
+        d=$(echo "$P"|awk '{print $1}'); t=$(echo "$P"|awk '{print $3}')
+        pct=$(echo "$P"|grep -oE '\([0-9.]+%\)'|tr -d '()%')
+        out="#[fg=cyan,bold]${pct}%#[default] $d/$t"
+        ts=$(grep -m1 -oE '^\[[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]+ [0-9:]+ [0-9]{4}\]' "$L" | tr -d '[]')
+        s0=$(date -d "$ts" +%s 2>/dev/null)
+        if [ -n "${s0:-}" ]; then
+            out="$out$(awk -v el="$(( $(date +%s) - s0 ))" -v d="$d" -v t="$t" 'BEGIN{
+                if(d>0&&el>0){r=d/(el/3600.0); printf "  %.0f/h ETA %.1fh", r, (t-d)/(r>0?r:1)}}')"
+        fi
+    else
+        out="#[fg=yellow]building DAG#[default]"
+    fi
+    q=""
+    if command -v squeue >/dev/null 2>&1; then
+        if [ -n "$SLURM_RE" ]; then
+            q=$(squeue -u "$USER" -h -o '%T %j' 2>/dev/null | awk -v re="$SLURM_RE" '$2 ~ re {print $1}')
+        else
+            q=$(squeue -u "$USER" -h -o '%T' 2>/dev/null)
+        fi
+    fi
+    if [ -n "$q" ]; then
+        out="$out  R$(echo "$q"|grep -c RUNNING) PD$(echo "$q"|grep -c PENDING) T$(echo "$q"|wc -l)"
+    else
+        out="$out  local:$(pgrep -u "$USER" -c snakemake 2>/dev/null || echo 0)p load$(cut -d' ' -f1 /proc/loadavg 2>/dev/null)"
+    fi
+    E=$(grep -cE 'Error in rule|WorkflowError|MissingOutputException|CANCELLED|TIMEOUT|OUT_OF_MEMORY' "$L" 2>/dev/null)
+    if [ "${E:-0}" -gt 0 ]; then out="$out  #[fg=red,bold]err $E#[default]"
+    else out="$out  #[fg=green]err 0#[default]"; fi
+    echo "$out  #[fg=brightblack]$(basename "$L") $(date -r "$L" '+%H:%M')#[default]"
+    exit 0
+fi
+
+# ---------------------------------------------------------------- status pane
+if [ "$MODE" = status ]; then
+    trap 'exit 0' INT TERM
+    while true; do
+        L=$(pick_log)
+        cols=$(tput cols 2>/dev/null || echo 100)
+        printf '\033[H\033[J'
+        printf '\033[2m%*s\033[0m\n' "$cols" '' | tr ' ' '-'
+        if [ -z "$L" ] || [ ! -e "$L" ]; then
+            echo " no controller log found under $PWD"
+        else
+            P=$(grep -oE '[0-9]+ of [0-9]+ steps \([0-9.]+%\) done' "$L" | tail -1)
+            if [ -n "$P" ]; then
+                d=$(echo "$P"|awk '{print $1}'); t=$(echo "$P"|awk '{print $3}')
+                pct=$(echo "$P"|grep -oE '\([0-9.]+%\)'|tr -d '()%')
+                bw=$(( cols>90 ? 40 : 20 ))
+                f=$(awk -v p="$pct" -v w=$bw 'BEGIN{printf "%d", p*w/100}')
+                printf ' ['
+                awk -v f="$f" -v w=$bw 'BEGIN{for(i=0;i<w;i++) printf (i<f?"#":"-")}'
+                printf ']\033[1m %s%%\033[0m %s/%s' "$pct" "$d" "$t"
+                ts=$(grep -m1 -oE '^\[[A-Z][a-z]{2} [A-Z][a-z]{2} +[0-9]+ [0-9:]+ [0-9]{4}\]' "$L" | tr -d '[]')
+                s0=$(date -d "$ts" +%s 2>/dev/null)
+                [ -n "${s0:-}" ] && awk -v el="$(( $(date +%s) - s0 ))" -v d="$d" -v t="$t" 'BEGIN{
+                    if (d>0 && el>0){ r=d/(el/3600.0); printf "   %.0f/h  elapsed %.1fh  ETA ~%.1fh", r, el/3600.0, (t-d)/(r>0?r:1) }}'
+                printf '\n'
+            else
+                echo " (no progress line yet -- snakemake is still building the DAG)"
+            fi
+
+            # Slurm if this run uses it; otherwise report the local rule processes, since
+            # snakemake is just as often run with --cores on one machine.
+            line=""
+            if command -v squeue >/dev/null 2>&1; then
+                q=$(squeue -u "$USER" -h -o '%T' 2>/dev/null)
+                if [ -n "$q" ]; then
+                    line=$(printf 'slurm: R %s  PD %s  other %s  tot %s' \
+                        "$(echo "$q"|grep -c RUNNING)" "$(echo "$q"|grep -c PENDING)" \
+                        "$(echo "$q"|grep -cvE 'RUNNING|PENDING')" "$(echo "$q"|wc -l)")
+                fi
+            fi
+            if [ -z "$line" ]; then
+                line=$(printf 'local: %s snakemake procs  load%s' \
+                    "$(pgrep -u "$USER" -c snakemake 2>/dev/null || echo 0)" \
+                    "$(cut -d' ' -f1-3 /proc/loadavg 2>/dev/null | sed 's/^/ /')")
+            fi
+            E=$(grep -cE 'Error in rule|WorkflowError|MissingOutputException|CANCELLED|TIMEOUT|OUT_OF_MEMORY' "$L" 2>/dev/null)
+            if [ "${E:-0}" -gt 0 ]; then ec="\033[31merrors $E\033[0m"; else ec="\033[32merrors 0\033[0m"; fi
+            printf ' %s   %b   %s  %s\n' "$line" "$ec" "$(basename "$L")" "$(date -r "$L" '+%H:%M:%S')"
+        fi
+        printf '\033[2m any key = refresh  ·  q = quit  ·  auto %ss  ·  %s\033[0m\n' \
+               "$INTERVAL" "$(date '+%H:%M:%S')"
+        read -rsn1 -t "$INTERVAL" k && [ "$k" = q ] && exit 0
+    done
+fi
+
+# ---------------------------------------------------------------- inline mode
+# One rewriting status line at the bottom of this pane. No second pane, no tmux needed, no
+# border row. The line is erased before each log line is printed, so it never lands in
+# scrollback -- scrollback stays pure log, same as the border version.
+if [ "$MODE" = inline ]; then
+    # Single source of truth: --line emits tmux style markup; translate it to ANSI here.
+    ansi() {
+        sed -e 's/#\[fg=cyan,bold\]/\o033[36;1m/g'  -e 's/#\[fg=red,bold\]/\o033[31;1m/g' \
+            -e 's/#\[fg=green\]/\o033[32m/g'         -e 's/#\[fg=yellow\]/\o033[33m/g' \
+            -e 's/#\[fg=brightblack\]/\o033[90m/g'   -e 's/#\[default\]/\o033[0m/g'
+    }
+    # Truncate on VISIBLE width: `cut -c` counts ANSI escapes as characters, which both
+    # shortens the text and severs an escape mid-sequence. Colour when it fits, plain when not.
+    render() {
+        local raw plain w
+        raw=$([ -n "$SLURM_RE" ] && "$0" --line --slurm-filter "$SLURM_RE" "$LOGSPEC" || "$0" --line "$LOGSPEC" | ansi)
+        plain=$(printf '%s' "$raw" | sed -e 's/\o033\[[0-9;]*m//g')
+        w=$(( $(tput cols 2>/dev/null || echo 100) - 1 ))
+        if [ "${#plain}" -le "$w" ]; then printf '%s\033[0m' "$raw"
+        else printf '%s' "${plain:0:$w}"; fi
+    }
+    draw()  { printf '\r\033[K%s' "$(render)"; }
+    wipe()  { printf '\r\033[K'; }
+    trap 'kill_tail; wipe; exit 130' INT TERM
+    trap 'kill_tail; wipe' EXIT
+
+    L=$(pick_log)
+    if [ -z "$L" ]; then
+        echo "watch_snakemake: waiting for a log matching ${LOGSPEC:-logs/controller/*.out} ..."
+        while [ -z "$L" ]; do sleep 10; L=$(pick_log); done
+        echo "==> appeared: $L"
+    fi
+    if [ "$RAW" = 1 ]; then exec 3< <(tail -n 100 -F "$L" 2>/dev/null)
+    else exec 3< <(tail -n 100 -F "$L" 2>/dev/null | grep --line-buffered -vE '^sbatch: '); fi
+    TP=$!   # bash sets $! to the process-substitution pid
+
+    last=0
+    draw
+    while true; do
+        if IFS= read -r -t 0.3 -u 3 line; then
+            # One write, not wipe-then-print-then-draw: three writes leave a window in which
+            # a log line can land on top of the status line instead of replacing it.
+            printf '\r\033[K%s\n\r\033[K%s' "$line" "$(render)"
+        fi
+        # any key redraws now, q quits; -t 0.01 keeps the loop from blocking on the tty
+        if IFS= read -rsn1 -t 0.01 k 2>/dev/null; then
+            [ "$k" = q ] && { kill_tail; wipe; echo; exit 0; }
+            last=0
+        fi
+        now=$(date +%s)
+        if [ $(( now - last )) -ge "$INTERVAL" ]; then last=$now; draw; fi
+        # follow the newest log across a controller resubmit
+        N=$(pick_log)
+        if [ "$N" != "$L" ]; then
+            wipe; printf '==> switching to %s\n' "$N"; L=$N
+            kill_tail; exec 3<&-
+            if [ "$RAW" = 1 ]; then exec 3< <(tail -n 0 -F "$L" 2>/dev/null)
+            else exec 3< <(tail -n 0 -F "$L" 2>/dev/null | grep --line-buffered -vE '^sbatch: '); fi
+            TP=$!
+            draw
+        fi
+    done
+fi
+
+# ---------------------------------------------------------------- main pane
+# Wait for the log rather than exiting: the usual case is starting this right after
+# submitting the controller, while it is still PENDING in the queue.
+L=$(pick_log)
+if [ -z "$L" ]; then
+    echo "watch_snakemake: waiting for a log matching ${LOGSPEC:-logs/controller/*.out} under $PWD ..."
+    while [ -z "$L" ]; do sleep 10; L=$(pick_log); done
+    echo "==> appeared: $L"
+fi
+
+# Status goes in this pane's bottom BORDER, not a second pane: the border sits outside pane
+# content, so the log keeps the whole pane and tmux scrollback stays pure log.
+#
+# tmux 3.2a: pane-border-status/-format are WINDOW options. `set -p` returns 0 but silently
+# does nothing, so use `set -w`. The format is still evaluated per pane, so gate on pane_id
+# to keep the bar off the window's other panes.
+if [ -n "${TMUX:-}" ]; then
+    MYWIN=$(tmux list-panes -a -F '#{session_name}:#{window_index} #{pane_id}' \
+            | awk -v q="$TMUX_PANE" '$2==q {print $1}')
+    if [ -n "$LOGSPEC" ]; then
+        # LOGSPEC may hold SEVERAL space-separated globs; make each one absolute. Prefixing
+        # $PWD to the whole string only fixes the first, and #() runs with tmux's cwd rather
+        # than the pane's, so a surviving relative glob silently never matches -- the border
+        # then disagrees with the tail running in the pane.
+        # set -f: word-split $LOGSPEC without GLOBBING it. Without this the patterns are
+        # expanded here and the literal matches are frozen into the option, so files that
+        # appear later (the log of a controller that has not started yet) never match.
+        ABS=""; set -f
+        for g in $LOGSPEC; do
+            case "$g" in /*) ABS="$ABS $g" ;; *) ABS="$ABS $PWD/$g" ;; esac
+        done
+        set +f; ABS="${ABS# }"
+    else
+        # Two space-separated globs, not a brace expression: pick_log word-splits $LOGSPEC
+        # into `ls -t`, and brace expansion precedes variable expansion so braces never expand.
+        ABS="$PWD/logs/controller/*.out $PWD/code/logs/controller/*.out"
+    fi
+
+    OLD_ST=$(tmux show-options -w -t "$MYWIN" pane-border-status 2>/dev/null | awk '{print $2}')
+    OLD_FM=$(tmux show-options -w -t "$MYWIN" pane-border-format 2>/dev/null | cut -d' ' -f2-)
+    restore() {
+        tmux set -p -u -t "$TMUX_PANE" @snakebar 2>/dev/null
+        [ -n "${OLD_ST:-}" ] && tmux set -w -t "$MYWIN" pane-border-status "$OLD_ST" \
+                             || tmux set -w -u -t "$MYWIN" pane-border-status 2>/dev/null
+        [ -n "${OLD_FM:-}" ] && tmux set -w -t "$MYWIN" pane-border-format "$OLD_FM" \
+                             || tmux set -w -u -t "$MYWIN" pane-border-format 2>/dev/null
+    }
+    # INT/TERM must exit, not just restore: a handler that returns leaves the tail loop
+    # running with the border already torn down.
+    trap 'kill_tail; restore' EXIT
+    trap 'kill_tail; restore; exit 130' INT TERM
+
+    # @snakebar does double duty: it gates the format to this pane and carries the log spec.
+    #   - Gate on a pane-scoped USER option, not #{pane_id}: a literal %NN in a format is
+    #     eaten by tmux's own % handling, so #{==:#{pane_id},%61} is always false. User
+    #     options (@name) do honour `set -p`, unlike pane-border-status itself.
+    #   - Carry the spec in the option rather than interpolating it into the format: the
+    #     backslashes from `printf %q` break tmux's format parser and #() then silently
+    #     never runs. tmux expands #{@snakebar} before handing the line to sh, so plain
+    #     double quotes in the format are enough.
+    SLURM_ARG=""
+    [ -n "$SLURM_RE" ] && SLURM_ARG=" --slurm-filter $SLURM_RE"
+    tmux set -p -t "$TMUX_PANE" @snakebar "$ABS"
+    tmux set -w -t "$MYWIN" pane-border-status bottom
+    tmux set -w -t "$MYWIN" pane-border-format \
+        "#{?#{@snakebar},#[align=left] #($0 --line${SLURM_ARG} \"#{@snakebar}\") ,#{pane_index} \"#{pane_title}\"}"
+    # Refresh cadence is tmux's global status-interval, not $INTERVAL. Force one with:
+    #   tmux refresh-client -S
+else
+    echo "watch_snakemake: --border needs tmux; use --inline instead. Tailing only." >&2
+    trap 'kill_tail' EXIT
+    trap 'kill_tail; exit 130' INT TERM
+fi
+
+# Follow the newest log: the controller resubmits itself, so the filename changes mid-run.
+while true; do
+    L=$(pick_log)
+    echo "==> tailing $L"
+    if [ "$RAW" = 1 ]; then
+        { tail -n 200 -F "$L" 2>/dev/null; } & TP=$!
+    else
+        { tail -n 200 -F "$L" 2>/dev/null | grep --line-buffered -vE '^sbatch: '; } & TP=$!
+    fi
+    # sleep in 1s slices, not one sleep 20: bash defers a trap until the current foreground
+    # command returns, so a long sleep leaves Ctrl-C looking like it did nothing for 20s and
+    # the tail unreaped for just as long.
+    while kill -0 "$TP" 2>/dev/null; do
+        i=0
+        while [ "$i" -lt 20 ] && kill -0 "$TP" 2>/dev/null; do sleep 1; i=$((i+1)); done
+        N=$(pick_log)
+        [ "$N" != "$L" ] && { kill_tail; break; }
+    done
+    kill_tail
+done

@@ -1,1 +1,0 @@
-Use the `mcp__jupyter-kernel__start_kernel` tool to start a new Jupyter kernel. If the user specified a kernel/env name use that, otherwise pass `py_general` as the kernel_name (this user's standard Python env). After starting, confirm the connection file path and verify the kernel is live by running `import sys; print(sys.executable)` via `mcp__jupyter-kernel__run_python`.

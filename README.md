@@ -25,7 +25,7 @@ I also picked up some tips from [this post](https://www.anishathalye.com/2014/08
 12 directories
 ```
 
-- `claude` : [Claude Code](https://claude.ai/code) config — MCP servers, skills, commands, and CLAUDE.md. See `claude/README.md` for setup instructions including the required `uv` install.
+- `agents` : shared agent instructions and skills, plus client-specific Claude, Codex, and Gemini configuration.
 - `bash` : my bash specific settings (eg: my `.bashrc` and `.bash_profile`)
 - `bin/bin` : Portable and distrutable executables that should be able to work on linux or mac without compiling. For example, a couple custom scripts which are generally useful to me. Also, the perl script [ack](https://beyondgrep.com/why-ack/) is here (Artistic License 2.0), The nested structure is so that stow will create a symlink in `$HOME` to the child `bin/bin` instead of `bin`
 - `git` : git settings
@@ -104,6 +104,19 @@ bin/bin/MoveStowConflicts.cli.py MoveStowConflictFilesToDir -n -v --NewDir ~/MyO
 The script contains a dry-run (`-n`) parameter so you can preview what will happen before actually doing it. Use the `-h` help flag on that script for more.
 
 Once you have gotten rid of your stow conflicts, you can consider revisiting the stow commands to create symlinks for all the dotfiles
+
+**Use `--no-folding` for the `Library` package** (and any package whose target directory a
+program writes into). If the target directory doesn't exist yet when you stow, stow links the
+whole directory instead of the files inside it — and the program then writes its runtime state
+into this repo. That is how 1.1 GB of VSCode cache once ended up inside `~/dotfiles`:
+
+```bash
+stow -n --no-folding Library   # dry run: should list only leaf .json files
+stow --no-folding Library
+```
+
+See the "tree folding" gotcha in `agents/.agents/skills/dotfiles/SKILL.md` for the full
+explanation and how to unfold a package that is already folded.
 
 #### Step3: Add local_dotfiles to override my general settings as needed.
 

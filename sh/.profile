@@ -24,3 +24,7 @@ fi
 if [ -f ~/.profile_local ]; then
     source ~/.profile_local
 fi
+
+# >>> Codex installer >>>
+export PATH="/home/bjf79/.local/bin:$PATH"
+# <<< Codex installer <<<

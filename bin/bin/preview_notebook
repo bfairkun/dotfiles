@@ -1,0 +1,468 @@
+#!/usr/bin/env python3
+"""
+preview_notebook — render the PROSE of an in-progress .qmd to a standalone HTML
+page in the agent_plots directory, so the notebook's narrative can be read in
+the browser tab that is already open for plots.
+
+The point is checking that the writing matches intent while the notebook is
+still half-written. So this deliberately does NOT run quarto:
+
+  - quarto executes the notebook; a half-written .qmd frequently has a cell that
+    does not run yet, and a preview that fails whenever the code is mid-edit is
+    useless exactly when it is most wanted.
+  - quarto is slow enough that regenerating on every prose edit would be felt.
+
+Instead the .qmd is parsed as text. Markdown prose is rendered (a deliberate
+subset — headers, lists, quotes, tables, emphasis, links, inline code); code
+cells are collapsed to a one-line stub that expands on click. Any plot files a
+cell writes are detected and linked, so the prose links to the figure it is
+describing.
+
+Nothing is ever written back to the .qmd. The source is read-only here.
+
+Usage:
+    preview_notebook analysis/20260730_qc.qmd
+    preview_notebook analysis/20260730_qc.qmd --outdir /somewhere/else
+    preview_notebook analysis/20260730_qc.qmd --stdout > preview.html
+
+Portability notes:
+  - Stdlib only. No HPC/Slurm assumptions.
+  - The agent_plots directory is detected from the running server's --directory
+    flag, falling back to ~/agent_plots; the port is read from
+    ~/.agent_plots_port, falling back to 8765. Neither is hardcoded because on
+    RCC Midway the server may serve from scratch and may have shifted port.
+  - If the plot server is not running, the file is still written and the path
+    reported; only the URL hint is omitted.
+"""
+
+import argparse
+import html
+import os
+import re
+import subprocess
+import sys
+from datetime import datetime
+
+# ---------------------------------------------------------------- environment
+
+
+def detect_outdir():
+    """Directory the agent_plots server is actually serving, or the default."""
+    try:
+        ps = subprocess.run(["ps", "aux"], capture_output=True, text=True, timeout=10)
+        m = re.search(r"agent_plots_server.*?--directory\s+(\S+)", ps.stdout)
+        if m:
+            return m.group(1), True
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return os.path.expanduser("~/agent_plots"), False
+
+
+def detect_port():
+    try:
+        with open(os.path.expanduser("~/.agent_plots_port")) as fh:
+            return fh.read().strip() or "8765"
+    except OSError:
+        return "8765"
+
+
+# -------------------------------------------------------------------- parsing
+
+FENCE_RE = re.compile(r"^(?P<indent>\s*)(?P<fence>`{3,}|~{3,})(?P<info>.*)$")
+YAML_DELIM = "---"
+
+# Paths a cell writes out. Quoted string ending in a figure/table extension.
+ARTIFACT_RE = re.compile(
+    r"""["']([^"'\n]+\.(?:pdf|png|svg|jpg|jpeg|html|tsv|csv))["']""", re.IGNORECASE
+)
+CELL_OPT_RE = re.compile(r"^\s*#\|\s*([A-Za-z0-9_-]+)\s*:\s*(.*)$")
+
+
+def split_frontmatter(text):
+    """Return (yaml_dict_subset, body). Only scalar top-level keys are read."""
+    meta = {}
+    lines = text.split("\n")
+    if not lines or lines[0].strip() != YAML_DELIM:
+        return meta, text
+    for i in range(1, len(lines)):
+        if lines[i].strip() == YAML_DELIM:
+            for raw in lines[1:i]:
+                m = re.match(r"^([A-Za-z0-9_-]+)\s*:\s*(.+?)\s*$", raw)
+                if m:
+                    meta[m.group(1)] = m.group(2).strip().strip("\"'")
+            return meta, "\n".join(lines[i + 1 :])
+    return meta, text
+
+
+def parse_cells(body):
+    """Split the body into ('prose', text) and ('code', lang, text) blocks.
+
+    Fence length is tracked so that a ```` ```` ```` block containing ``` fences
+    (common when a notebook documents markdown) does not terminate early.
+    """
+    cells = []
+    prose = []
+    lines = body.split("\n")
+    i = 0
+    while i < len(lines):
+        m = FENCE_RE.match(lines[i])
+        if not m:
+            prose.append(lines[i])
+            i += 1
+            continue
+
+        fence = m.group("fence")
+        info = m.group("info").strip()
+        # An opening fence must carry an info string, or be a bare fence; a
+        # closing fence never does. Bare fences open a plain block.
+        body_lines = []
+        i += 1
+        while i < len(lines):
+            close = FENCE_RE.match(lines[i])
+            if (
+                close
+                and not close.group("info").strip()
+                and close.group("fence")[0] == fence[0]
+                and len(close.group("fence")) >= len(fence)
+            ):
+                i += 1
+                break
+            body_lines.append(lines[i])
+            i += 1
+
+        if prose:
+            cells.append(("prose", "\n".join(prose)))
+            prose = []
+        lang = re.sub(r"^\{|\}$", "", info.split()[0]) if info else ""
+        lang = re.sub(r"[^A-Za-z0-9_+-].*$", "", lang)
+        cells.append(("code", lang, "\n".join(body_lines)))
+
+    if prose:
+        cells.append(("prose", "\n".join(prose)))
+    return cells
+
+
+# ----------------------------------------------------------- markdown (subset)
+
+CODE_SPAN_RE = re.compile(r"`([^`]+)`")
+BOLD_RE = re.compile(r"\*\*(?=\S)(.+?)(?<=\S)\*\*")
+ITALIC_RE = re.compile(r"(?<![\*\w])\*(?=\S)([^*]+?)(?<=\S)\*(?!\*)")
+LINK_RE = re.compile(r"\[([^\]]*)\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+
+
+def inline(text):
+    """Escape, then apply a small set of inline markdown constructs.
+
+    Code spans are pulled out before emphasis is applied so that `a*b*c` inside
+    backticks survives intact, then restored.
+    """
+    text = html.escape(text, quote=False)
+    spans = []
+
+    def stash(m):
+        spans.append(m.group(1))
+        return "\x00%d\x00" % (len(spans) - 1)
+
+    text = CODE_SPAN_RE.sub(stash, text)
+    text = LINK_RE.sub(r'<a href="\2">\1</a>', text)
+    text = BOLD_RE.sub(r"<strong>\1</strong>", text)
+    text = ITALIC_RE.sub(r"<em>\1</em>", text)
+    text = re.sub(r"\x00(\d+)\x00", lambda m: "<code>%s</code>" % spans[int(m.group(1))], text)
+    return text
+
+
+def render_table(rows):
+    """rows: list of raw '| a | b |' lines, second one the alignment rule."""
+    def cells_of(line):
+        line = line.strip()
+        line = re.sub(r"^\||\|$", "", line)
+        return [c.strip() for c in line.split("|")]
+
+    out = ['<table><thead><tr>']
+    out += ["<th>%s</th>" % inline(c) for c in cells_of(rows[0])]
+    out.append("</tr></thead><tbody>")
+    for r in rows[2:]:
+        out.append("<tr>" + "".join("<td>%s</td>" % inline(c) for c in cells_of(r)) + "</tr>")
+    out.append("</tbody></table>")
+    return "".join(out)
+
+
+def render_prose(text):
+    """Render the markdown subset. Unknown constructs degrade to paragraphs."""
+    out = []
+    lines = text.split("\n")
+    i = 0
+    para = []
+
+    def flush():
+        if para:
+            out.append("<p>%s</p>" % inline(" ".join(para)))
+            para.clear()
+
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+
+        if not stripped:
+            flush()
+            i += 1
+            continue
+
+        m = re.match(r"^(#{1,6})\s+(.*)$", stripped)
+        if m:
+            flush()
+            level = len(m.group(1))
+            out.append("<h%d>%s</h%d>" % (level, inline(m.group(2)), level))
+            i += 1
+            continue
+
+        if re.match(r"^(-{3,}|\*{3,}|_{3,})$", stripped):
+            flush()
+            out.append("<hr>")
+            i += 1
+            continue
+
+        # Table: header row followed by an alignment rule.
+        if stripped.startswith("|") and i + 1 < len(lines) and re.match(
+            r"^\s*\|?[\s:|-]+\|[\s:|-]*$", lines[i + 1]
+        ):
+            flush()
+            rows = []
+            while i < len(lines) and lines[i].strip().startswith("|"):
+                rows.append(lines[i])
+                i += 1
+            out.append(render_table(rows))
+            continue
+
+        m = re.match(r"^([-*+]|\d+[.)])\s+(.*)$", stripped)
+        if m:
+            flush()
+            ordered = not m.group(1) in ("-", "*", "+")
+            tag = "ol" if ordered else "ul"
+            items = []
+            while i < len(lines):
+                mm = re.match(r"^\s*([-*+]|\d+[.)])\s+(.*)$", lines[i])
+                if mm:
+                    items.append(mm.group(2))
+                    i += 1
+                elif lines[i].strip() and lines[i].startswith((" ", "\t")) and items:
+                    items[-1] += " " + lines[i].strip()  # lazy continuation
+                    i += 1
+                else:
+                    break
+            out.append(
+                "<%s>%s</%s>" % (tag, "".join("<li>%s</li>" % inline(x) for x in items), tag)
+            )
+            continue
+
+        if stripped.startswith(">"):
+            flush()
+            quoted = []
+            while i < len(lines) and lines[i].strip().startswith(">"):
+                quoted.append(re.sub(r"^\s*>\s?", "", lines[i]))
+                i += 1
+            out.append("<blockquote>%s</blockquote>" % render_prose("\n".join(quoted)))
+            continue
+
+        para.append(stripped)
+        i += 1
+
+    flush()
+    return "".join(out)
+
+
+# ------------------------------------------------------------------ code stub
+
+
+def render_code(lang, code, outdir, port):
+    """One collapsed line per code cell; click to expand the source."""
+    lines = code.split("\n")
+    opts = {}
+    for line in lines:
+        m = CELL_OPT_RE.match(line)
+        if m:
+            opts[m.group(1)] = m.group(2).strip().strip("\"'")
+        elif line.strip():
+            break
+
+    real = [l for l in lines if l.strip() and not CELL_OPT_RE.match(l)]
+    n = len(real)
+
+    bits = ['<span class="lang">%s</span>' % html.escape(lang or "code")]
+    bits.append('<span class="dim">%d line%s</span>' % (n, "" if n == 1 else "s"))
+    if opts.get("label"):
+        bits.append('<span class="dim">%s</span>' % html.escape(opts["label"]))
+
+    # Artifacts this cell writes, linked if they exist beside the preview.
+    seen = []
+    for m in ARTIFACT_RE.finditer(code):
+        base = os.path.basename(m.group(1))
+        if base not in seen:
+            seen.append(base)
+    for base in seen:
+        if os.path.exists(os.path.join(outdir, base)):
+            bits.append('<a href="./%s">%s</a>' % (html.escape(base), html.escape(base)))
+        else:
+            bits.append('<span class="dim missing">%s</span>' % html.escape(base))
+
+    if opts.get("fig-cap"):
+        bits.append('<span class="cap">%s</span>' % html.escape(opts["fig-cap"]))
+
+    return (
+        '<details class="cell"><summary>%s</summary><pre><code>%s</code></pre></details>'
+        % (" ".join(bits), html.escape(code))
+    )
+
+
+# --------------------------------------------------------------------- output
+
+CSS = """
+:root { color-scheme: light dark; }
+body { max-width: 46rem; margin: 0 auto; padding: 2rem 1.25rem 6rem;
+       font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+header { border-bottom: 1px solid #8884; padding-bottom: .6rem; margin-bottom: 1.6rem; }
+header h1 { margin: 0 0 .2rem; font-size: 1.5rem; }
+header .meta { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; opacity: .6; }
+h1, h2, h3, h4 { line-height: 1.25; margin: 2rem 0 .6rem; }
+h2 { font-size: 1.25rem; } h3 { font-size: 1.08rem; }
+p { margin: .7rem 0; }
+blockquote { margin: .8rem 0; padding: .1rem 0 .1rem 1rem;
+             border-left: 3px solid #8886; opacity: .85; }
+table { border-collapse: collapse; margin: 1rem 0; font-size: .92em; display: block;
+        overflow-x: auto; max-width: 100%; }
+th, td { border: 1px solid #8884; padding: .3rem .6rem; text-align: left; }
+code { font: .88em ui-monospace, SFMono-Regular, Menlo, monospace;
+       background: #8881; padding: .1em .35em; border-radius: 3px; }
+hr { border: 0; border-top: 1px solid #8884; margin: 2rem 0; }
+.cell { margin: .55rem 0; }
+.cell summary { cursor: pointer; list-style: none; padding: .28rem .55rem;
+                border: 1px solid #8883; border-radius: 5px; background: #8880;
+                font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.cell summary::-webkit-details-marker { display: none; }
+.cell summary::before { content: "\\25B8 "; opacity: .5; }
+.cell[open] summary::before { content: "\\25BE "; }
+.cell summary:hover { background: #8882; }
+.cell .lang { font-weight: 600; }
+.cell .dim { opacity: .55; margin-left: .55rem; }
+.cell .missing { text-decoration: line-through; }
+.cell .cap { opacity: .7; margin-left: .55rem; font-style: italic; }
+.cell a { margin-left: .55rem; }
+.cell pre { overflow-x: auto; margin: .3rem 0 0; padding: .6rem .8rem;
+            background: #8881; border-radius: 5px; }
+.cell pre code { background: none; padding: 0; font-size: 12.5px; }
+.empty { opacity: .55; font-style: italic; }
+"""
+
+RELOAD_JS = """
+(function () {
+  var key = 'nbprev:' + location.pathname;
+  var saved = sessionStorage.getItem(key);
+  if (saved) window.scrollTo(0, parseInt(saved, 10));
+  addEventListener('scroll', function () {
+    sessionStorage.setItem(key, String(scrollY));
+  }, { passive: true });
+  var stamp = document.documentElement.getAttribute('data-stamp');
+  setInterval(function () {
+    fetch(location.href, { cache: 'no-store' })
+      .then(function (r) { return r.text(); })
+      .then(function (t) {
+        var m = t.match(/data-stamp="([^"]+)"/);
+        if (m && m[1] !== stamp) location.reload();
+      })
+      .catch(function () {});
+  }, 4000);
+})();
+"""
+
+
+def build_html(src, meta, cells, outdir, port):
+    stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    title = meta.get("title") or os.path.basename(src)
+
+    parts = []
+    n_prose = 0
+    for cell in cells:
+        if cell[0] == "prose":
+            rendered = render_prose(cell[1])
+            if rendered:
+                n_prose += 1
+                parts.append(rendered)
+        else:
+            parts.append(render_code(cell[1], cell[2], outdir, port))
+
+    if not parts:
+        parts.append('<p class="empty">Notebook is empty.</p>')
+    elif n_prose == 0:
+        parts.insert(0, '<p class="empty">No prose written yet — code cells only.</p>')
+
+    return (
+        '<!doctype html>\n<html lang="en" data-stamp="%s">\n<head>\n'
+        '<meta charset="utf-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+        "<title>%s — preview</title>\n<style>%s</style>\n</head>\n<body>\n"
+        "<header><h1>%s</h1>"
+        '<div class="meta">%s<br>prose preview · generated %s · reloads itself on change</div>'
+        "</header>\n%s\n<script>%s</script>\n</body>\n</html>\n"
+        % (
+            stamp,
+            html.escape(title),
+            CSS,
+            html.escape(title),
+            html.escape(os.path.abspath(src)),
+            stamp,
+            "\n".join(parts),
+            RELOAD_JS,
+        )
+    )
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="Render the prose of an in-progress .qmd into agent_plots as HTML."
+    )
+    ap.add_argument("qmd", help="path to the .qmd notebook")
+    ap.add_argument("--outdir", help="override the detected agent_plots directory")
+    ap.add_argument("--stdout", action="store_true", help="write HTML to stdout instead")
+    args = ap.parse_args()
+
+    if not os.path.isfile(args.qmd):
+        sys.exit("preview_notebook: no such file: %s" % args.qmd)
+
+    with open(args.qmd, encoding="utf-8", errors="replace") as fh:
+        text = fh.read()
+
+    meta, body = split_frontmatter(text)
+    cells = parse_cells(body)
+
+    detected = True
+    if args.outdir:
+        outdir = args.outdir
+    else:
+        outdir, detected = detect_outdir()
+    port = detect_port()
+
+    page = build_html(args.qmd, meta, cells, outdir, port)
+
+    if args.stdout:
+        sys.stdout.write(page)
+        return
+
+    try:
+        os.makedirs(outdir, exist_ok=True)
+    except OSError as exc:
+        sys.exit("preview_notebook: cannot create %s: %s" % (outdir, exc))
+
+    name = os.path.splitext(os.path.basename(args.qmd))[0] + ".preview.html"
+    dest = os.path.join(outdir, name)
+    with open(dest, "w", encoding="utf-8") as fh:
+        fh.write(page)
+
+    print("Preview → %s" % dest)
+    if detected:
+        print("           http://localhost:%s/%s" % (port, name))
+    else:
+        print("           (plot server not detected — is agent_plots_server running?)")
+
+
+if __name__ == "__main__":
+    main()

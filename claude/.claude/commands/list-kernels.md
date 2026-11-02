@@ -1,1 +1,0 @@
-Use the `mcp__jupyter-kernel__list_kernels` tool and display the results. Each line shows a connection file path, kernel name, and last-modified time. Kernels in `/run/user/.../jupyter/runtime/` are VS Code kernels; kernels in `/tmp/` were started by Claude via `start_kernel`.

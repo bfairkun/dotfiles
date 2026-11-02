@@ -1,1 +1,1 @@
-../../claude/.claude/skills/jupyter-kernel/jupyter_kernel_mcp.py
+../../agents/.agents/skills/jupyter-kernel/jupyter_kernel_mcp.py

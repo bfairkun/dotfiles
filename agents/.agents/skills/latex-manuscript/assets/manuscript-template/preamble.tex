@@ -1,0 +1,76 @@
+% ============================================================================
+%  preamble.tex -- all styling lives here. The prose in sections/ never needs
+%  to know about any of it.
+%
+%  CONSTRAINT: this manuscript must survive `make docx` (pandoc -> Word ->
+%  Google Docs) so coauthors can comment. Pandoc does not run LaTeX; it parses
+%  it. So core LaTeX survives and package commands often do not.
+%  See AGENTS.md for the rules and the reasoning. `make check` enforces them.
+% ============================================================================
+
+% --- page geometry ----------------------------------------------------------
+\usepackage[letterpaper, margin=1in, headheight=14pt]{geometry}
+\usepackage{setspace}
+\usepackage{xspace}     % lets text macros swallow the right trailing space
+
+% --- maths (MUST load before newtxmath, or \Bbbk is defined twice) -----------
+\usepackage{amsmath, amssymb}
+
+% --- fonts ------------------------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{libertine}
+\usepackage[libertine]{newtxmath}
+\usepackage[varqu,scaled=0.95]{inconsolata}
+\usepackage{microtype}
+
+% --- figures and tables -----------------------------------------------------
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{threeparttable}
+\usepackage{float}
+\usepackage[section]{placeins}
+\graphicspath{{figures/}}
+
+\usepackage[font=small, labelfont=bf, labelsep=period,
+            justification=justified, singlelinecheck=false]{caption}
+
+% NOTE: no `subcaption`. Panel letters are drawn by make_figures.py, because
+% \subref{} exports as an empty "()". See AGENTS.md.
+
+% --- section headings -------------------------------------------------------
+\usepackage{titlesec}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\titleformat{\paragraph}[runin]{\normalfont\bfseries}{}{0em}{}[.]
+
+% --- headers ----------------------------------------------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+% Running header: a short version of the title.
+\fancyhead[L]{\footnotesize\itshape Short title}
+\fancyhead[R]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- authors and colour -----------------------------------------------------
+\usepackage{authblk}
+\renewcommand\Affilfont{\small\itshape}
+\usepackage{xcolor}
+\definecolor{linkblue}{HTML}{1F5C99}
+
+% --- line numbers for reviewers (delete this block for the final version) ---
+\usepackage{lineno}
+\linenumbers
+\renewcommand\linenumberfont{\normalfont\tiny\color{gray}}
+
+% --- bibliography -----------------------------------------------------------
+\usepackage[round, authoryear]{natbib}
+\bibliographystyle{plainnat}
+
+% --- hyperlinks (load near-last) --------------------------------------------
+\usepackage[colorlinks=true, allcolors=linkblue, breaklinks=true]{hyperref}
+
+% --- project macros ---------------------------------------------------------
+% Kept in their own file so styling and vocabulary stay separate.
+\input{macros}

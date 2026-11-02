@@ -1,0 +1,15 @@
+# Ignore everything by default (future-proof catch-all)
+*
+
+# Explicitly track only these
+!.gitignore
+!CLAUDE.md
+!settings.json
+# settings.local.json is intentionally gitignored (machine-specific permissions)
+!list-sessions.sh
+!statusline-command.sh
+# dispatcher_watchdog.sh / tmux_forensics.sh live in the `bin` stow package
+# (~/bin) — they are cron-run system tooling, not Claude config.
+!skills
+!agents/
+!agents/*

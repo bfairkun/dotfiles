@@ -1,0 +1,56 @@
+{
+  "title": "MYT1L cryptic-splicing primer test",
+  "reps": 3,
+  "rxn_ul": 10.0,
+  "split_dead_ul": 5.0,
+  "reagent_dead_frac": 0.1,
+  "mm_ul_per10": 5.0,
+  "primer_stock_uM": 10.0,
+  "primer_final_nM": 250.0,
+  "multichannel_min_ul": 5.0,
+  "multichannel_max_ul": 50.0,
+  "n_samples": 6,
+  "dilution": {
+    "points": 4,
+    "fold": 10,
+    "top_tube_dilution_x": 20
+  },
+  "blocks": [
+    {
+      "name": "PP1 Canonical",
+      "mastermix": "MM_A commercial",
+      "samples": true,
+      "dilseries": true
+    },
+    {
+      "name": "PP2 CS1",
+      "mastermix": "MM_A commercial",
+      "samples": true,
+      "dilseries": true
+    },
+    {
+      "name": "PP3 CS2",
+      "mastermix": "MM_A commercial",
+      "samples": true,
+      "dilseries": true
+    },
+    {
+      "name": "PP4 CS3",
+      "mastermix": "MM_A commercial",
+      "samples": true,
+      "dilseries": true
+    },
+    {
+      "name": "PP5 reference",
+      "mastermix": "MM_A commercial",
+      "samples": true,
+      "dilseries": false
+    },
+    {
+      "name": "PP1 Canonical",
+      "mastermix": "MM_B homemade",
+      "samples": false,
+      "dilseries": true
+    }
+  ]
+}

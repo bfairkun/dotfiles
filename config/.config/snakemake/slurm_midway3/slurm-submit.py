@@ -9,7 +9,15 @@ from snakemake.utils import read_job_properties
 import slurm_utils
 
 # cookiecutter arguments
-SBATCH_DEFAULTS = """"""
+# Yield to anything else this account submits. The per-user cap is on NODES (100), and a
+# large workflow holds all of them, so a later small job cannot get a fresh node and
+# queues behind every pending job here.
+#
+# Keep this SMALL. nice is global, not per-account: at 5000 our priority fell to 120187,
+# below the cluster's median pending priority of ~127800, and running jobs collapsed from
+# 679 to 40. 500 is enough to sort below anything this account submits later (~127k) while
+# staying competitive with other users.
+SBATCH_DEFAULTS = """nice=500"""
 CLUSTER_CONFIG = "cluster-config.yaml"
 ADVANCED_ARGUMENT_CONVERSION = {"yes": True, "no": False}["no"]
 

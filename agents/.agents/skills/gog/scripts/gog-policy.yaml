@@ -1,0 +1,121 @@
+name: bjf-agent
+description: One gog for people and agents. Free Docs editing; append-only Sheets; Drive trash but no permanent delete or sharing; Calendar create/update without delete or RSVP; read-only Gmail; no OAuth-client or keyring changes.
+
+# Semantics: deny beats allow; a parent allow covers its subcommands; anything unlisted is blocked.
+# Unlisted (blocked) on purpose: update (would replace this binary with an unrestricted one),
+# api/batch/mcp (raw API paths that bypass these rules), and every service not authorized.
+
+allow:
+  - version
+  - schema
+  - time
+  - config.get
+  - config.keys
+  - config.list
+  - config.path
+
+  # Root shortcuts
+  - ls
+  - search
+  - open
+  - download
+  - upload
+  - status
+  - me
+  - whoami
+
+  # Accounts: add/remove need the user in a browser or are re-addable.
+  - auth.list
+  - auth.status
+  - auth.services
+  - auth.doctor
+  - auth.add
+  - auth.remove
+  - auth.alias
+  - auth.tokens.list
+  - auth.credentials.list
+
+  # Gmail: the OAuth grant is gmail.readonly, so Google rejects writes regardless.
+  - gmail
+
+  # Docs: everything, including clear and delete-tab (version history recovers).
+  - docs
+
+  # Sheets: read + append + create only.
+  - sheets.get
+  - sheets.metadata
+  - sheets.read-format
+  - sheets.notes
+  - sheets.raw
+  - sheets.export
+  - sheets.append
+  - sheets.create
+
+  # Drive: organize and trash; permanent delete locked off below.
+  - drive.ls
+  - drive.search
+  - drive.tree
+  - drive.du
+  - drive.inventory
+  - drive.get
+  - drive.download
+  - drive.copy
+  - drive.upload
+  - drive.mkdir
+  - drive.delete
+  - drive.move
+  - drive.rename
+  - drive.shortcut
+  - drive.permissions
+  - drive.url
+  - drive.comments.list
+  - drive.comments.get
+  - drive.comments.create
+  - drive.comments.reply
+
+  # Calendar: read, create, update, move.
+  - calendar.calendars
+  - calendar.events
+  - calendar.event
+  - calendar.create
+  - calendar.update
+  - calendar.move
+  - calendar.freebusy
+  - calendar.colors
+  - calendar.conflicts
+  - calendar.changed
+  - calendar.search
+  - calendar.time
+  - calendar.users
+  - calendar.team
+
+deny:
+  - send
+  - login
+  - logout
+  - auth.credentials.set
+  - auth.credentials.remove
+  - auth.keyring
+  - auth.tokens.delete
+  - auth.tokens.export
+  - auth.tokens.import
+  - gmail.send
+  - gmail.drafts.send
+  - gmail.forward
+  - gmail.trash
+  - gmail.batch.delete
+  - gmail.filters
+  - gmail.forwarding
+  - gmail.autoforward
+  - gmail.delegates
+  - gmail.sendas
+  - gmail.vacation
+  - gmail.autoreply
+  - gmail.track
+  - gmail.import
+  - docs.comments.delete
+
+locked-flags:
+  permanent: false
+  check-orphans: true
+  wrap-untrusted: true
