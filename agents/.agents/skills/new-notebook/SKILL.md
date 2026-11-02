@@ -1,7 +1,6 @@
 ---
 name: new-notebook
 description: Create a new analysis notebook in the analysis/ directory, and the writing standard every notebook must meet. Invoke when starting a new analysis, exploration, or visualization task that needs a notebook, or when writing prose or captions into one.
-argument-hint: "[brief description of analysis]"
 ---
 
 # New Notebook Conventions
@@ -62,18 +61,23 @@ End with a short **Summary** listing the confirmed findings, and open questions 
 
 Unsigned prose is read as the user's own view. Therefore:
 
-- Unsigned interpretation must come from the user — something they said in the session or
-  confirmed in the pre-render check (`interactive-notebook` skill).
-- Agent interpretation is included only when a later section depends on it. Put it in a
-  labelled callout, kept to a few sentences:
+- Unsigned interpretation must come from something the user said or a reading they selected
+  or agreed with in conversation. Use [interpret-results](../interpret-results/SKILL.md) when
+  clarification is needed, at any point in analysis or writing.
+- Write agreed interpretations naturally. Do not add endorsement labels, approval statements,
+  or a review transcript to the notebook; its authorship already implies the user's view.
+- Omit unneeded AI interpretation. Any retained interpretation the user has not agreed with
+  must be explicitly AI-signed, including hypotheses motivating later analyses. Keep it brief:
 
   ```
-  ::: {.callout-note title="Agent interpretation (not verified by author)"}
+  ::: {.callout-note title="AI interpretation (not confirmed by author)"}
   ...
   :::
   ```
 
-- No biological speculation, mechanism, or "this suggests…" chains beyond what the user said.
+- No unsigned biological speculation, mechanisms, or "this suggests…" chains beyond the
+  user's stated or selected reading. AI signing is not a license to fill the notebook with
+  speculative prose.
 
 ### Style — avoid
 
@@ -99,9 +103,17 @@ the file exists before relying on it. To add a box at a specific point:
 the box — only when the user has said what to ask. Readers save comments with **Download
 annotated copy** (not the browser's Save Page As).
 
+## Table of contents
+
+The template also ships `analysis/_toc_dropdown.html` (second `include-after-body` entry): it
+replaces Quarto's right-margin TOC with a floating "Contents ▾" button so wide content (embedded
+genome browsers, figure grids) gets the full page width. For older projects, copy it from the
+template's `analysis/` and add it to `include-after-body`; if the project's `.gitignore` has
+`analysis/*html`, add `!analysis/_toc_dropdown.html`.
+
 ## Rendering
 
 `render_notebook render analysis/YYYYMMDD_name.qmd` (a quarto shim in `~/bin/` that records the
 render env; see `compute-kernel`). Python: prefix with `conda run -n py_general`. Before
-rendering a notebook the agent wrote prose for, run the pre-render check in the
-`interactive-notebook` skill.
+rendering a notebook the agent wrote prose for, follow the
+[pre-render catch-up](../interpret-results/SKILL.md#pre-render-catch-up).

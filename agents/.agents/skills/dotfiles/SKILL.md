@@ -1,83 +1,57 @@
 ---
 name: dotfiles
 description: Edit or add dotfiles following the repo's stow-based organization conventions. Invoke when the user asks to add, modify, or reorganize dotfiles.
-argument-hint: "[what to add or change]"
 ---
 
-# Dotfiles Repo Organization
+# Dotfiles Organization
 
-Repo location: `~/dotfiles` (also the working directory for all edits)
-Remote: `git@github.com:bfairkun/dotfiles.git`
+Repo: `~/dotfiles`; remote: `git@github.com:bfairkun/dotfiles.git`.
+Each top-level directory is a Stow package mirroring paths under `$HOME`:
+`bash/.bashrc` → `~/.bashrc`, `bin/bin/tool` → `~/bin/tool`.
 
-## Core Pattern: GNU Stow
+## Editing
 
-Each top-level directory is a **stow package**. Running `stow <package>` from `~/dotfiles` creates symlinks in `$HOME` mirroring the package's internal directory tree.
+- Edit package sources, never the `$HOME` symlink.
+- Keep one `local_dotfiles_<MachineName>` package per physical machine. RCC uses the shared
+  `local_dotfiles_RCCMidwayGeneral` plus node-specific `local_dotfiles_RCCMidway2`/`3`.
+- General packages contain portable settings. Machine-specific shell overrides belong in
+  `.zshrc_local`, `.bashrc_local`, or `.profile_local`, sourced by the general files.
+- Machine feature markers belong at the root of the machine package; placing them under
+  `.config` can conflict with that directory's folded link to the general `config` package.
+- Store machine facts in that package's `.agents/AGENTS.local.md`, using the Great Lakes
+  key/value table format. Keep repository `AGENTS.md` consistent with this skill.
+- Do not edit submodule contents here: `vim/.vim`, `ohmyzsh/.oh-my-zsh`, `fzf/.fzf`, and
+  `zsh/.zsh_custom/plugins/zsh-syntax-highlighting`.
+- From `~/dotfiles`, use `stow -n <package>` to inspect links, then `stow -v <package>`.
+  Never casually use `--restow`/`-R`: it unlinks first and can leave everything unlinked on
+  conflict. For conflicts or git locks, read [troubleshooting](references/troubleshooting.md).
+- Review and commit only task-related changes; preserve existing work.
 
+## Symlinks and files applications rewrite
+
+A symlink inside a package resolves from its **repo location**, not its eventual `$HOME`
+location. Prefer links to tracked files within the package. For a target outside the repo,
+calculate the path from the actual link location and verify it resolves.
+
+Example: `agents/.claude-enterprise/projects` needs `../../../.claude/projects` to reach
+`~/.claude/projects`; `../.claude/projects` points to a nonexistent directory inside the repo.
+
+Applications may atomically replace settings files, destroying file symlinks. Give mutable
+files such as Claude's `settings.json` separate copies; share directories only when shared
+runtime state is intended. Read-only instruction files can be symlinked.
+
+## Prevent runtime files from entering the repo
+
+Stow can fold a whole directory into one symlink. For application directories that acquire
+caches or state, use `--no-folding` so only tracked leaf files are linked:
+
+```bash
+stow -n --no-folding Library
+stow --no-folding Library
 ```
-~/dotfiles/bash/.bashrc  →  (stow bash)  →  ~/.bashrc
-```
 
-- Always mirror the path from `$HOME` inside the package directory
-- Nested dirs like `bin/bin/` are intentional: stow symlinks the inner `bin/` to `~/bin/`
-- XDG-style configs live in `config/.config/<tool>/` → symlinked to `~/.config/<tool>/`
-
-### Gotcha: a symlink *inside* a package resolves from the repo, not from $HOME
-
-If a file you put inside a package is itself a symlink (not a real file), its relative
-target is resolved starting from where that file physically sits **in the repo** — not
-from where stow later places the outer symlink in `$HOME`. Following the link means
-following both hops: `$HOME` symlink → repo symlink → repo symlink's own relative target.
-
-This is fine when the symlink points at another *tracked* file inside the same package
-(e.g. `.claude/skills -> ../.agents/skills`) — both ends live in the repo, so the path
-is correct either way.
-
-It breaks when you want the symlink to reach something that only exists live in `$HOME`
-and was never copied into git — a generated file, session state, another package's
-*stowed* output. The relative path resolves against the repo location instead, lands on
-a path inside the repo that doesn't exist, and silently points nowhere useful.
-
-**Rule of thumb:** only author a relative symlink inside a package if either (a) its
-target is real, tracked content in the same package tree, or (b) you compute the path
-relative to the file's *repo location*, adding enough `../` levels to escape the repo
-and reach `$HOME`.
-
-For case (b): count the path components between `$HOME` and the symlink file in the
-repo, then prefix with that many `../`. Example — `agents/.claude-enterprise/projects`
-sits 3 levels deep (`dotfiles/agents/.claude-enterprise/`), so
-`../../../.claude/projects` correctly escapes to `~/.claude/projects`. The symlink is
-tracked in git and stow deploys it correctly on every machine without any manual step.
-
-### Gotcha: don't symlink a file the program itself rewrites
-
-Some dotfiles are pure input — the program only ever reads them (`CLAUDE.md`, skill
-files, shell rc files). Others are live state — the program reads *and writes* them
-during normal use. Claude Code's `settings.json` and `settings.local.json` are the
-second kind: `/model`, permission approvals, and other in-session actions get persisted
-back to disk.
-
-That write is usually an atomic replace (write to a temp file, then rename over the
-target) — a safe pattern for the program, but it silently deletes whatever was at that
-path and puts a plain file there instead. If the path was a symlink into this repo, the
-symlink is gone and a real, untracked file takes its place, without any error. This
-already happened once: two Claude Code identities (`~/.claude` and
-`~/.claude-enterprise`) were set up to *share* `settings.json` via a symlink chain, and
-the very first settings write from the second identity replaced it with an independent
-file — silently forking the two configs on first use, not on some later edit.
-
-**Rule of thumb:** don't symlink-share a file a program writes back to. Directories are
-usually fine to share (a new file gets created *inside* the resolved directory without
-touching the directory symlink itself — this is how the two Claude identities share
-`projects/`, i.e. memory/session history, safely). But a live-rewritten *file* should get
-its own independent copy per location, seeded once and allowed to diverge, not a symlink
-you expect to stay in sync.
-
-Real example: `agents/.claude-enterprise/projects` was initially a symlink to
-`../.claude/projects`, intending to reach `~/.claude/projects`. It actually resolved to
-`agents/.claude/projects` (inside the repo), which doesn't exist. Fixed by using
-`../../../.claude/projects` — 3 levels up to escape `dotfiles/agents/.claude-enterprise/`
-back to `$HOME`, then down to `.claude/projects`. That symlink now lives in git and
-stow handles it correctly everywhere.
+Read-only packages (skills, vim, tmux, oh-my-zsh) can remain folded. To repair an already folded
+application directory, follow [unfolding](references/unfolding.md).
 
 ## Package Inventory
 
@@ -111,117 +85,8 @@ stow handles it correctly everywhere.
 
 One package per physical machine. `RCCMidway3` holds only genuinely Midway3-only files; everything shared by both nodes stays in `RCCMidwayGeneral`. Per-machine agent facts go in each package's `.agents/AGENTS.local.md`; the RCC Midway file in `RCCMidwayGeneral` serves both login nodes.
 
-## Local Override Pattern
+## Supporting files
 
-Shell configs source machine-specific files if they exist:
-- `~/.zshrc` → sources `~/.zshrc_local`
-- `~/.bashrc` → sources `~/.bashrc_local`
-- `~/.profile` → sources `~/.profile_local`
-
-Machine-specific stow packages supply those `*_local` files. **Never put machine-specific settings in the general packages** — put them in the appropriate `local_dotfiles_*` package instead.
-
-## Git Submodules
-
-- `vim/.vim` — personal .vim repo
-- `ohmyzsh/.oh-my-zsh` — oh-my-zsh framework
-- `zsh/.zsh_custom/plugins/zsh-syntax-highlighting`
-- `fzf/.fzf`
-
-When adding new files near submodules, be careful not to accidentally edit the submodule.
-
-## Where to Add New Things
-
-| What | Where |
-|------|-------|
-| New portable tool config (XDG) | `config/.config/<tool>/` |
-| New portable script | `bin/bin/` |
-| RCC Midway shell/env settings (both nodes) | `local_dotfiles_RCCMidwayGeneral/` |
-| Midway2-only settings | `local_dotfiles_RCCMidway2/` |
-| Midway3-only settings | `local_dotfiles_RCCMidway3/` |
-| Per-machine agent facts (paths, hostname verify) | that machine's `.agents/AGENTS.local.md` |
-| macOS settings | `local_dotfiles_MyMacbookAir/` or `local_dotfiles_MEDGEN_MacbookAir/` |
-| Shared agent instructions/skills and client config | `agents/` |
-| Misc dotfiles with no better home | `other/` |
-| Turn a general script on for one machine | stow a top-level marker file from that machine's package (not under `.config/` — `~/.config` is a folded symlink to the `config` package) |
-| Snakemake cluster profiles | `config/.config/snakemake/<profile-name>/` |
-
-## Key Utilities
-
-- `bin/bin/MoveStowConflicts.cli.py` — resolves stow conflicts by moving existing files to a backup dir
-- `README.md` — full installation instructions
-- `.xstow.ini` — xstow ignore config (ignores `~`, `core`, `CVS`, `README*`, `.git*`)
-
-## Workflow When Editing
-
-1. Edit the file inside `~/dotfiles/<package>/...` (not the symlink in `$HOME`)
-2. If adding a new file, place it in the right package following the path-mirroring rule
-3. If adding a new package, run `stow -v <package>` to create symlinks
-4. Commit changes with `git add` + `git commit` from `~/dotfiles`
-
-### Gotcha: tree folding lets a program write its state into this repo
-
-When stow links a package and the target directory **doesn't exist yet**, it creates one
-symlink to the whole package directory instead of a real directory with symlinked files
-inside. That's "tree folding". It's invisible and harmless until a program writes runtime
-state into that directory — which then lands inside `~/dotfiles`.
-
-This bit the `Library` package: VSCode wasn't installed when it was first stowed, so
-`~/Library/Application Support/Code` became a symlink into the repo, and VSCode wrote
-**1.1 GB** of caches, logs, sockets and workspace state into `~/dotfiles`. Only an
-untracked nested `.gitignore` kept it out of history. The two entries in the top-level
-`.gitignore` for `config/.config/nnn/sessions/` and `config/.config/gh/hosts.yml` are
-earlier, reactive patches of this same bug.
-
-**Rule of thumb:** for any package whose target directory a program writes into
-(editors, CLIs with caches or session state), stow with `--no-folding`:
-
-```bash
-stow -n --no-folding Library   # dry run: expect only leaf-file LINK lines, no dir links
-stow --no-folding Library
-```
-
-`--no-folding` makes real directories all the way down and symlinks only leaf files, so
-the program's own writes stay in `$HOME`. Read-only packages (skills, oh-my-zsh, vim,
-tmux configs) are fine folded.
-
-To unfold an already-folded package: quit the program, `stow -D <pkg>` to drop the
-symlink, `mv` the real directory from the repo into `$HOME` (same filesystem = instant
-rename), restore the tracked config files into the repo with `git checkout --`, delete
-the duplicates from the live dir, then `stow --no-folding <pkg>`. Check for untracked
-files in the repo dir first — `git checkout` won't bring those back.
-
-## Stow Conflict Resolution
-
-When two packages contribute files under the same directory, GNU Stow unfolds the first
-package's directory symlink and merges them normally. `stow -n` may report a false conflict
-while simulating this unfold; verify the targets, then run the real `stow` command.
-
-**Never use `stow -R` / `--restow` carelessly.** It first unstows (deletes all symlinks), then restows. If restow fails due to a conflict, you're left with nothing linked.
-
-When `stow -v <package>` fails with `CONFLICT: ... vs. ...`:
-1. Move the conflicting real file aside: `mv ~/.foo/bar ~/.foo/bar.bak`
-2. Run `stow -v <package>` — it will now create the symlink cleanly
-3. Decide: restore the real file over the symlink (`mv bar.bak bar` — keeps it as an unmanaged real file), or update the dotfiles copy to match and keep it managed
-
-**Absolute symlinks conflict too.** Stow only claims *relative* links. A link like
-`~/bin/foo -> /home/<user>/dotfiles/bin/bin/foo` points at the right file but still blocks
-`stow bin` (seen with `install-codex-tmux-hooks`, 2026-09-25). Fix: `ln -sfn ../dotfiles/bin/bin/foo ~/bin/foo`.
-Find them with `find ~ -maxdepth 2 -lname "$HOME/dotfiles/*"`.
-
-Utility: `bin/bin/MoveStowConflicts.cli.py` automates moving all conflicting files to a backup dir in bulk.
-
-## Git Lock Quirks on This Mac
-
-**Normal background locks:** Claude Code runs `git status` in the working directory every ~1.6 seconds to populate its UI context. This creates brief (~350ms) index locks at `.git/index.lock`. These are harmless and self-resolving — don't delete them unless they're stale.
-
-**Stale locks** (left behind when a git process crashes or hangs):
-```bash
-rm -f ~/dotfiles/.git/index.lock
-```
-
-**Root-owned stow package dirs cause git to stall.** If any directory inside the repo is owned by root (e.g. `config/.config/fish/` was owned by root because fish was installed with sudo), `git status` hangs trying to read it, leaving locks that persist. Symptoms: every git command fails with `index.lock exists`.
-
-Fix: either correct ownership (`sudo chown -R $USER <path>`) or remove the path from the repo (`git rm -r <path>`). Check with:
-```bash
-ls -la config/.config/   # look for root-owned entries
-```
+- `README.md`: installation instructions.
+- `.xstow.ini`: ignored names (`~`, `CVS`, `core`, `README*`, `RCS`, `.git*`).
+- `bin/bin/MoveStowConflicts.cli.py`: back up conflicting files before linking.

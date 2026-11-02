@@ -42,6 +42,7 @@ Always specify the account for job submission:
 | gpu (a100) | 48        | 384 GB    | A100           | midway3-0294                 |
 | beagle3    | 32        | 256 GB    | A100/A40       | Beagle3 nodes                |
 | ssd        | 48        | 192 GB    | —              | Local SSD-backed nodes       |
+| build      | 48        | 180 GB    | —              | 1 node; **use for mamba/pip installs** (no SUs, fast start) — brain `midway-su-exhaustion-build-partition` |
 
 ### Example sbatch script (midway3):
 
@@ -196,9 +197,8 @@ Login nodes are shared. Anything beyond a few minutes of multi-core compute belo
 Slurm job, not a background login-node process; if a background login-node process is
 unavoidable, cap its threads (e.g. `OMP_NUM_THREADS`).
 
-Memory on a login node is capped per **user**, not per process — one 8 GiB cgroup shared by
-every session and kernel you have open, so parallel agent sessions OOM-kill each other's
-kernels silently. Diagnosis and thresholds → `compute-kernel` skill.
+Login-node memory is shared across the whole user. Limits: `AGENTS.local.md`; diagnosis:
+[compute-kernel recovery](../compute-kernel/references/recovery.md).
 
 ## Long-running Snakemake: show progress in the user's spare pane
 

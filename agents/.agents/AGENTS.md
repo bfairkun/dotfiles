@@ -9,11 +9,11 @@
 
 ### py_general — do not modify autonomously
 
-**Never install packages into `py_general` autonomously** (no `mamba install`, no `pip install`). This is a carefully managed env; ad-hoc installs break reproducibility and can cause solver conflicts. If a package is missing, **tell the user** what to add to the yaml (`~/dotfiles/other/conda_minimal_yamls/py_general.yaml`) and let them rebuild. Prefer conda-forge/bioconda over pip; pip is last resort for packages unavailable on any conda channel.
+Do not install packages into `py_general` autonomously, except for `my_utils` below. For missing dependencies, suggest changes to `~/dotfiles/other/conda_minimal_yamls/py_general.yaml` and let the user rebuild. Prefer conda-forge/bioconda; use pip only for packages unavailable there.
 
 ## my_utils Package
 
-Personal bioinformatics utility library (repo: `github.com/bfairkun/my_utils`). Modules are self-documenting — `ls` the package or check the relevant skill. If a local clone is present, `pip install -e` it into `py_general` so it tracks the clone; otherwise `pip install git+https://github.com/bfairkun/my_utils.git`.
+Personal bioinformatics library: `github.com/bfairkun/my_utils`. It should already be installed in editable mode in `py_general`; edits to the clone need no reinstall. Inspect its installation before changing it. If missing or linked to the wrong clone, installing or repairing its editable link is allowed; use `pip install --no-deps -e <local-clone>` so shared dependencies remain unchanged. Locate or clone the repo if necessary. Read its modules or the relevant skill for usage.
 
 ## Output Directories
 
@@ -26,9 +26,7 @@ When debugging reveals non-obvious quirks specific to this environment (e.g., cl
 
 ## Worktrees and parallel sessions
 
-**Do not use worktrees for background sessions by default.** Edit files in place and rely on git for conflict detection. A session delivered via Remote Control or the dispatcher is still effectively a single interactive session — worktrees add friction without benefit.
-
-**Use worktrees only when** multiple agents are explicitly spawned in parallel via the Agent tool (`isolation: "worktree"`) to work on the same repo simultaneously. That is the scenario worktrees are designed for.
+Edit in place by default. Use isolated worktrees only when explicitly running parallel agents on the same repository; ordinary background sessions do not need them.
 
 ## Authoring skills
 
@@ -50,7 +48,7 @@ Unless specified otherwise, create skills as global, agent-neutral skills under 
 
 - Always ask before running `rm -rf` or other bulk-destructive shell commands.
 - Chain dependent commands with `&&`; newline-separated commands always run regardless of prior exit codes. Prefer `mv` over separate `cp` + `rm`.
-- Set a `timeout` (ms) on Bash calls that should complete in under ~10 seconds. If a fast command hangs, surface the error and diagnose rather than waiting silently.
+- Bound short shell commands with a timeout when the execution interface supports it, or use the shell `timeout` utility. Diagnose unexpected hangs rather than waiting silently.
 
 ## Cross-project knowledge base (`brain`)
 
