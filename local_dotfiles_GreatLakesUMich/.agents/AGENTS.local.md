@@ -41,3 +41,5 @@ Use it whenever outputting something the user needs to paste — auth URLs, toke
 ```bash
 echo "https://auth.example.com/device?code=XXXX" | pbcopy_to_local
 ```
+
+If the tunnel is down, show it as a scannable QR instead: `qr "$URL"` (`~/bin/qr`; needs the `agent_qr` env or `qrencode`).
