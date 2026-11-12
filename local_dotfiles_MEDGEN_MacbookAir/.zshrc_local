@@ -1,17 +1,20 @@
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/opt/miniconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/opt/miniconda3/etc/profile.d/conda.sh" ]; then
-        . "/opt/miniconda3/etc/profile.d/conda.sh"
-    else
-        export PATH="/opt/miniconda3/bin:$PATH"
+# conda: use whichever install exists (official installer default is ~/miniconda3).
+# Not a `conda init` block on purpose -- don't let `conda init` rewrite this file.
+for _conda_base in "$HOME/miniconda3" /opt/miniconda3 /opt/homebrew/Caskroom/miniconda/base; do
+    if [ -x "$_conda_base/bin/conda" ]; then
+        __conda_setup="$("$_conda_base/bin/conda" 'shell.zsh' 'hook' 2> /dev/null)"
+        if [ $? -eq 0 ]; then
+            eval "$__conda_setup"
+        elif [ -f "$_conda_base/etc/profile.d/conda.sh" ]; then
+            . "$_conda_base/etc/profile.d/conda.sh"
+        else
+            export PATH="$_conda_base/bin:$PATH"
+        fi
+        unset __conda_setup
+        break
     fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
+done
+unset _conda_base
 
 export PATH="$HOME/.local/bin:$PATH"
 

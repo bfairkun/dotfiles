@@ -7,13 +7,8 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/bjf79/bin/smb_automount.sh</string>
-        <string>umich-smb</string>
-        <string>benfair</string>
-        <string>benfair</string>
-        <string>umms-hastingm-win.turbo.storage.umich.edu</string>
-        <string>umms-hastingm</string>
-        <string>/Users/bjf79/mnt/umms-hastingm</string>
+        <string>-c</string>
+        <string>"$HOME/bin/smb_automount.sh" umich-smb benfair benfair umms-hastingm-win.turbo.storage.umich.edu umms-hastingm "$HOME/mnt/umms-hastingm"</string>
     </array>
     <key>StartInterval</key>
     <integer>60</integer>

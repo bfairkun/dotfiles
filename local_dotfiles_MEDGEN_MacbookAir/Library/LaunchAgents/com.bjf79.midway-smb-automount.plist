@@ -7,7 +7,8 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/bjf79/bin/midway_smb_automount.sh</string>
+        <string>-c</string>
+        <string>"$HOME/bin/midway_smb_automount.sh"</string>
     </array>
     <key>StartInterval</key>
     <integer>60</integer>
