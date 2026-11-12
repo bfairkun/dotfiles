@@ -11,7 +11,6 @@ Work (MEDGEN) MacBook Air (macOS).
 | `BRAIN_PATH` | `~/Documents/repos_not_projects/brain` _(verify/clone on machine)_ |
 | `my_utils` | `~/Documents/repos_not_projects/my_utils/` |
 | `USERNAME` | `benjaminfair` (was `bjf79` before the wipe) |
-| `VPN` | Cisco Secure Client (AnyConnect) |
 
 ## Local Clipboard
 
