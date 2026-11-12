@@ -8,7 +8,7 @@ Work (MEDGEN) MacBook Air (macOS).
 |---|---|
 | `MACHINE` | MEDGEN (work) MacBook Air (macOS) |
 | `HOSTNAME_VERIFY` | `echo $HOST` → `Benjamins-MacBook-Air.local` (was `MED-GEN-ML-04.local` before the Nov 2026 wipe) |
-| `BRAIN_PATH` | `~/Documents/repos_not_projects/brain` _(verify/clone on machine)_ |
+| `BRAIN_PATH` | `~/Documents/repos_not_projects/brain` |
 | `my_utils` | `~/Documents/repos_not_projects/my_utils/` |
 | `USERNAME` | `benjaminfair` (was `bjf79` before the wipe) |
 
