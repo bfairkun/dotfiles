@@ -100,10 +100,10 @@ export PATH=$HOME/miniconda3/bin:$PATH
 # Load secret API keys (not tracked in dotfiles)
 [ -f ~/.secrets ] && source ~/.secrets
 
-# Auto-start agent plots HTTP server on port 8765
+# Auto-start agent plots HTTP server on port 8775 (8765-8769 reserved for Great Lakes tunnel on the Mac)
 if ! pgrep -f "agent_plots_server.py" > /dev/null 2>&1; then
     mkdir -p $SCRATCH/$USER/agent_plots
-    nohup python3 ~/bin/agent_plots_server.py --port 8765 --directory $SCRATCH/$USER/agent_plots > $SCRATCH/$USER/agent_plots/server.log 2>&1 &
+    nohup python3 ~/bin/agent_plots_server.py --port 8775 --directory $SCRATCH/$USER/agent_plots > $SCRATCH/$USER/agent_plots/server.log 2>&1 &
 fi
 
 # List running Jupyter kernels (newest first)
