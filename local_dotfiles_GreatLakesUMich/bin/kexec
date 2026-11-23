@@ -10,18 +10,19 @@ the inline backend) are saved as PNG files in OUTDIR and their paths printed as 
 Exit codes: 0 ok, 1 code raised, 2 cannot reach kernel, 124 timed out (code keeps running).
 
 Defaults: CONNECTION_FILE=$SCRATCH/$USER/agent_kernel.json (as written by start_agent_kernel),
-OUTDIR=$SCRATCH/$USER/kexec_out. Run on any Great Lakes node that can reach the kernel's node.
+OUTDIR=$SCRATCH/$USER/kexec_out. KEXEC_PYTHON: python with jupyter_client (default py_general).
+Run on any Great Lakes node that can reach the kernel's node.
 """
 import os
 import sys
 
-PY_GENERAL = os.path.expanduser("~/micromamba/envs/py_general/bin/python")
+PY_GENERAL = os.environ.get("KEXEC_PYTHON") or os.path.expanduser("~/micromamba/envs/py_general/bin/python")
 try:
     import jupyter_client  # noqa: F401
 except ImportError:
     if os.path.exists(PY_GENERAL) and os.path.realpath(sys.executable) != os.path.realpath(PY_GENERAL):
         os.execv(PY_GENERAL, [PY_GENERAL] + sys.argv)
-    sys.exit("kexec: jupyter_client not importable (need py_general)")
+    sys.exit("kexec: jupyter_client not importable; set KEXEC_PYTHON to a python that has it")
 
 import argparse
 import base64
