@@ -6,7 +6,7 @@ description: How to share plots and tables with the user. Invoke when saving any
 # Agent Plots Workflow
 
 Machine-specific paths are in `AGENTS.local.md → Agent Reference` (always in context).
-- **HPC**: HTTP server + SSH tunnel → user browses `http://localhost:<port>`. Great Lakes uses 8765; RCC Midway uses **8775** (auto-shifts to 8776-8779 if another user holds it). Separate ranges because the Mac often has both tunnels open, and whichever connects first owns shared laptop ports.
+- **HPC**: HTTP server + SSH tunnel → user browses `http://localhost:<port>`. Great Lakes uses 8765; RCC Midway uses **8775**. Either auto-shifts up to 4 ports (8766-8769 / 8776-8779) if another user holds it. Separate ranges because the Mac often has both tunnels open, and whichever connects first owns shared laptop ports.
 - **Mac**: save to file, tell user path — they open in Finder/Preview
 
 ## Workflow
@@ -28,7 +28,7 @@ r = subprocess.run(['ps', 'aux'], capture_output=True, text=True)
 m = re.search(r'agent_plots_server.*?--directory\s+(\S+)', r.stdout)
 print(m.group(1) if m else os.path.expanduser('~/agent_plots'))
 "
-# Port the server actually bound (RCC Midway: 8775-8779; GreatLakes/Mac: 8765)
+# Port the server actually bound (Great Lakes: 8765-8769; RCC Midway: 8775-8779; Mac: 8765)
 cat ~/.agent_plots_port 2>/dev/null || echo 8765
 ```
 
@@ -104,7 +104,7 @@ DT::saveWidget(
 
 ## Infrastructure
 
-- Server auto-started at login via `*rc_local`, port 8765 on Great Lakes, 8775 on RCC Midway (auto-retries the next 4 ports if another user holds it — see `~/.agent_plots_port`); its `--directory` may point to scratch, not `~/agent_plots` — always detect before saving (see above)
+- Server auto-started at login via `*rc_local`, port 8765 on Great Lakes, 8775 on RCC Midway (auto-retries the next 4 ports if another user holds it — see `~/.agent_plots_port`; startup is skipped only if our uid owns that port); its `--directory` may point to scratch, not `~/agent_plots` — always detect before saving (see above)
 - If not running: check `*rc_local` for the correct start command and directory; do not assume `~/agent_plots`
 - SSH tunnel: Mac `~/.ssh/config` (`dotfiles/local_dotfiles_MEDGEN_MacbookAir/.ssh/config`) forwards 8765-8768 in the `greatlakes` block and 8775-8779 in the `midway*` block, always to `127.0.0.1`. If a Midway port shows nothing while the server answers on the cluster, run `lsof -nP -iTCP:<port> -sTCP:LISTEN` on the Mac to see which ssh owns it. With `ControlMaster`/`ControlPersist 24h`, a config change takes effect only after `ssh -O exit <host>`.
 - **Sending a file to Slack** (plot or otherwise): see the `post-to-slack` skill.

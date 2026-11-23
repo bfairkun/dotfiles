@@ -24,7 +24,8 @@ srun --account=hastingm0 --partition=standard --cpus-per-task=4 --mem=16G --time
 | `HOSTNAME_VERIFY` | `echo $HOST` matches `gl-login*` |
 | `BRAIN_PATH` | `/nfs/turbo/umms-hastingm/benfair/repos_not_projects/brain` _(verify/clone on machine)_ |
 | `AGENT_PLOTS` | `~/agent_plots` |
-| `KERNEL_CF` | `~/agent_kernel.json` (scratch not provisioned yet) |
+| `SCRATCH` | `/scratch/hastingm_root/hastingm0` (set in `.profile_local`; use `$SCRATCH/$USER`) |
+| `KERNEL_CF` | `$SCRATCH/$USER/agent_kernel.json` |
 | `STATE_MD` | `~/agent_plots/state.md` |
 | `STATE_JSON` | `~/agent_plots/state.json` |
 | `PROJECTS_DIR` | `/nfs/turbo/umms-hastingm/benfair/` |

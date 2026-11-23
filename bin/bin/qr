@@ -1,0 +1,42 @@
+#!/bin/sh
+# qr — print a scannable QR code in the terminal (e.g. an auth URL you can't
+# copy out of ssh/tmux). Scan it with your phone camera.
+#
+#   qr 'https://example.com/device?code=XXXX'
+#   echo "$URL" | qr
+#
+# Encoder: qrencode if installed, else Python `segno` (from the agent_qr conda
+# env, or any python3 that has it). Create the env with:
+#   micromamba create -n agent_qr -c conda-forge python segno
+# Rendered black-on-white with half-block glyphs, so it scans regardless of the
+# terminal's colour theme and fits long URLs on screen.
+
+if [ $# -gt 0 ]; then text="$*"; else text=$(cat); fi
+[ -n "$text" ] || { echo "usage: qr TEXT  (or pipe text on stdin)" >&2; exit 1; }
+
+if command -v qrencode >/dev/null 2>&1; then
+    printf '%s' "$text" | qrencode -t UTF8i -m 4 -l L
+    exit
+fi
+
+for py in "${MAMBA_ROOT_PREFIX:-$HOME/micromamba}/envs/agent_qr/bin/python" \
+          "$HOME/miniconda3/envs/agent_qr/bin/python" python3; do
+    if "$py" -c 'import segno' >/dev/null 2>&1; then
+        exec "$py" - "$text" <<'EOF'
+import sys, segno
+qr = segno.make(sys.argv[1], error="l", boost_error=False)
+rows = [list(r) for r in qr.matrix_iter(scale=1, border=4)]
+if len(rows) % 2:
+    rows.append([0] * len(rows[0]))
+W, R = "\033[47;30m", "\033[0m"   # white background, black glyphs
+glyph = {(0, 0): " ", (1, 0): "▀", (0, 1): "▄", (1, 1): "█"}
+out = []
+for top, bot in zip(rows[::2], rows[1::2]):
+    out.append(W + "".join(glyph[(t, b)] for t, b in zip(top, bot)) + R)
+print("\n".join(out))
+EOF
+    fi
+done
+
+echo "qr: no encoder found — install qrencode, or: micromamba create -n agent_qr -c conda-forge python segno" >&2
+exit 1

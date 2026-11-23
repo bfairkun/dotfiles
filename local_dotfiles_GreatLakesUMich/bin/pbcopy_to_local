@@ -1,5 +1,5 @@
 #!/bin/sh
 # Pipe stdin to Mac's pbcopy over an SSH reverse tunnel (port 2224).
-# Great Lakes runs OpenBSD netcat, which doesn't support -q (a Linux/nmap
-# netcat flag). Use -w (idle timeout) instead for the same clean close.
+# Great Lakes nc is nmap Ncat 7.92; -w 1 bounds the connect and it closes
+# cleanly on stdin EOF (OpenBSD-style -q is not needed).
 cat | nc -w 1 localhost 2224

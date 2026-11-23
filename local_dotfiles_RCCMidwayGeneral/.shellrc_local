@@ -1,0 +1,72 @@
+# .shellrc_local for RCC Midway HPC
+# Sourced by .bashrc_local and .zshrc_local — POSIX-compatible content only.
+
+echo "Running  ${0}..." >&2
+
+function update_display {
+    if [ ! -z $TMUX ]; then
+        export DISPLAY="`tmux show-env | sed -n 's/^DISPLAY=//p'`"
+    fi
+}
+
+# Modules (loaded here so non-login shells like dispatcher windows get them too)
+module load node
+
+# Midway2 specific
+hostname | grep -q 'midway2' && module load R/4.2.0
+
+# Midway3 specific (also beagle3, which shares Midway3's module tree)
+hostname | grep -Eq 'midway3|beagle3' && module load R/4.3.1
+
+alias claude_dispatcher='tmux new-window -n "dispatcher" "claude --agent dispatcher -n dispatcher"'
+
+# Claude Code enterprise account wrapper. CLAUDE_CONFIG_DIR selects which
+# identity (credentials/settings) claude uses; ~/.claude-enterprise/projects
+# is symlinked to ~/.claude/projects so transcripts/skills are shared either
+# way. Forwards all args, so e.g. `claude-ent --resume <id>` or `claude-ent -c`
+# work exactly like plain `claude`, just billed/logged-in to the UChicago
+# enterprise account instead of personal. No Remote Control under enterprise
+# (org policy) — use plain `claude` (personal) for anything you want to pick
+# up from your phone.
+claude-ent() {
+    CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" command claude "$@"
+}
+alias R='update_display && R'
+alias rstudio='update_display && rstudio'
+alias srstudio='sinteractive --mem=8g --time=2:00:00 --cpus-per-task=4 --command "update_display && rstudio"'
+
+# Load secret API keys (not tracked in dotfiles)
+[ -f ~/.secrets ] && source ~/.secrets
+
+# Auto-start agent plots HTTP server on 8775 (8765-8769 are reserved for the Great
+# Lakes tunnel on the Mac). Login nodes are shared: other users may
+# hold 8775, so the server falls back up to 8779 and records the port it bound in
+# ~/.agent_plots_port. Only skip startup if *our* uid owns that port on this node.
+# Interactive shells only, so non-interactive ssh commands and Slurm job
+# shells on compute nodes don't spawn one.
+if [[ $- == *i* ]]; then
+    mkdir -p $SCRATCH/$USER/agent_plots
+    _ap_port=$(cat ~/.agent_plots_port 2>/dev/null)
+    if [ -z "$_ap_port" ] || ! ss -tlne 2>/dev/null | grep -Eq ":$_ap_port[[:space:]].*uid:$(id -u)[[:space:]]"; then
+        nohup python3 ~/.agents/skills/agent-plots/agent_plots_server.py --port 8775 --directory $SCRATCH/$USER/agent_plots > $SCRATCH/$USER/agent_plots/server.log 2>&1 &
+    fi
+    unset _ap_port
+fi
+
+# List running Jupyter kernels (newest first)
+function jk() {
+    local seen=()
+    local found=0
+    while IFS= read -r line; do
+        local cf
+        cf=$(echo "$line" | grep -oE ' -+f[= ][^ ]+\.json' | grep -oE '[/~][^ ]+')
+        [[ -n "$cf" && -f "$cf" ]] || continue
+        local already=0
+        for s in "${seen[@]}"; do [[ "$s" == "$cf" ]] && already=1 && break; done
+        [[ $already -eq 1 ]] && continue
+        seen+=("$cf")
+        printf "  %s  %s\n" "$(date -r $cf '+%Y-%m-%d %H:%M:%S')" "$cf"
+        found=1
+    done < <(pgrep -u $UID -af 'ipykernel' 2>/dev/null)
+    [[ $found -eq 0 ]] && echo "No running Jupyter kernels."
+}

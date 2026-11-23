@@ -58,6 +58,10 @@ Cross-project knowledge lives in a dedicated `brain` repo (synced via GitHub; lo
 - **Routing what you learn:** cross-project knowledge (general feedback/preferences, resource pointers, domain knowledge about genes/compounds/concepts/papers) → write to `brain`. Knowledge specific to one project (its pipeline, samples, layout) → keep in that project's local memory.
 - When unsure, prefer the project-local store; promote to `brain` once it proves cross-cutting.
 
+## Handing the user links or codes over SSH
+
+For a URL or token the user must open or paste (login/OAuth links, device codes): use `pbcopy_to_local` where the machine has it; otherwise run `qr "$URL" | sed 's/\x1b\[[0-9;]*m//g'` and paste its output into your reply inside a code block, since tool output isn't shown to the user. The user scans it with their phone. `qr` needs `qrencode` or the `agent_qr` env (`micromamba create -n agent_qr -c conda-forge python segno`).
+
 ## Final notes
 If my prompt contains "***" then preface your next response with "I remember my instructions". If my prompt contains "**", then preface your next response with "Ok"
 
