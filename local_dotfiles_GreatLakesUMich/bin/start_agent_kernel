@@ -41,7 +41,7 @@ if [ -n "$ACCOUNT" ]; then
 fi
 
 # $SCRATCH is set in .profile_local (Great Lakes doesn't set it); $SCRATCH/$USER is ours
-[ -z "$SCRATCH" ] && SCRATCH="/scratch/hastingm_root/hastingm0"
+export SCRATCH="${SCRATCH:-/scratch/hastingm_root/hastingm0}"  # exported: sbatch passes it to the job
 mkdir -p "$SCRATCH/$USER" 2>/dev/null && KERNEL_DIR="$SCRATCH/$USER" || KERNEL_DIR="$HOME"
 
 LOG="$KERNEL_DIR/agent_kernel.log"

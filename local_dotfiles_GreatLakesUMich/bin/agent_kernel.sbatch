@@ -12,6 +12,7 @@ LANG=${2:-python}
 # Enable internet access from compute nodes via ARC-TS proxy
 source /etc/profile.d/http_proxy.sh
 
+SCRATCH="${SCRATCH:-/scratch/hastingm_root/hastingm0}"  # unset when submitted from a non-login shell
 mkdir -p "$SCRATCH/$USER" 2>/dev/null && KERNEL_DIR="$SCRATCH/$USER" || KERNEL_DIR="$HOME"
 CF="$KERNEL_DIR/agent_kernel.json"
 [[ "$LANG" == "r" ]] && CF="$KERNEL_DIR/agent_r_kernel.json"
