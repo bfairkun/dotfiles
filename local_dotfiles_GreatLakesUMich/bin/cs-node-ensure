@@ -1,0 +1,31 @@
+#!/bin/bash
+# Print the node of a RUNNING cs-node job, submitting one first if none exists.
+# Called on the login node by the Mac's greatlakes-node ProxyCommand.
+# Last stdout line is the node name, or "ERROR: ..." on failure.
+# Env: CS_ACCOUNT (hastingm0), CS_WAIT seconds to wait for RUNNING (600), CS_IDLE_MIN (30).
+
+export SCRATCH="${SCRATCH:-/scratch/hastingm_root/hastingm0}"
+ACCOUNT=${CS_ACCOUNT:-hastingm0}
+WAIT=${CS_WAIT:-600}
+DIR="$(dirname "$(readlink -f "$0")")"
+
+running() { squeue --me -n cs-node -t RUNNING -h -o %N 2>/dev/null | head -1; }
+
+exec 9>"/tmp/cs-node-ensure.$USER.lock"
+flock -w 60 9 || { echo "ERROR: another cs-node-ensure is stuck"; exit 1; }
+
+n=$(running)
+if [ -z "$n" ] && [ -z "$(squeue --me -n cs-node -t PENDING,CONFIGURING -h -o %i 2>/dev/null)" ]; then
+    mkdir -p "$SCRATCH/$USER"
+    sbatch --account="$ACCOUNT" --output="$SCRATCH/$USER/cs-node.log" \
+        --export=ALL,CS_IDLE_MIN="${CS_IDLE_MIN:-30}" "$DIR/cs-node.sbatch" >&2 \
+        || { echo "ERROR: sbatch of cs-node failed"; exit 1; }
+fi
+
+end=$((SECONDS + WAIT))
+while [ -z "$n" ]; do
+    [ $SECONDS -ge $end ] && { echo "ERROR: cs-node still not RUNNING after ${WAIT}s (pending in queue; retry later)"; exit 1; }
+    sleep 5
+    n=$(running)
+done
+echo "$n"
