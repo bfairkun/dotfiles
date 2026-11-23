@@ -1,6 +1,6 @@
 ---
 name: greatlakes-compute-access
-description: "UMich Great Lakes HPC only. How an agent (Claude Science, or any agent driving the cluster over ssh from the Mac) reaches Great Lakes without Okta: the `greatlakes-node` ssh alias to a compute node held by Slurm job `cs-node`, then `srun --overlap` or node-to-node ssh to work interactively inside any other job, including GPU jobs. Invoke when connecting an agent or app to Great Lakes, registering a compute host, working interactively on a compute/GPU node, or debugging `greatlakes-node` failures (no RUNNING cs-node job, Bad packet length, corrupted sftp)."
+description: "UMich Great Lakes HPC only. How an agent (Claude Science, or any agent driving the cluster over ssh from the Mac) reaches Great Lakes without Okta: the `greatlakes-node` ssh alias to a compute node held by Slurm job `cs-node`, then `srun --overlap` or node-to-node ssh to work interactively inside any other job, including GPU jobs. Invoke when connecting an agent or app to Great Lakes, registering a compute host, working interactively on a compute/GPU node, or debugging `greatlakes-node` failures (no RUNNING cs-node job, Bad packet length, corrupted sftp), or running a stateful Python kernel there from a plain ssh host (kexec)."
 ---
 
 # Great Lakes compute access for agents
@@ -46,12 +46,34 @@ scancel $J                                  # release when done
 
 - ssh to a node is allowed only while you have a job on it; otherwise "Connection closed".
 - **GPU:** prefer `ssh <node>`, which joins the job's cgroup and so sees its GPUs. Whether an `srun --overlap` step sees the GPUs without `--gpus`/`--gres` is untested; check `nvidia-smi` before relying on it.
-- Each `srun`/`ssh` call is a fresh shell (no `cd` or env carry-over). For stateful Python/R, start a kernel on the node: see the `compute-kernel` skill.
+- Each `srun`/`ssh` call is a fresh shell (no `cd` or env carry-over). For stateful work, use a kernel (next section).
+
+## Interactive Python kernel (stateful, with plots)
+
+This works over a plain ssh host such as `greatlakes-node`: no port forward and no MCP server. The kernel binds its node's cluster IP, and `kexec` connects to it from any Great Lakes node. Use full paths, because `~/bin` is not on `PATH` in non-login shells.
+
+```bash
+~/bin/start_agent_kernel --account hastingm0 --mem 16G --time 4:00:00 --cpus 4   # blocks until ready
+~/bin/kexec --status
+~/bin/kexec <<'PY'
+import pandas as pd; df = pd.read_parquet("/scratch/...")   # stays loaded for later calls
+PY
+~/bin/kexec <<'PY'
+df.plot(); plt.show()          # prints: [image] /scratch/hastingm_root/hastingm0/benfair/kexec_out/<ts>.png
+PY
+echo "get <that path> /local/dir/" | sftp -b - greatlakes-node      # fetch the plot to show the user
+scancel <kernel jobid>          # when done
+```
+
+- Connection file: `/scratch/hastingm_root/hastingm0/benfair/agent_kernel.json`. `start_agent_kernel` **deletes and replaces it**, so first check `squeue --me -n agent_kernel.sbatch` for a kernel another session is using. For a second kernel, write your own `--wrap` with another file (see `compute-kernel`) and pass `kexec -f <file>`.
+- `kexec` exit codes: 0 ok; 1 the code raised (traceback on stderr); 2 the kernel is unreachable (job ended?); 124 timeout (`-t`, default 600 s), after which the code keeps running in the kernel.
+- Use it for exploration. Move finished analyses into scripts or notebooks run as batch jobs.
+- Claude Code sessions on the login node can instead attach to the same kernel through the jupyter-kernel MCP (`compute-kernel` skill).
 - Partitions: `gpu` (gl1000-1023), `spgpu`, `gpu_mig40`, `gpu-rtx6000`. Account `hastingm0` may use all of them. Check the queue with `sbatch --test-only …` first; GPU waits can be hours to days. GPU hours bill far above CPU, so use short walltimes for interactive holds.
 
 ## Environment facts
 
-- **Compute nodes have no outbound internet.** Connections to github.com are blocked, so `git pull/push` hangs. Assume `pip`/`conda`/downloads fail too. Run network steps on the login node through the master from the Mac (`ssh -n -o BatchMode=yes -o ControlMaster=no greatlakes '<cmd>'`), or ask the user. A session on `greatlakes-node` cannot reach a login node itself, because that needs Okta.
+- **Compute nodes reach the internet only through the ARC-TS HTTP proxy.** Run `source /etc/profile.d/http_proxy.sh` first; then HTTPS (pip, conda, curl, `git` over `https://github.com/...`) works. ssh to github.com (port 22) is blocked, so `git@github.com:` remotes hang. For those, use `git pull https://github.com/<owner>/<repo>.git main`. Pushing needs ssh: run it on the login node from the Mac (`ssh -n -o BatchMode=yes -o ControlMaster=no greatlakes '<cmd>'`), because a session on `greatlakes-node` cannot reach a login node without Okta.
 - `$SCRATCH` is set only in login shells (`.profile_local`), so it is empty over `greatlakes-node`. Use `/scratch/hastingm_root/hastingm0/benfair`.
 - All compute nodes checked (gl1000-1001, gl3018-3021, gl3036) share one ed25519 host key, so `HostKeyAlias greatlakes-node` with `accept-new` is stable.
 - Shell rc banners go to stderr (`Running  bash...`). That is harmless.
