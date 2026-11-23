@@ -8,7 +8,7 @@
 #   - tmux/vim are system-installed; no module load needed
 #   - R available via module (4.4.3 is default; 4.6.0 is latest)
 
-echo "Running  ${0}..."
+echo "Running  ${0}..." >&2
 
 function update_display {
     # Sync the DISPLAY variable from tmux's environment.
@@ -70,10 +70,13 @@ alias rstudio='update_display && rstudio'
 # Add your keys to ~/.secrets: export ANTHROPIC_API_KEY="sk-ant-..."
 [ -f ~/.secrets ] && source ~/.secrets
 
-# Auto-start agent plots HTTP server on port 8765
-mkdir -p ~/agent_plots
-if ! pgrep -f "agent_plots_server.py" > /dev/null 2>&1; then
-    nohup python3 ~/bin/agent_plots_server.py --port 8765 --directory ~/agent_plots > ~/agent_plots/server.log 2>&1 &
+# Auto-start agent plots HTTP server on port 8765 (interactive shells only, so
+# non-interactive ssh commands and Slurm job shells on compute nodes don't spawn one)
+if [[ $- == *i* ]]; then
+    mkdir -p ~/agent_plots
+    if ! pgrep -f "agent_plots_server.py" > /dev/null 2>&1; then
+        nohup python3 ~/bin/agent_plots_server.py --port 8765 --directory ~/agent_plots > ~/agent_plots/server.log 2>&1 &
+    fi
 fi
 
 # List running Jupyter kernels (newest first).

@@ -2,7 +2,7 @@
 # If something is compatible and desired to be configured for all POSIX shells, including zsh, please edit ~/.profile
 # and source .profile in all shells
 
-echo "Running  ${0}..."
+echo "Running  ${0}..." >&2
 # set -xe
 
 # nnn config

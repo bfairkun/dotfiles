@@ -8,7 +8,7 @@
 #   - tmux/zsh/vim are system-installed; no module load needed
 #   - R available via module (4.4.3 is default; 4.6.0 is latest)
 
-echo "Running  ${0}..."
+echo "Running  ${0}..." >&2
 
 function update_display {
     # Sync the DISPLAY variable from tmux's environment.

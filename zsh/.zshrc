@@ -4,7 +4,7 @@
 # functions, options, key bindings, etc.
 #
 
-echo "Running  ${0}..."
+echo "Running  ${0}..." >&2
 ZSH_DISABLE_COMPFIX="true"
 
 # autoload -U compinit

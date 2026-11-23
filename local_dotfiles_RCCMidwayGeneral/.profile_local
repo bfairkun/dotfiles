@@ -2,7 +2,7 @@
 # Added myself, don't know why the conda blocks managed by conda init aren't
 # working right.
 
-echo "Running  ${0}..."
+echo "Running  ${0}..." >&2
 # set -x
 
 export TZ='America/Chicago'

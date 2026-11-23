@@ -12,7 +12,7 @@
 #   - Login nodes: gl-login*.arc-ts.umich.edu
 #   - Timezone: America/Detroit
 
-echo "Running  ${0}..."
+echo "Running  ${0}..." >&2
 
 export TZ='America/Detroit'
 
