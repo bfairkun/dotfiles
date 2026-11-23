@@ -51,6 +51,7 @@ scancel $J                                  # release when done
 
 ## Environment facts
 
+- **Compute nodes have no outbound internet.** Connections to github.com are blocked, so `git pull/push` hangs. Assume `pip`/`conda`/downloads fail too. Run network steps on the login node through the master from the Mac (`ssh -n -o BatchMode=yes -o ControlMaster=no greatlakes '<cmd>'`), or ask the user. A session on `greatlakes-node` cannot reach a login node itself, because that needs Okta.
 - `$SCRATCH` is set only in login shells (`.profile_local`), so it is empty over `greatlakes-node`. Use `/scratch/hastingm_root/hastingm0/benfair`.
 - All compute nodes checked (gl1000-1001, gl3018-3021, gl3036) share one ed25519 host key, so `HostKeyAlias greatlakes-node` with `accept-new` is stable.
 - Shell rc banners go to stderr (`Running  bash...`). That is harmless.
