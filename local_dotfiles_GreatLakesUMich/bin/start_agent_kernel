@@ -66,6 +66,7 @@ echo "Job $JOBID submitted. Waiting for kernel to start..."
 
 # Poll until connection file appears (kernel is ready)
 while [[ ! -f $CF ]]; do
+    squeue -h -j "$JOBID" -o %T 2>/dev/null | grep -q . || { echo "Job $JOBID left the queue before the kernel started. Log:"; cat "$LOG"; exit 1; }
     sleep 2
 done
 

@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""Run code in a running Jupyter kernel from the shell; kernel state persists between calls.
+
+USAGE
+  kexec [-f CONNECTION_FILE] [-t TIMEOUT] [-o OUTDIR] [-c CODE]   # code from -c or stdin
+  kexec --status [-f CONNECTION_FILE]
+
+Prints stdout/stderr/results as plain text. Images the kernel displays (e.g. plt.show() with
+the inline backend) are saved as PNG files in OUTDIR and their paths printed as `[image] PATH`.
+Exit codes: 0 ok, 1 code raised, 2 cannot reach kernel, 124 timed out (code keeps running).
+
+Defaults: CONNECTION_FILE=$SCRATCH/$USER/agent_kernel.json (as written by start_agent_kernel),
+OUTDIR=$SCRATCH/$USER/kexec_out. Run on any Great Lakes node that can reach the kernel's node.
+"""
+import os
+import sys
+
+PY_GENERAL = os.path.expanduser("~/micromamba/envs/py_general/bin/python")
+try:
+    import jupyter_client  # noqa: F401
+except ImportError:
+    if os.path.exists(PY_GENERAL) and os.path.realpath(sys.executable) != os.path.realpath(PY_GENERAL):
+        os.execv(PY_GENERAL, [PY_GENERAL] + sys.argv)
+    sys.exit("kexec: jupyter_client not importable (need py_general)")
+
+import argparse
+import base64
+import queue
+import re
+import time
+
+from jupyter_client import BlockingKernelClient
+
+ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+scratch = os.environ.get("SCRATCH") or "/scratch/hastingm_root/hastingm0"
+user = os.environ.get("USER", "")
+
+ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+ap.add_argument("-f", "--file", default=f"{scratch}/{user}/agent_kernel.json")
+ap.add_argument("-t", "--timeout", type=float, default=600)
+ap.add_argument("-o", "--outdir", default=f"{scratch}/{user}/kexec_out")
+ap.add_argument("-c", "--code")
+ap.add_argument("--status", action="store_true")
+a = ap.parse_args()
+
+if not os.path.exists(a.file):
+    sys.exit(f"kexec: no connection file {a.file} (start a kernel with start_agent_kernel)")
+
+kc = BlockingKernelClient()
+kc.load_connection_file(a.file)
+kc.start_channels()
+try:
+    kc.wait_for_ready(timeout=15)
+except RuntimeError as e:
+    print(f"kexec: kernel at {kc.ip} not responding ({e}); is its job still running?", file=sys.stderr)
+    sys.exit(2)
+
+if a.status:
+    info = kc.kernel_info(reply=True, timeout=10)["content"]
+    print(f"kernel ok: {kc.ip}  {info.get('implementation')} {info.get('language_info', {}).get('version', '')}")
+    sys.exit(0)
+
+code = a.code if a.code is not None else sys.stdin.read()
+msg_id = kc.execute(code, store_history=True)
+deadline = time.time() + a.timeout
+status, nimg = 0, 0
+
+def save_png(data_b64):
+    global nimg
+    os.makedirs(a.outdir, exist_ok=True)
+    nimg += 1
+    path = os.path.join(a.outdir, f"{time.strftime('%Y%m%d-%H%M%S')}_{msg_id[:8]}_{nimg}.png")
+    with open(path, "wb") as fh:
+        fh.write(base64.b64decode(data_b64))
+    print(f"[image] {path}", flush=True)
+
+while True:
+    remaining = deadline - time.time()
+    if remaining <= 0:
+        print(f"kexec: timed out after {a.timeout:.0f}s; the code is still running in the kernel", file=sys.stderr)
+        sys.exit(124)
+    try:
+        msg = kc.get_iopub_msg(timeout=min(remaining, 5))
+    except queue.Empty:
+        continue
+    if msg["parent_header"].get("msg_id") != msg_id:
+        continue
+    t, c = msg["msg_type"], msg["content"]
+    if t == "stream":
+        (sys.stdout if c["name"] == "stdout" else sys.stderr).write(c["text"])
+    elif t in ("execute_result", "display_data"):
+        d = c.get("data", {})
+        if "image/png" in d:
+            save_png(d["image/png"])
+        elif "text/plain" in d:
+            print(d["text/plain"])
+    elif t == "error":
+        print(ANSI.sub("", "\n".join(c.get("traceback", [])) or f"{c['ename']}: {c['evalue']}"), file=sys.stderr)
+        status = 1
+    elif t == "status" and c["execution_state"] == "idle":
+        break
+sys.stdout.flush()
+sys.exit(status)
