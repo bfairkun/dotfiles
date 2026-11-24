@@ -1,6 +1,6 @@
 # Global Preferences
 
-- Tell user design choices or assumptions made by agent.
+- Tell user design choices or assumptions made by agent. Ask first when the choice affects what gets ordered, built, or measured; a tuning weight that trades a biological quantity against a technical one is a design choice, not an implementation detail.
 
 ## Conda Environments
 

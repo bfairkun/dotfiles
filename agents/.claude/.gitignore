@@ -13,3 +13,5 @@
 !skills
 !agents/
 !agents/*
+!hooks/
+!hooks/*.sh
